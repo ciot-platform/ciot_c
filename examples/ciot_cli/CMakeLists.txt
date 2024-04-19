@@ -1,0 +1,11 @@
+cmake_minimum_required(VERSION 3.5)
+
+if (UNIX)
+    message("Compiling for linux...")
+    project(ciot_cli)
+    add_subdirectory(main)
+elseif (WIN32)
+    message("Compiling for windows...")
+    project(ciot_cli)
+    add_subdirectory(main)
+endif()

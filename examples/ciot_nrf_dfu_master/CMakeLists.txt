@@ -1,0 +1,11 @@
+cmake_minimum_required(VERSION 3.5)
+
+if (UNIX)
+    message("Compiling for linux...")
+    project(ciot_nrf_dfu_master)
+    add_subdirectory(main)
+elseif (WIN32)
+    message("Compiling for windows...")
+    project(ciot_nrf_dfu_master)
+    add_subdirectory(main)
+endif()

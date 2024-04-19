@@ -58,10 +58,10 @@ struct iot_device
     ciot_serializer_t serializer;
 };
 
-typedef struct iot_device *iot_device_t;
+typedef struct iot_device *ciot_device_t;
 
-iot_device_t iot_device_new(void);
-ciot_err_t iot_device_start(iot_device_t self);
-ciot_err_t iot_device_task(iot_device_t self);
+ciot_device_t ciot_device_new(void);
+ciot_err_t ciot_device_start(ciot_device_t self);
+ciot_err_t ciot_device_task(ciot_device_t self);
 
 #endif  //!__IOT_DEVICE__H__

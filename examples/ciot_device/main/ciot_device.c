@@ -11,7 +11,7 @@
 
 #include "ciot_err.h"
 
-#include "iot_device.h"
+#include "ciot_device.h"
 #include "proto_serializer.h"
 
 static const char *TAG = "iot_device";
@@ -25,19 +25,18 @@ static ciot_uart_cfg_t uart_cfg = CIOT_CONFIG_UART;
 static ciot_https_cfg_t https_cfg = CIOT_CONFIG_HTTPS;
 static ciot_httpc_cfg_t httpc_cfg = CIOT_CONFIG_HTTPC;
 
-static ciot_err_t iot_device_event_handler(ciot_iface_t *iface, ciot_iface_event_t *event, void *args);
-
-iot_device_t iot_device_new(void)
+ciot_device_t ciot_device_new(void)
 {
-    iot_device_t self = calloc(1, sizeof(struct iot_device));
+    ciot_device_t self = calloc(1, sizeof(struct iot_device));
     return self;
 }
 
-ciot_err_t iot_device_start(iot_device_t self)
+ciot_err_t ciot_device_start(ciot_device_t self)
 {
     CIOT_LOGI(TAG, "Application starting...");
 
     self->ifaces.ciot = ciot_new();
+    self->ifaces.list[IOT_DEVICE_IFACE_CIOT] = (ciot_iface_t*)self->ifaces.ciot;
 
     self->ifaces.sys = ciot_sys_new(CIOT_HANDLE);
     self->ifaces.list[IOT_DEVICE_IFACE_SYS] = (ciot_iface_t*)self->ifaces.sys;
@@ -84,7 +83,7 @@ ciot_err_t iot_device_start(iot_device_t self)
     return ciot_start(self->ifaces.ciot, &ciot_cfg);
 }
 
-ciot_err_t iot_device_task(iot_device_t self)
+ciot_err_t ciot_device_task(ciot_device_t self)
 {
     CIOT_ERROR_RETURN(ciot_sys_task(self->ifaces.sys));
     CIOT_ERROR_RETURN(ciot_uart_task(self->ifaces.uart));
