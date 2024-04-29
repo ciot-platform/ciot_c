@@ -146,6 +146,7 @@ static void ciot_sys_init(ciot_sys_t self)
     rst_count++;
     self->status.rst_reason = esp_reset_reason();
     self->status.rst_count = rst_count;
+    self->status.info.hardware = ciot_sys_get_hw();
 
     memcpy(self->status.info.hw_name, hw_name, sizeof(hw_name));
     memcpy(self->status.info.app_ver, app_ver, sizeof(app_ver));

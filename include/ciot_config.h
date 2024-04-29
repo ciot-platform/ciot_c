@@ -50,6 +50,7 @@
 #define CIOT_CONFIG_FEATURE_WIFI 1     ///!< Enable WiFi
 #define CIOT_CONFIG_FEATURE_NTP 1      ///!< Enable NTP
 #define CIOT_CONFIG_FEATURE_OTA 1      ///!< Enable OTA
+#define CIOT_CONFIG_FEATURE_DFU 1      ///!< Enable DFU
 #define CIOT_CONFIG_FEATURE_HTTPS 1    ///!< Enable HTTP Server
 #define CIOT_CONFIG_FEATURE_HTTPC 1    ///!< Enable HTTP Client
 #define CIOT_CONFIG_FEATURE_MQTTC 1    ///!< Enable MQTT Client

@@ -35,6 +35,7 @@ static ciot_err_t ciot_uart_init(ciot_uart_t self);
 static void ciot_uart_process_error(ciot_uart_t self, DWORD error);
 static ciot_err_t ciot_uart_process_status(ciot_uart_t self, COMSTAT *status);
 ciot_err_t ciot_uart_task_internal(ciot_iface_t *iface, ciot_s_t ciot_s);
+ciot_err_t ciot_uart_event(ciot_uart_base_t *base, ciot_iface_event_type_t event);
 
 ciot_err_t ciot_uart_on_message(ciot_iface_t *iface, uint8_t *data, int size);
 
@@ -77,6 +78,8 @@ ciot_err_t ciot_uart_start(ciot_uart_t self, ciot_uart_cfg_t *cfg)
     {
         CIOT_LOGE(TAG, "Unable to open serial port %s", self->port_name);
         self->uart.status.state = CIOT_UART_STATE_INTERNAL_ERROR;
+        self->uart.status.error = CIOT_UART_ERR_OPEN;
+        ciot_uart_event(&self->uart, CIOT_IFACE_EVENT_ERROR);
         return CIOT_FAIL;
     }
 
@@ -129,6 +132,7 @@ ciot_err_t ciot_uart_send_bytes(ciot_iface_t *iface, uint8_t *bytes, int size)
 ciot_err_t ciot_uart_set_bridge_mode(ciot_uart_t self, bool mode)
 {
     CIOT_NULL_CHECK(self);
+    self->uart.cfg.bridge_mode = mode;
     return ciot_s_set_bridge_mode(self->uart.s, mode);
 }
 
@@ -241,7 +245,6 @@ static ciot_err_t ciot_uart_process_status(ciot_uart_t self, COMSTAT *status)
             }
             status->cbInQue--;
         }
-        printf("\n");
     }
 }
 

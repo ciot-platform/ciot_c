@@ -78,13 +78,12 @@
                 "-mcpu=cortex-m4"
             ],
             "includePath": [
-                "E:/Projetos/nordic/nRF5_SDK_17.1.0_ddde560/components/**",
-                "E:/Projetos/nordic/nRF5_SDK_17.1.0_ddde560/modules/**",
-                "E:/Projetos/nordic/nRF5_SDK_17.1.0_ddde560/external/**",
-                "E:/Projetos/nordic/nRF5_SDK_17.1.0_ddde560/integration/**",
+                "../nRF5_SDK_17/components/**",
+                "../nRF5_SDK_17/modules/**",
+                "../nRF5_SDK_17/external/**",
+                "../nRF5_SDK_17/integration/**",
                 "${workspaceFolder}/include/**",
-                "${workspaceFolder}/src/platform/nrf",
-                "examples/nrf_ble_scn/**"
+                "${workspaceFolder}/src/nrf"
             ],
             "forcedInclude": [],
             "defines": [

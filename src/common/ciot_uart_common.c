@@ -64,4 +64,24 @@ ciot_err_t ciot_uart_task_internal(ciot_iface_t *iface, ciot_s_t ciot_s)
     return err;
 }
 
+ciot_err_t ciot_uart_event(ciot_uart_base_t *base, ciot_iface_event_type_t event)
+{
+    if(base->iface.event_handler != NULL)
+    {
+        ciot_iface_event_t iface_event = { 0 };
+        ciot_uart_status_msg_t status_msg = { 0 };
+
+        status_msg.header.iface = base->iface.info;
+        status_msg.header.type = CIOT_MSG_TYPE_EVENT;
+        status_msg.status = base->status;
+
+        iface_event.data = (ciot_iface_event_data_u*)&status_msg;
+        iface_event.size = sizeof(status_msg);
+        iface_event.type = event;
+
+        return base->iface.event_handler(&base->iface, &iface_event, base->iface.event_args);
+    }
+    return CIOT_OK;
+}
+
 #endif

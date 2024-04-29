@@ -1,12 +1,12 @@
 /**
  * @file ciot_nrf_dfu.h
  * @author your name (you@domain.com)
- * @brief 
+ * @brief
  * @version 0.1
  * @date 2024-04-18
- * 
+ *
  * @copyright Copyright (c) 2024
- * 
+ *
  */
 
 #ifndef __CIOT_NRF_DFU__H__
@@ -57,6 +57,24 @@ typedef enum ciot_nrf_dfu_result
     CIOT_NRF_DFU_RES_CODE_EXT_ERROR = 0x0B,               //!< Extended error. The next byte of the response contains the error code of the extended error (see @ref nrf_dfu_ext_error_code_t.
 } ciot_nrf_dfu_result_t;
 
+typedef enum ciot_nrf_dfu_ext_error_code
+{
+    NRF_DFU_EXT_ERROR_NO_ERROR = 0x00,             // No extended error code has been set. This error indicates an implementation problem.
+    NRF_DFU_EXT_ERROR_INVALID_ERROR_CODE = 0x01,   // Invalid error code. This error code should never be used outside of development.
+    NRF_DFU_EXT_ERROR_WRONG_COMMAND_FORMAT = 0x02, // The format of the command was incorrect. This error code is not used in the current implementation, because NRF_DFU_RES_CODE_OP_CODE_NOT_SUPPORTED and NRF_DFU_RES_CODE_INVALID_PARAMETER cover all possible format errors.
+    NRF_DFU_EXT_ERROR_UNKNOWN_COMMAND = 0x03,      // The command was successfully parsed, but it is not supported or unknown.
+    NRF_DFU_EXT_ERROR_INIT_COMMAND_INVALID = 0x04, // The init command is invalid. The init packet either has an invalid update type or it is missing required fields for the update type (for example, the init packet for a SoftDevice update is missing the SoftDevice size field).
+    NRF_DFU_EXT_ERROR_FW_VERSION_FAILURE = 0x05,   // The firmware version is too low. For an application, the version must be greater than the current application. For a bootloader, it must be greater than or equal to the current version. This requirement prevents downgrade attacks.
+    NRF_DFU_EXT_ERROR_HW_VERSION_FAILURE = 0x06,   // The hardware version of the device does not match the required hardware version for the update.
+    NRF_DFU_EXT_ERROR_SD_VERSION_FAILURE = 0x07,   // The array of supported SoftDevices for the update does not contain the FWID of the current SoftDevice.
+    NRF_DFU_EXT_ERROR_SIGNATURE_MISSING = 0x08,    // The init packet does not contain a signature. This error code is not used in the current implementation, because init packets without a signature are regarded as invalid.
+    NRF_DFU_EXT_ERROR_WRONG_HASH_TYPE = 0x09,      // The hash type that is specified by the init packet is not supported by the DFU bootloader.
+    NRF_DFU_EXT_ERROR_HASH_FAILED = 0x0a,          // The hash of the firmware image cannot be calculated.
+    NRF_DFU_EXT_ERROR_WRONG_SIGNATURE_TYPE = 0x0b, // The type of the signature is unknown or not supported by the DFU bootloader.
+    NRF_DFU_EXT_ERROR_VERIFICATION_FAILED = 0x0c,  // The hash of the received firmware image does not match the hash in the init packet.
+    NRF_DFU_EXT_ERROR_INSUFFICIENT_SPACE = 0x0d,   // The available space on the device is insufficient to hold the firmware.
+} ciot_nrf_dfu_ext_error_code_t;
+
 typedef enum ciot_nrf_dfu_state
 {
     CIOT_NRF_DFU_STATE_ERROR = -1,
@@ -87,15 +105,19 @@ typedef struct ciot_nrf_dfu_cfg
     ciot_nrf_dfu_packet_t init_packet;
     ciot_nrf_dfu_packet_t app_image;
     uint32_t max_package_len;
+    ciot_iface_t *iface;
+    int target_sys_iface_id;
 } ciot_nrf_dfu_cfg_t;
 
-ciot_dfu_t ciot_nrf_dfu_new(ciot_nrf_dfu_cfg_t *cfg, ciot_iface_t *iface);
+ciot_dfu_t ciot_nrf_dfu_new(ciot_nrf_dfu_cfg_t *cfg);
 ciot_err_t ciot_nrf_dfu_start(ciot_dfu_t self, ciot_dfu_cfg_t *cfg);
-ciot_err_t ciot_nrf_uart_stop(ciot_dfu_t self);
+ciot_err_t ciot_nrf_dfu_stop(ciot_dfu_t self);
 ciot_err_t ciot_nrf_dfu_process_req(ciot_dfu_t self, ciot_dfu_req_t *req);
 ciot_err_t ciot_nrf_dfu_send_data(ciot_dfu_t self, uint8_t *data, int size);
 
 ciot_err_t ciot_nrf_dfu_task(ciot_dfu_t self);
 ciot_err_t ciot_nrf_dfu_send_firmware(ciot_dfu_t self);
+ciot_err_t ciot_nrf_dfu_read_file(ciot_nrf_dfu_packet_t *object, const char *name);
+ciot_nrf_dfu_state_t ciot_nrf_dfu_state(ciot_dfu_t self);
 
-#endif  //!__CIOT_NRF_DFU__H__
+#endif //!__CIOT_NRF_DFU__H__

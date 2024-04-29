@@ -28,6 +28,7 @@ extern "C" {
 #include "types/ciot_ble_types.h"
 #include "types/ciot_ble_scn_types.h"
 #include "types/ciot_ntp_types.h"
+#include "types/ciot_dfu_types.h"
 #include "types/ciot_ota_types.h"
 #include "types/ciot_https_types.h"
 #include "types/ciot_httpc_types.h"
@@ -101,6 +102,7 @@ typedef union __attribute__((packed))
     ciot_ble_scn_data_u ble_scn;
     ciot_ntp_data_u ntp;
     ciot_ota_data_u ota;
+    ciot_dfu_data_u dfu;
     ciot_https_data_u https;
     ciot_httpc_data_u httpc;
     ciot_mqttc_data_u mqtt;

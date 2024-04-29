@@ -39,6 +39,7 @@ typedef enum __attribute__((packed))
     CIOT_UART_ERR_PARITY,
     CIOT_UART_ERR_DATA_BREAK,
     CIOT_UART_ERR_UNKNOWN_EVENT,
+    CIOT_UART_ERR_OPEN,
 } ciot_uart_error_t;
 
 typedef enum __attribute__((packed))

@@ -17,14 +17,13 @@ extern "C" {
 #endif
 
 #include <inttypes.h>
-#include "ciot_iface.h"
 
 typedef enum __attribute__((packed))
 {
     CIOT_DFU_STATE_ERROR=-1,
     CIOT_DFU_STATE_IDLE,
     CIOT_DFU_STATE_IN_PROGRESS,
-    CIOD_DFU_STATE_COMPLETED,
+    CIOT_DFU_STATE_COMPLETED,
 } ciot_dfu_state_t;
 
 typedef enum __attribute__((packed))
@@ -49,6 +48,7 @@ typedef struct
 typedef struct __attribute__((packed))
 {
     ciot_dfu_state_t state;
+    int code;
     int error;
     uint32_t image_size;
     uint32_t image_read;

@@ -41,6 +41,10 @@ struct ciot_sys
 };
 
 static void ciot_sys_init(ciot_sys_t self);
+static ciot_err_t ciot_sys_req_restart(ciot_sys_t self);
+static ciot_err_t ciot_sys_req_init_dfu(ciot_sys_t self);
+
+static const char *TAG = "ciot_sys";
 
 ciot_sys_t ciot_sys_new(void *handle)
 {
@@ -75,18 +79,9 @@ ciot_err_t ciot_sys_process_req(ciot_sys_t self, ciot_sys_req_t *req)
     case CIOT_SYS_REQ_UNKNONW:
         return CIOT_ERR_INVALID_TYPE;
     case CIOT_SYS_REQ_RESTART:
-        self->iface.base.req.status = CIOT_IFACE_REQ_STATUS_IDLE;
-        self->iface.base.req.response_size++;
-#ifdef SOFTDEVICE_PRESENT
-#ifdef CIOT_CONFIG_FEATURE_TIMER
-        self->reset_scheduled = ciot_timer_get() + 5;
-#else
-        ciot_sys_rst(self);
-#endif
-        return CIOT_OK;
-#else
-        return CIOT_ERR_NOT_SUPPORTED;
-#endif
+        return ciot_sys_req_restart(self);
+    case CIOT_SYS_REQ_INIT_DFU:
+        return ciot_sys_req_init_dfu(self);
     }
 
     return CIOT_ERR_INVALID_TYPE;
@@ -105,6 +100,8 @@ ciot_err_t ciot_sys_rst(ciot_sys_t self)
 
 static void ciot_sys_init(ciot_sys_t self)
 {
+    CIOT_LOGI(TAG, "System init");
+
     char hw_name[] = CIOT_CONFIG_HARDWARE_NAME;
     uint8_t app_ver[] = {CIOT_CONFIG_APP_VER};
 
@@ -112,9 +109,39 @@ static void ciot_sys_init(ciot_sys_t self)
 
     self->status.rst_reason = 0;
     self->status.rst_count = 0;
+    self->status.info.hardware = ciot_sys_get_hw();
 
     memcpy(self->status.info.hw_name, hw_name, sizeof(hw_name));
     memcpy(self->status.info.app_ver, app_ver, sizeof(app_ver));
+}
+
+static ciot_err_t ciot_sys_req_restart(ciot_sys_t self)
+{
+    ciot_sys_rst(self);
+    self->iface.base.req.status = CIOT_IFACE_REQ_STATUS_IDLE;
+    self->iface.base.req.response_size++;
+#ifdef SOFTDEVICE_PRESENT
+#ifdef CIOT_CONFIG_FEATURE_TIMER
+    self->reset_scheduled = self->status.lifetime + 5;
+#else
+    ciot_sys_rst(self);
+#endif
+    return CIOT_OK;
+#else
+    return CIOT_ERR_NOT_SUPPORTED;
+#endif
+}
+
+static ciot_err_t ciot_sys_req_init_dfu(ciot_sys_t self)
+{
+#if CIOT_CONFIG_FEATURE_DFU
+    CIOT_ERROR_RETURN(sd_power_gpregret_clr(0, 0xffffffff));
+    CIOT_ERROR_RETURN(sd_power_gpregret_set(0, BOOTLOADER_DFU_START));
+    nrf_pwr_mgmt_shutdown(NRF_PWR_MGMT_SHUTDOWN_GOTO_DFU);
+    return CIOT_OK;
+#else
+    return CIOT_ERR_NOT_SUPPORTED;
+#endif
 }
 
 ciot_err_t ciot_sys_task(ciot_sys_t self)
@@ -125,7 +152,7 @@ ciot_err_t ciot_sys_task(ciot_sys_t self)
     self->status.free_memory = 0;
 #if CIOT_CONFIG_FEATURE_TIMER
     self->status.lifetime = ciot_timer_get();
-    if(self->reset_scheduled > 0 && ciot_timer_compare(&self->reset_scheduled, 5))
+    if (self->reset_scheduled)
     {
         ciot_sys_rst(self);
     }

@@ -40,10 +40,10 @@
 #include "ciot_slip.h"
 #include "ciot_err.h"
 
-#define SLIP_BYTE_END             0300    /* indicates end of packet */
-#define SLIP_BYTE_ESC             0333    /* indicates byte stuffing */
-#define SLIP_BYTE_ESC_END         0334    /* ESC ESC_END means END data byte */
-#define SLIP_BYTE_ESC_ESC         0335    /* ESC ESC_ESC means ESC data byte */
+#define SLIP_BYTE_END             0xc0    /* indicates end of packet */
+#define SLIP_BYTE_ESC             0xdb    /* indicates byte stuffing */
+#define SLIP_BYTE_ESC_END         0xdc    /* ESC ESC_END means END data byte */
+#define SLIP_BYTE_ESC_ESC         0xdd    /* ESC ESC_ESC means ESC data byte */
 
 int ciot_slip_encode(uint8_t * p_output,  uint8_t * p_input, uint32_t input_length, uint32_t * p_output_buffer_length)
 {

@@ -95,16 +95,16 @@ ciot_err_t ciot_uart_start(ciot_uart_t self, ciot_uart_cfg_t *cfg)
 #if UART0_ENABLED
     case 0:
         {
-            nrf_drv_uart_t uart_inst = NRF_DRV_UART_INSTANCE(0);
-            self->handle = uart_inst;
+            static nrf_drv_uart_t uart_inst0 = NRF_DRV_UART_INSTANCE(0);
+            self->handle = uart_inst0;
             break;
         }
 #endif
 #if UART1_ENABLED
     case 1:
         {
-            nrf_drv_uart_t uart_inst = NRF_DRV_UART_INSTANCE(1);
-            self->handle = uart_inst;
+            static nrf_drv_uart_t uart_inst1 = NRF_DRV_UART_INSTANCE(1);
+            self->handle = uart_inst1;
             break;
         }
 #endif
@@ -114,7 +114,6 @@ ciot_err_t ciot_uart_start(ciot_uart_t self, ciot_uart_cfg_t *cfg)
 
     err_code = nrf_drv_uart_init(&self->handle, &config, ciot_uart_event_handler);
     VERIFY_SUCCESS(err_code);
-    // self->fifo.rx_ovf = false;
 
     if (self->uart.cfg.rx_pin != UART_PIN_DISCONNECTED)
     {

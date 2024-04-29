@@ -17,7 +17,6 @@ else()
     include_directories(
         ${CIOT_INCLUDE_DIRS}
         ${PROTO_INCLUDE_DIRS}
-        ${CIOT_OPCUA_INCLUDE_DIR}
         include
         config
         .
@@ -26,7 +25,6 @@ else()
     add_executable(${PROJECT_NAME}
         ${PROTO_SRCS}
         ${CIOT_PC_SRCS}
-        ${CIOT_OPCUA_SRCS}
         ${MAIN_SRCS}
     )
 

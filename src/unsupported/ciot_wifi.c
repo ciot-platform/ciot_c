@@ -14,6 +14,7 @@
 
 #if CIOT_CONFIG_FEATURE_WIFI && (defined(CIOT_TARGET_WIN) || defined(CIOT_TARGET_LINUX))
 
+#include <stdlib.h>
 #include <string.h>
 #include <stdbool.h>
 

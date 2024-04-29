@@ -22,6 +22,7 @@ typedef enum __attribute__((packed))
 {
     CIOT_SYS_REQ_UNKNONW,
     CIOT_SYS_REQ_RESTART,
+    CIOT_SYS_REQ_INIT_DFU,
 } ciot_sys_req_type_t;
 
 typedef enum __attribute__((packed))
@@ -53,12 +54,13 @@ typedef struct __attribute__((packed))
 {
     uint16_t ntp : 1;
     uint16_t ota: 1;
+    uint16_t dfu: 1;
     uint16_t http_client : 1;
     uint16_t http_server : 1;
     uint16_t mqtt_client : 1;
     uint16_t timer : 1;
     uint16_t serializer : 1;
-    uint16_t reserved : 9;
+    uint16_t reserved : 8;
 } ciot_sys_sw_features_t;
 
 typedef struct __attribute__((packed))
