@@ -37,8 +37,8 @@ typedef struct ciot_usb_status {
 typedef struct ciot_usb_req {
     pb_size_t which_type;
     union {
-        pb_byte_t send_data[128]; /* Send data over USB. */
-        pb_byte_t send_bytes[128]; /* Send bytes over USB. */
+        pb_byte_t send_data[512]; /* Send data over USB. */
+        pb_byte_t send_bytes[512]; /* Send bytes over USB. */
     };
 } ciot_usb_req_t;
 
@@ -145,8 +145,8 @@ extern const pb_msgdesc_t ciot_usb_data_t_msg;
 /* Maximum encoded size of messages (where known) */
 #define CIOT_CIOT_PROTO_V2_USB_PB_H_MAX_SIZE     CIOT_USB_DATA_SIZE
 #define CIOT_USB_CFG_SIZE                        2
-#define CIOT_USB_DATA_SIZE                       134
-#define CIOT_USB_REQ_SIZE                        131
+#define CIOT_USB_DATA_SIZE                       518
+#define CIOT_USB_REQ_SIZE                        515
 #define CIOT_USB_STATUS_SIZE                     2
 #define CIOT_USB_STOP_SIZE                       0
 

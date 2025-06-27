@@ -42,7 +42,7 @@ ciot_err_t ciot_usb_process_req(ciot_usb_t self, ciot_usb_req_t *req)
 
 static ciot_err_t ciot_usb_process_data(ciot_iface_t *iface, ciot_msg_data_t *data)
 {
-    CIOT_ERR_TYPE_CHECK(data->which_type, CIOT_MSG_DATA_USB_TAG);
+    CIOT_ERR_MSG_DATA_TAG_CHECK(data->which_type, CIOT_MSG_DATA_USB_TAG);
 
     ciot_usb_t self = iface->ptr;
     ciot_usb_data_t *usb = &data->usb;

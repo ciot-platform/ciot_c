@@ -6,8 +6,8 @@ Ciot.Info.version max_size:4
 Ciot.Info.ifaces max_count:10
 Ciot.Status.ifaces max_count:10
 
-Ciot.Msg.raw max_size:128
-Ciot.Event.raw max_size:128
+Ciot.Msg.raw max_size:512
+Ciot.Event.raw max_size:512
 
 Ciot.SysInfo.app_ver fixed_length:true
 Ciot.SysInfo.app_ver max_size:4
@@ -19,7 +19,7 @@ Ciot.HttpServerCfg.root max_size:32
 
 Ciot.HttpClientCfg.url max_size:48
 Ciot.HttpClientReqSend.body fixed_length:true
-Ciot.HttpClientReqSend.body max_size:128
+Ciot.HttpClientReqSend.body max_size:512
 Ciot.HttpClientReqSetHeader.header max_size:16
 Ciot.HttpClientReqSetHeader.value max_size:16
 
@@ -31,13 +31,13 @@ Ciot.MqttClientCfg.user max_size:32
 Ciot.MqttClientCfg.password max_size:32
 Ciot.MqttClientReqPublish.topic max_size:48
 Ciot.MqttClientReqPublish.payload fixed_length:true
-Ciot.MqttClientReqPublish.payload max_size:128
+Ciot.MqttClientReqPublish.payload max_size:512
 Ciot.MqttClientReqSubscribe.topic max_size:48
 
 Ciot.Log.tag max_size:16
-Ciot.Log.message max_size:128
+Ciot.Log.message max_size:512
 
-Ciot.UartReq.send_data max_size:128
+Ciot.UartReq.send_data max_size:512
 
 Ciot.NtpCfg.timezone max_size:16
 Ciot.NtpCfg.server1 max_size:48
@@ -60,7 +60,7 @@ Ciot.OtaCfg.url max_size:48
 
 Ciot.StorageFile.path max_size:32
 Ciot.StorageFile.data fixed_length:true
-Ciot.StorageFile.data max_size:128
+Ciot.StorageFile.data max_size:512
 Ciot.StorageReqDelete.path max_size:32
 
 Ciot.TcpCfg.ip fixed_length:true
@@ -77,9 +77,9 @@ Ciot.TcpInfo.ip fixed_length:true
 Ciot.TcpInfo.ip max_size:4
 
 Ciot.UsbReq.send_data fixed_length:true
-Ciot.UsbReq.send_data max_size:128
+Ciot.UsbReq.send_data max_size:512
 Ciot.UsbReq.send_bytes fixed_length:true
-Ciot.UsbReq.send_bytes max_size:128
+Ciot.UsbReq.send_bytes max_size:512
 
 Ciot.WifiApInfo.bssid fixed_length:true
 Ciot.WifiApInfo.bssid max_size:6
@@ -92,6 +92,6 @@ Ciot.BleScnAdvInfo.mac max_size:6
 Ciot.BleScnAdv.payload max_size:38
 
 Ciot.LogData.tag max_size:16
-Ciot.LogData.message max_size:128
+Ciot.LogData.message max_size:512
 
 Ciot.MbusFunctionReq.data max_count:32

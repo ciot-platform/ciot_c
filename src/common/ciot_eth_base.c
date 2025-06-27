@@ -46,7 +46,7 @@ ciot_err_t ciot_eth_init(ciot_eth_t self)
 
 static ciot_err_t ciot_eth_process_data(ciot_iface_t *iface, ciot_msg_data_t *data)
 {
-    CIOT_ERR_TYPE_CHECK(data->which_type, CIOT_MSG_DATA_ETH_TAG);
+    CIOT_ERR_MSG_DATA_TAG_CHECK(data->which_type, CIOT_MSG_DATA_ETH_TAG);
 
     ciot_eth_t self = iface->ptr;
     ciot_tcp_data_t *eth = &data->eth;

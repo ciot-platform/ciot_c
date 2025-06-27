@@ -40,7 +40,7 @@ ciot_err_t ciot_mbus_client_process_req(ciot_mbus_client_t self, ciot_mbus_clien
 
 static ciot_err_t ciot_mbus_client_process_data(ciot_iface_t *iface, ciot_msg_data_t *data)
 {
-    CIOT_ERR_TYPE_CHECK(data->which_type, CIOT_MSG_DATA_MBUS_CLIENT_TAG);
+    CIOT_ERR_MSG_DATA_TAG_CHECK(data->which_type, CIOT_MSG_DATA_MBUS_CLIENT_TAG);
 
     ciot_mbus_client_t self = iface->ptr;
     ciot_mbus_client_data_t *mbus_client = &data->mbus_client;

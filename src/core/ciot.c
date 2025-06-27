@@ -378,7 +378,7 @@ static ciot_err_t ciot_busy_task(ciot_t self)
     if (event->type == CIOT_EVENT_TYPE_REQUEST)
     {
         CIOT_LOGI(TAG, "Processing request from %s", ciot_iface_to_str(sender));
-        // CIOT_LOG_MSG_P(TAG, CIOT_LOGV, "RX REQ <- ", sender, event->msg);
+        CIOT_LOG_MSG(TAG, CIOT_LOGI, "RX REQ <- ", sender, event->msg);
         uint8_t id = event->msg.iface.id;
         if (id < self->ifaces.count /*&& event->msg->type <= CIOT__MSG_TYPE__MSG_TYPE_REQUEST*/)
         {

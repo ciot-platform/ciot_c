@@ -15,10 +15,10 @@ PB_BIND(CIOT_USB_CFG, ciot_usb_cfg_t, AUTO)
 PB_BIND(CIOT_USB_STATUS, ciot_usb_status_t, AUTO)
 
 
-PB_BIND(CIOT_USB_REQ, ciot_usb_req_t, AUTO)
+PB_BIND(CIOT_USB_REQ, ciot_usb_req_t, 2)
 
 
-PB_BIND(CIOT_USB_DATA, ciot_usb_data_t, AUTO)
+PB_BIND(CIOT_USB_DATA, ciot_usb_data_t, 2)
 
 
 

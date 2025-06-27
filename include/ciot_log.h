@@ -133,15 +133,14 @@ extern "C"
 /**
  * @brief Macro to log a message pointer with additional information.
  */
-#define CIOT_LOG_MSG_P(TAG, LOG_MACRO, header, sender, msg) \
-    LOG_MACRO(TAG, header "id:%ld %ld:%s %u:%s %ld:%s",     \
-              msg->id,                                      \
-              sender->info.id,                              \
-              ciot_iface_to_str(sender),                    \
-              msg->type,                                    \
-              ciot_msg_type_to_str(msg),                    \
-              msg->iface->id,                               \
-              ciot_iface_type_to_str(msg->iface->type))
+#define CIOT_LOG_MSG(TAG, LOG_MACRO, header, sender, msg)               \
+    LOG_MACRO(TAG, header "msg:%ld sender:%ld:%s type:%u iface:%ld:%s", \
+              msg.id,                                                   \
+              sender->info.id,                                          \
+              ciot_iface_to_str(sender),                                \
+              msg.data.which_type,                                      \
+              msg.iface.id,                                             \
+              ciot_iface_type_to_str(msg.iface.type))
 
 /**
  * @brief Macro to log hexadecimal data.

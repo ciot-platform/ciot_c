@@ -18,7 +18,7 @@ PB_BIND(CIOT_STORAGE_STATUS, ciot_storage_status_t, AUTO)
 PB_BIND(CIOT_STORAGE_INFO, ciot_storage_info_t, AUTO)
 
 
-PB_BIND(CIOT_STORAGE_FILE, ciot_storage_file_t, AUTO)
+PB_BIND(CIOT_STORAGE_FILE, ciot_storage_file_t, 2)
 
 
 PB_BIND(CIOT_STORAGE_REQ_DELETE, ciot_storage_req_delete_t, AUTO)
@@ -27,10 +27,10 @@ PB_BIND(CIOT_STORAGE_REQ_DELETE, ciot_storage_req_delete_t, AUTO)
 PB_BIND(CIOT_STORAGE_REQ_FORMAT, ciot_storage_req_format_t, AUTO)
 
 
-PB_BIND(CIOT_STORAGE_REQ, ciot_storage_req_t, AUTO)
+PB_BIND(CIOT_STORAGE_REQ, ciot_storage_req_t, 2)
 
 
-PB_BIND(CIOT_STORAGE_DATA, ciot_storage_data_t, AUTO)
+PB_BIND(CIOT_STORAGE_DATA, ciot_storage_data_t, 2)
 
 
 

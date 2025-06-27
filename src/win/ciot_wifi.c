@@ -80,6 +80,11 @@ ciot_err_t ciot_wifi_stop(ciot_wifi_t self)
     return CIOT_ERR_NOT_SUPPORTED;
 }
 
+ciot_err_t ciot_wifi_req_scan(ciot_wifi_t self)
+{
+    return CIOT_ERR_NOT_SUPPORTED;
+}
+
 ciot_err_t ciot_wifi_task(ciot_wifi_t self)
 {
     return CIOT_ERR_NOT_SUPPORTED;

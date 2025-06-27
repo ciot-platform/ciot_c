@@ -18,10 +18,10 @@ PB_BIND(CIOT_UART_CFG, ciot_uart_cfg_t, AUTO)
 PB_BIND(CIOT_UART_STATUS, ciot_uart_status_t, AUTO)
 
 
-PB_BIND(CIOT_UART_REQ, ciot_uart_req_t, AUTO)
+PB_BIND(CIOT_UART_REQ, ciot_uart_req_t, 2)
 
 
-PB_BIND(CIOT_UART_DATA, ciot_uart_data_t, AUTO)
+PB_BIND(CIOT_UART_DATA, ciot_uart_data_t, 2)
 
 
 

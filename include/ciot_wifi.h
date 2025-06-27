@@ -28,6 +28,12 @@ typedef enum ciot_wifi_event
 
 typedef struct ciot_wifi *ciot_wifi_t;
 
+typedef struct ciot_wifi_ap_list
+{
+    ciot_wifi_ap_info_t *items;
+    int count;
+} ciot_wifi_ap_list_t;
+
 typedef struct ciot_wifi_base
 {
     ciot_iface_t iface;
@@ -35,6 +41,7 @@ typedef struct ciot_wifi_base
     ciot_wifi_cfg_t cfg;
     ciot_wifi_status_t status;
     ciot_wifi_info_t info;
+    ciot_wifi_ap_list_t ap_list;
 } ciot_wifi_base_t;
 
 ciot_wifi_t ciot_wifi_new(ciot_wifi_type_t type);
@@ -47,6 +54,8 @@ ciot_err_t ciot_wifi_get_status(ciot_wifi_t self, ciot_wifi_status_t *status);
 ciot_err_t ciot_wifi_get_info(ciot_wifi_t self, ciot_wifi_info_t *info);
 ciot_err_t ciot_wifi_get_mac(ciot_wifi_t self, uint8_t mac[6]);
 ciot_err_t ciot_wifi_toggle(ciot_wifi_t self);
+ciot_err_t ciot_wifi_req_scan(ciot_wifi_t self);
+ciot_err_t ciot_wifi_req_get_ap(ciot_wifi_t self, ciot_wifi_req_t *req);
 
 #ifdef __cplusplus
 }

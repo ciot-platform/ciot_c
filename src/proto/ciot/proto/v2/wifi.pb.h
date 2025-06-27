@@ -25,11 +25,6 @@ typedef enum ciot_wifi_scan_state {
     CIOT_WIFI_SCAN_STATE_ERROR = 3 /* Error occurred during Wi-Fi scan. */
 } ciot_wifi_scan_state_t;
 
-/* Enum representing the state of the Wi-Fi interface. */
-typedef enum ciot_wifi_state {
-    CIOT_WIFI_STATE_IDLE = 0 /* Wi-Fi interface is idle. */
-} ciot_wifi_state_t;
-
 /* Struct definitions */
 /* Message representing information about a Wi-Fi access point. */
 typedef struct ciot_wifi_ap_info {
@@ -59,6 +54,7 @@ typedef struct ciot_wifi_status {
     uint32_t disconnect_reason; /* Reason for Wi-Fi disconnection. */
     bool has_tcp;
     ciot_tcp_status_t tcp; /* Status of the TCP connection over Wi-Fi. */
+    ciot_wifi_scan_state_t scan_state; /* Wi-Fi scan state */
 } ciot_wifi_status_t;
 
 typedef struct ciot_wifi_info {
@@ -134,15 +130,11 @@ extern "C" {
 #define CIOT_WIFI_SCAN_STATE_WIFI_SCAN_STATE_SCANNED CIOT_WIFI_SCAN_STATE_SCANNED
 #define CIOT_WIFI_SCAN_STATE_WIFI_SCAN_STATE_ERROR CIOT_WIFI_SCAN_STATE_ERROR
 
-#define _CIOT_WIFI_STATE_MIN CIOT_WIFI_STATE_IDLE
-#define _CIOT_WIFI_STATE_MAX CIOT_WIFI_STATE_IDLE
-#define _CIOT_WIFI_STATE_ARRAYSIZE ((ciot_wifi_state_t)(CIOT_WIFI_STATE_IDLE+1))
-#define CIOT_WIFI_STATE_WIFI_STATE_IDLE CIOT_WIFI_STATE_IDLE
-
 
 
 #define ciot_wifi_cfg_t_type_ENUMTYPE ciot_wifi_type_t
 
+#define ciot_wifi_status_t_scan_state_ENUMTYPE ciot_wifi_scan_state_t
 
 
 
@@ -156,7 +148,7 @@ extern "C" {
 #define CIOT_WIFI_AP_INFO_INIT_DEFAULT           {{0}, "", 0, 0}
 #define CIOT_WIFI_STOP_INIT_DEFAULT              {0}
 #define CIOT_WIFI_CFG_INIT_DEFAULT               {0, "", "", _CIOT_WIFI_TYPE_MIN, false, CIOT_TCP_CFG_INIT_DEFAULT}
-#define CIOT_WIFI_STATUS_INIT_DEFAULT            {0, false, CIOT_TCP_STATUS_INIT_DEFAULT}
+#define CIOT_WIFI_STATUS_INIT_DEFAULT            {0, false, CIOT_TCP_STATUS_INIT_DEFAULT, _CIOT_WIFI_SCAN_STATE_MIN}
 #define CIOT_WIFI_INFO_INIT_DEFAULT              {false, CIOT_TCP_INFO_INIT_DEFAULT, false, CIOT_WIFI_AP_INFO_INIT_DEFAULT}
 #define CIOT_WIFI_REQ_SCAN_INIT_DEFAULT          {0}
 #define CIOT_WIFI_REQ_SCAN_RESULT_INIT_DEFAULT   {0}
@@ -167,7 +159,7 @@ extern "C" {
 #define CIOT_WIFI_AP_INFO_INIT_ZERO              {{0}, "", 0, 0}
 #define CIOT_WIFI_STOP_INIT_ZERO                 {0}
 #define CIOT_WIFI_CFG_INIT_ZERO                  {0, "", "", _CIOT_WIFI_TYPE_MIN, false, CIOT_TCP_CFG_INIT_ZERO}
-#define CIOT_WIFI_STATUS_INIT_ZERO               {0, false, CIOT_TCP_STATUS_INIT_ZERO}
+#define CIOT_WIFI_STATUS_INIT_ZERO               {0, false, CIOT_TCP_STATUS_INIT_ZERO, _CIOT_WIFI_SCAN_STATE_MIN}
 #define CIOT_WIFI_INFO_INIT_ZERO                 {false, CIOT_TCP_INFO_INIT_ZERO, false, CIOT_WIFI_AP_INFO_INIT_ZERO}
 #define CIOT_WIFI_REQ_SCAN_INIT_ZERO             {0}
 #define CIOT_WIFI_REQ_SCAN_RESULT_INIT_ZERO      {0}
@@ -188,6 +180,7 @@ extern "C" {
 #define CIOT_WIFI_CFG_TCP_TAG                    5
 #define CIOT_WIFI_STATUS_DISCONNECT_REASON_TAG   1
 #define CIOT_WIFI_STATUS_TCP_TAG                 2
+#define CIOT_WIFI_STATUS_SCAN_STATE_TAG          3
 #define CIOT_WIFI_INFO_TCP_TAG                   1
 #define CIOT_WIFI_INFO_AP_TAG                    2
 #define CIOT_WIFI_REQ_SCAN_RESULT_COUNT_TAG      1
@@ -229,7 +222,8 @@ X(a, STATIC,   OPTIONAL, MESSAGE,  tcp,               5)
 
 #define CIOT_WIFI_STATUS_FIELDLIST(X, a) \
 X(a, STATIC,   SINGULAR, UINT32,   disconnect_reason,   1) \
-X(a, STATIC,   OPTIONAL, MESSAGE,  tcp,               2)
+X(a, STATIC,   OPTIONAL, MESSAGE,  tcp,               2) \
+X(a, STATIC,   SINGULAR, UENUM,    scan_state,        3)
 #define CIOT_WIFI_STATUS_CALLBACK NULL
 #define CIOT_WIFI_STATUS_DEFAULT NULL
 #define ciot_wifi_status_t_tcp_MSGTYPE ciot_tcp_status_t
@@ -325,7 +319,7 @@ extern const pb_msgdesc_t ciot_wifi_data_t_msg;
 #define CIOT_WIFI_REQ_SCAN_SIZE                  0
 #define CIOT_WIFI_REQ_SIZE                       8
 #define CIOT_WIFI_RESP_SIZE                      65
-#define CIOT_WIFI_STATUS_SIZE                    22
+#define CIOT_WIFI_STATUS_SIZE                    24
 #define CIOT_WIFI_STOP_SIZE                      0
 
 #ifdef __cplusplus

@@ -82,7 +82,7 @@ typedef struct ciot_mqtt_client_status {
 /* Message representing a publish request for the MQTT client. */
 typedef struct ciot_mqtt_client_req_publish {
     char topic[48]; /* Topic for publishing. */
-    pb_byte_t payload[128]; /* Message payload. */
+    pb_byte_t payload[512]; /* Message payload. */
     uint32_t qos; /* Quality of Service level for the publish request. */
 } ciot_mqtt_client_req_publish_t;
 
@@ -309,10 +309,10 @@ extern const pb_msgdesc_t ciot_mqtt_client_data_t_msg;
 /* Maximum encoded size of messages (where known) */
 #define CIOT_CIOT_PROTO_V2_MQTT_CLIENT_PB_H_MAX_SIZE CIOT_MQTT_CLIENT_DATA_SIZE
 #define CIOT_MQTT_CLIENT_CFG_SIZE                256
-#define CIOT_MQTT_CLIENT_DATA_SIZE               259
+#define CIOT_MQTT_CLIENT_DATA_SIZE               576
 #define CIOT_MQTT_CLIENT_ERROR_SIZE              36
-#define CIOT_MQTT_CLIENT_REQ_PUBLISH_SIZE        186
-#define CIOT_MQTT_CLIENT_REQ_SIZE                189
+#define CIOT_MQTT_CLIENT_REQ_PUBLISH_SIZE        570
+#define CIOT_MQTT_CLIENT_REQ_SIZE                573
 #define CIOT_MQTT_CLIENT_REQ_SUBSCRIBE_SIZE      55
 #define CIOT_MQTT_CLIENT_STATUS_SIZE             63
 #define CIOT_MQTT_CLIENT_STOP_SIZE               0

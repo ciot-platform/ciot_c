@@ -9,6 +9,8 @@
  * 
  */
 
+#include <stdlib.h>
+
 #include "ciot_types.h"
 #include "ciot_iface.h"
 #include "ciot_log.h"
@@ -88,17 +90,24 @@ ciot_err_t ciot_iface_send_event(ciot_iface_t *self, ciot_event_t *event)
 
 ciot_err_t ciot_iface_send_event_type(ciot_iface_t *self, ciot_event_type_t event_type)
 {
-    static ciot_event_t event = { 0 };
-    event.type = event_type;
-    event.which_data = CIOT_EVENT_MSG_TAG;
-    event.msg.has_iface = true;
-    event.msg.iface = self->info;
-    event.msg.has_data = true;
-    event.msg.data.which_type = CIOT_MSG_DATA_GET_DATA_TAG;
-    event.msg.data.get_data.type = CIOT_DATA_TYPE_STATUS;
-    CIOT_ERR_RETURN(self->get_data(self, &event.msg.data));
+    ciot_event_t *event = calloc(1, sizeof(ciot_event_t));
+    if(event == NULL) return CIOT_ERR_NO_MEMORY;
+    event->type = event_type;
+    event->which_data = CIOT_EVENT_MSG_TAG;
+    event->msg.has_iface = true;
+    event->msg.iface = self->info;
+    event->msg.has_data = true;
+    event->msg.data.which_type = CIOT_MSG_DATA_GET_DATA_TAG;
+    event->msg.data.get_data.type = CIOT_DATA_TYPE_STATUS;
+    ciot_err_t err = self->get_data(self, &event->msg.data);
+    if(err) {
+        free(event);
+        return err;
+    }
     CIOT_LOGI(TAG, "Sending event from iface: %s", ciot_iface_to_str(self));
-    return ciot_iface_send_event(self, &event);
+    err = ciot_iface_send_event(self, event);
+    free(event);
+    return err;
 }
 
 ciot_err_t ciot_iface_process_msg(ciot_iface_t *self, ciot_msg_t *msg, ciot_iface_t *sender)

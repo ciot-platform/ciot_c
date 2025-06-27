@@ -21,13 +21,13 @@ PB_BIND(CIOT_MQTT_CLIENT_CFG, ciot_mqtt_client_cfg_t, 2)
 PB_BIND(CIOT_MQTT_CLIENT_STATUS, ciot_mqtt_client_status_t, AUTO)
 
 
-PB_BIND(CIOT_MQTT_CLIENT_REQ_PUBLISH, ciot_mqtt_client_req_publish_t, AUTO)
+PB_BIND(CIOT_MQTT_CLIENT_REQ_PUBLISH, ciot_mqtt_client_req_publish_t, 2)
 
 
 PB_BIND(CIOT_MQTT_CLIENT_REQ_SUBSCRIBE, ciot_mqtt_client_req_subscribe_t, AUTO)
 
 
-PB_BIND(CIOT_MQTT_CLIENT_REQ, ciot_mqtt_client_req_t, AUTO)
+PB_BIND(CIOT_MQTT_CLIENT_REQ, ciot_mqtt_client_req_t, 2)
 
 
 PB_BIND(CIOT_MQTT_CLIENT_DATA, ciot_mqtt_client_data_t, 2)

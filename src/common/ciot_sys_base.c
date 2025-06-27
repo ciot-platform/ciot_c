@@ -64,7 +64,7 @@ ciot_err_t ciot_sys_process_req(ciot_sys_t self, ciot_sys_req_t *req)
 
 static ciot_err_t ciot_sys_process_data(ciot_iface_t *iface, ciot_msg_data_t *data)
 {
-    CIOT_ERR_TYPE_CHECK(data->which_type, CIOT_MSG_DATA_SYS_TAG);
+    CIOT_ERR_MSG_DATA_TAG_CHECK(data->which_type, CIOT_MSG_DATA_SYS_TAG);
 
     ciot_sys_t self = iface->ptr;
     ciot_sys_data_t *sys = &data->sys;

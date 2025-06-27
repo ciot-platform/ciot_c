@@ -23,7 +23,7 @@ typedef enum ciot_log_level {
 typedef struct ciot_log_data {
     ciot_log_level_t level;
     char tag[16];
-    char message[128];
+    char message[512];
 } ciot_log_data_t;
 
 
@@ -69,7 +69,7 @@ extern const pb_msgdesc_t ciot_log_data_t_msg;
 
 /* Maximum encoded size of messages (where known) */
 #define CIOT_CIOT_PROTO_V2_LOGGER_PB_H_MAX_SIZE  CIOT_LOG_DATA_SIZE
-#define CIOT_LOG_DATA_SIZE                       149
+#define CIOT_LOG_DATA_SIZE                       533
 
 #ifdef __cplusplus
 } /* extern "C" */

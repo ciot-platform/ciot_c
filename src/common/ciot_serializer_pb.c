@@ -36,7 +36,7 @@ int ciot_serializer_pb_to_bytes(uint8_t *bytes, int size, void *data, const void
     pb_ostream_t stream = pb_ostream_from_buffer(bytes, size);
     bool status = pb_encode(&stream, type, data);
     if(status == false) {
-        CIOT_LOGE(TAG, "Failed to encode message: %s", PB_GET_ERROR(&stream));
+        CIOT_LOGE(TAG, "Failed to encode message: %s. data.size:%d", PB_GET_ERROR(&stream), size);
     }
     return status ? stream.bytes_written : 0;
 }

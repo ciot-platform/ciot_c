@@ -60,7 +60,7 @@ static ciot_err_t ciot_ble_adv_process_data(ciot_iface_t *iface, ciot_msg_data_t
 
 static ciot_err_t ciot_ble_adv_get_data(ciot_iface_t *iface, ciot_msg_data_t *data)
 {
-    CIOT_ERR_TYPE_CHECK(data->which_type, CIOT_MSG_DATA_GET_DATA_TAG);
+    CIOT_ERR_MSG_DATA_TAG_CHECK(data->which_type, CIOT_MSG_DATA_GET_DATA_TAG);
 
     ciot_ble_adv_base_t *self = iface->ptr;
     ciot_data_type_t data_type = data->get_data.type;

@@ -44,5 +44,3 @@ PB_BIND(CIOT_WIFI_DATA, ciot_wifi_data_t, AUTO)
 
 
 
-
-

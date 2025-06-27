@@ -49,7 +49,7 @@ ciot_err_t ciot_ble_scn_init(ciot_ble_scn_t self)
 
 static ciot_err_t ciot_ble_scn_process_data(ciot_iface_t *iface, ciot_msg_data_t *data)
 {
-    CIOT_ERR_TYPE_CHECK(data->which_type, CIOT_MSG_DATA_BLE_SCN_TAG);
+    CIOT_ERR_MSG_DATA_TAG_CHECK(data->which_type, CIOT_MSG_DATA_BLE_SCN_TAG);
 
     ciot_ble_scn_t self = iface->ptr;
     ciot_ble_scn_data_t *ble_scn = &data->ble_scn;

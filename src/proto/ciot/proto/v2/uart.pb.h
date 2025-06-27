@@ -71,7 +71,7 @@ typedef struct ciot_uart_status {
     ciot_uart_error_t error; /* Error encountered by the UART module. */
 } ciot_uart_status_t;
 
-typedef PB_BYTES_ARRAY_T(128) ciot_uart_req_send_data_t;
+typedef PB_BYTES_ARRAY_T(512) ciot_uart_req_send_data_t;
 /* Message representing a UART request. */
 typedef struct ciot_uart_req {
     pb_size_t which_type;
@@ -239,9 +239,9 @@ extern const pb_msgdesc_t ciot_uart_data_t_msg;
 /* Maximum encoded size of messages (where known) */
 #define CIOT_CIOT_PROTO_V2_UART_PB_H_MAX_SIZE    CIOT_UART_DATA_SIZE
 #define CIOT_UART_CFG_SIZE                       66
-#define CIOT_UART_DATA_SIZE                      134
+#define CIOT_UART_DATA_SIZE                      518
 #define CIOT_UART_GPIO_CFG_SIZE                  24
-#define CIOT_UART_REQ_SIZE                       131
+#define CIOT_UART_REQ_SIZE                       515
 #define CIOT_UART_STATUS_SIZE                    4
 #define CIOT_UART_STOP_SIZE                      0
 

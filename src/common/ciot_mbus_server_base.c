@@ -82,7 +82,7 @@ static ciot_err_t ciot_mbus_server_process_func(ciot_mbus_server_t self, ciot_mb
 
 static ciot_err_t ciot_mbus_server_process_data(ciot_iface_t *iface, ciot_msg_data_t *data)
 {
-    CIOT_ERR_TYPE_CHECK(data->which_type, CIOT_MSG_DATA_MBUS_SERVER_TAG);
+    CIOT_ERR_MSG_DATA_TAG_CHECK(data->which_type, CIOT_MSG_DATA_MBUS_SERVER_TAG);
 
     ciot_mbus_server_t self = iface->ptr;
     ciot_mbus_server_data_t *mbus_server = &data->mbus_server;

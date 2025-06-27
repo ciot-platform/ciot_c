@@ -41,7 +41,7 @@ ciot_err_t ciot_http_client_process_req(ciot_http_client_t self, ciot_http_clien
 
 static ciot_err_t ciot_http_client_process_data(ciot_iface_t *iface, ciot_msg_data_t *data)
 {
-    CIOT_ERR_TYPE_CHECK(data->which_type, CIOT_MSG_DATA_HTTP_CLIENT_TAG);
+    CIOT_ERR_MSG_DATA_TAG_CHECK(data->which_type, CIOT_MSG_DATA_HTTP_CLIENT_TAG);
 
     ciot_http_client_t self = iface->ptr;
     ciot_http_client_data_t *http_client = &data->http_client;

@@ -18,7 +18,7 @@
 #include "ciot_uart.h"
 #include "ciot_eth.h"
 #include "ciot_wifi.h"
-#include "ciot_eth.h"
+// #include "ciot_eth.h"
 #include "ciot_http_server.h"
 #include "ciot_mqtt_client.h"
 #include "ciot_ntp.h"
@@ -38,7 +38,6 @@ typedef enum device_iface_id
     DEVICE_IFACE_ID_CIOT,
     DEVICE_IFACE_ID_SYS,
     DEVICE_IFACE_ID_UART,
-    DEVICE_IFACE_ID_ETH,
     DEVICE_IFACE_ID_WIFI_AP,
     DEVICE_IFACE_ID_WIFI_STA,
     DEVICE_IFACE_ID_HTTP_SERVER,
@@ -54,7 +53,7 @@ typedef struct device_ifaces
     ciot_t ciot;
     ciot_sys_t sys;
     ciot_uart_t uart;
-    ciot_eth_t eth;
+    // ciot_eth_t eth;
     ciot_wifi_t wifi_ap;
     ciot_wifi_t wifi_sta;
     ciot_http_server_t http_server;

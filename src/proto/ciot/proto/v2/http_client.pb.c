@@ -15,16 +15,16 @@ PB_BIND(CIOT_HTTP_CLIENT_CFG, ciot_http_client_cfg_t, AUTO)
 PB_BIND(CIOT_HTTP_CLIENT_STATUS, ciot_http_client_status_t, AUTO)
 
 
-PB_BIND(CIOT_HTTP_CLIENT_REQ_SEND, ciot_http_client_req_send_t, AUTO)
+PB_BIND(CIOT_HTTP_CLIENT_REQ_SEND, ciot_http_client_req_send_t, 2)
 
 
 PB_BIND(CIOT_HTTP_CLIENT_REQ_SET_HEADER, ciot_http_client_req_set_header_t, AUTO)
 
 
-PB_BIND(CIOT_HTTP_CLIENT_REQ, ciot_http_client_req_t, AUTO)
+PB_BIND(CIOT_HTTP_CLIENT_REQ, ciot_http_client_req_t, 2)
 
 
-PB_BIND(CIOT_HTTP_CLIENT_DATA, ciot_http_client_data_t, AUTO)
+PB_BIND(CIOT_HTTP_CLIENT_DATA, ciot_http_client_data_t, 2)
 
 
 

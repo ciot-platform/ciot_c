@@ -44,7 +44,7 @@ ciot_err_t ciot_uart_process_req(ciot_uart_t self, ciot_uart_req_t *req)
 
 static ciot_err_t ciot_uart_process_data(ciot_iface_t *iface, ciot_msg_data_t *data)
 {
-    CIOT_ERR_TYPE_CHECK(data->which_type, CIOT_MSG_DATA_UART_TAG);
+    CIOT_ERR_MSG_DATA_TAG_CHECK(data->which_type, CIOT_MSG_DATA_UART_TAG);
 
     ciot_uart_t self = iface->ptr;
     ciot_uart_data_t *uart = &data->uart;

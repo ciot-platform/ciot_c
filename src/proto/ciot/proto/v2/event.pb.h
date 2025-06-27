@@ -26,7 +26,7 @@ typedef enum ciot_event_type {
 } ciot_event_type_t;
 
 /* Struct definitions */
-typedef PB_BYTES_ARRAY_T(128) ciot_event_raw_t;
+typedef PB_BYTES_ARRAY_T(512) ciot_event_raw_t;
 /* Message representing an CIoT event */
 typedef struct ciot_event {
     ciot_event_type_t type; /* Event type */
@@ -85,7 +85,7 @@ extern const pb_msgdesc_t ciot_event_t_msg;
 
 /* Maximum encoded size of messages (where known) */
 #if defined(Ciot_Msg_size)
-union Ciot_Event_data_size_union {char f2[(6 + Ciot_Msg_size)]; char f0[131];};
+union Ciot_Event_data_size_union {char f2[(6 + Ciot_Msg_size)]; char f0[515];};
 #endif
 #if defined(Ciot_Msg_size)
 #define CIOT_CIOT_PROTO_V2_EVENT_PB_H_MAX_SIZE   CIOT_EVENT_SIZE

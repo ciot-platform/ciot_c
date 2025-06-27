@@ -89,7 +89,7 @@ ciot_err_t ciot_gpio_task(ciot_gpio_t self)
 
 static ciot_err_t ciot_gpio_process_data(ciot_iface_t *iface, ciot_msg_data_t *data)
 {
-    CIOT_ERR_TYPE_CHECK(data->which_type, CIOT_MSG_DATA_GPIO_TAG);
+    CIOT_ERR_MSG_DATA_TAG_CHECK(data->which_type, CIOT_MSG_DATA_GPIO_TAG);
 
     ciot_gpio_t self = iface->ptr;
     ciot_gpio_base_t *base = iface->ptr;

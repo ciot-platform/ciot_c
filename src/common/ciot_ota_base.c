@@ -42,7 +42,7 @@ ciot_err_t ciot_ota_process_req(ciot_ota_t self, ciot_ota_req_t *req)
 
 static ciot_err_t ciot_ota_process_data(ciot_iface_t *iface, ciot_msg_data_t *data)
 {
-    CIOT_ERR_TYPE_CHECK(data->which_type, CIOT_MSG_DATA_OTA_TAG);
+    CIOT_ERR_MSG_DATA_TAG_CHECK(data->which_type, CIOT_MSG_DATA_OTA_TAG);
 
     ciot_ota_t self = iface->ptr;
     ciot_ota_data_t *ota = &data->ota;

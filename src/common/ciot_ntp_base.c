@@ -42,7 +42,7 @@ ciot_err_t ciot_ntp_process_req(ciot_ntp_t self, ciot_ntp_req_t *req)
 
 static ciot_err_t ciot_ntp_process_data(ciot_iface_t *iface, ciot_msg_data_t *data)
 {
-    CIOT_ERR_TYPE_CHECK(data->which_type, CIOT_MSG_DATA_NTP_TAG);
+    CIOT_ERR_MSG_DATA_TAG_CHECK(data->which_type, CIOT_MSG_DATA_NTP_TAG);
 
     ciot_ntp_t self = iface->ptr;
     ciot_ntp_data_t *ntp = &data->ntp;

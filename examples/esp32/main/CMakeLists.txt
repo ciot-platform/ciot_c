@@ -17,4 +17,4 @@ idf_component_register(
         .
         ${CIOT_INCLUDE_DIRS}
         ${CIOT_PB_INCLUDE_DIRS}
-)
+        EMBED_FILES web/index.html.gz)

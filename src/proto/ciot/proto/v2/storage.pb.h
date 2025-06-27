@@ -48,7 +48,7 @@ typedef struct ciot_storage_info {
 /* Message representing data for a storage request. */
 typedef struct ciot_storage_file {
     char path[32]; /* Path for the storage operation. */
-    pb_byte_t data[128]; /* Data for the storage operation. */
+    pb_byte_t data[512]; /* Data for the storage operation. */
 } ciot_storage_file_t;
 
 /* Message representing a request to delete a file. */
@@ -241,12 +241,12 @@ extern const pb_msgdesc_t ciot_storage_data_t_msg;
 /* Maximum encoded size of messages (where known) */
 #define CIOT_CIOT_PROTO_V2_STORAGE_PB_H_MAX_SIZE CIOT_STORAGE_DATA_SIZE
 #define CIOT_STORAGE_CFG_SIZE                    2
-#define CIOT_STORAGE_DATA_SIZE                   170
-#define CIOT_STORAGE_FILE_SIZE                   164
+#define CIOT_STORAGE_DATA_SIZE                   554
+#define CIOT_STORAGE_FILE_SIZE                   548
 #define CIOT_STORAGE_INFO_SIZE                   6
 #define CIOT_STORAGE_REQ_DELETE_SIZE             33
 #define CIOT_STORAGE_REQ_FORMAT_SIZE             0
-#define CIOT_STORAGE_REQ_SIZE                    167
+#define CIOT_STORAGE_REQ_SIZE                    551
 #define CIOT_STORAGE_STATUS_SIZE                 8
 #define CIOT_STORAGE_STOP_SIZE                   0
 

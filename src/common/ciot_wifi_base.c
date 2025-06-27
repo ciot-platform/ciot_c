@@ -45,12 +45,35 @@ ciot_err_t ciot_wifi_process_req(ciot_wifi_t self, ciot_wifi_req_t *req)
 {
     CIOT_ERR_NULL_CHECK(self);
     CIOT_ERR_NULL_CHECK(req);
+    ciot_wifi_base_t *base = (ciot_wifi_base_t *)self;
+    switch (req->which_type)
+    {
+        case CIOT_WIFI_REQ_SCAN_TAG:
+            return ciot_wifi_req_scan(self);
+        case CIOT_WIFI_REQ_GET_AP_TAG:
+            base->iface.req_status.state = CIOT_IFACE_REQ_STATE_IDLE;
+            return ciot_wifi_req_get_ap(self, req);
+    default:
+        break;
+    }
     return CIOT_ERR_NOT_SUPPORTED;    
+}
+
+ciot_err_t ciot_wifi_req_get_ap(ciot_wifi_t self, ciot_wifi_req_t *req)
+{
+    ciot_wifi_base_t *base = (ciot_wifi_base_t *)self;
+    // CIOT_ERR_STATE_CHECK(base->status.scan_state, CIOT_WIFI_SCAN_STATE_SCANNED);
+    // int id = data->wifi.request.get_ap.id;
+    // CIOT_ERR_EXISTENCE_CHECK(id, base->ap_list.count);
+    // data->wifi.which_type = CIOT_WIFI_DATA_RESPONSE_TAG;
+    // data->wifi.response.which_type = CIOT_WIFI_RESP_GET_AP_TAG;
+    // data->wifi.response.get_ap = base->ap_list.items[id];
+    return CIOT_ERR_NOT_IMPLEMENTED;
 }
 
 static ciot_err_t ciot_wifi_process_data(ciot_iface_t *iface, ciot_msg_data_t *data)
 {
-    CIOT_ERR_TYPE_CHECK(data->which_type, CIOT_MSG_DATA_WIFI_TAG);
+    CIOT_ERR_MSG_DATA_TAG_CHECK(data->which_type, CIOT_MSG_DATA_WIFI_TAG);
 
     ciot_wifi_t self = iface->ptr;
     ciot_wifi_data_t *wifi = &data->wifi;

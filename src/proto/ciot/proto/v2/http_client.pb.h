@@ -74,7 +74,7 @@ typedef struct ciot_http_client_status {
 typedef struct ciot_http_client_req_send {
     bool has_config;
     ciot_http_client_cfg_t config; /* Configuration for the HTTP client. */
-    pb_byte_t body[128]; /* Body of the HTTP request. */
+    pb_byte_t body[512]; /* Body of the HTTP request. */
 } ciot_http_client_req_send_t;
 
 /* Message representing setting a header for the HTTP client request. */
@@ -267,10 +267,10 @@ extern const pb_msgdesc_t ciot_http_client_data_t_msg;
 /* Maximum encoded size of messages (where known) */
 #define CIOT_CIOT_PROTO_V2_HTTP_CLIENT_PB_H_MAX_SIZE CIOT_HTTP_CLIENT_DATA_SIZE
 #define CIOT_HTTP_CLIENT_CFG_SIZE                59
-#define CIOT_HTTP_CLIENT_DATA_SIZE               198
-#define CIOT_HTTP_CLIENT_REQ_SEND_SIZE           192
+#define CIOT_HTTP_CLIENT_DATA_SIZE               582
+#define CIOT_HTTP_CLIENT_REQ_SEND_SIZE           576
 #define CIOT_HTTP_CLIENT_REQ_SET_HEADER_SIZE     34
-#define CIOT_HTTP_CLIENT_REQ_SIZE                195
+#define CIOT_HTTP_CLIENT_REQ_SIZE                579
 #define CIOT_HTTP_CLIENT_STATUS_SIZE             8
 #define CIOT_HTTP_CLIENT_STOP_SIZE               0
 

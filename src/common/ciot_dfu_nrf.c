@@ -139,7 +139,7 @@ ciot_err_t ciot_dfu_nrf_init(ciot_dfu_nrf_t self)
 
 static ciot_err_t ciot_dfu_nrf_process_data(ciot_iface_t *iface, ciot_msg_data_t *data)
 {
-    CIOT_ERR_TYPE_CHECK(data->which_type, CIOT_MSG_DATA_DFU_TAG);
+    CIOT_ERR_MSG_DATA_TAG_CHECK(data->which_type, CIOT_MSG_DATA_DFU_TAG);
 
     ciot_dfu_nrf_t self = iface->ptr;
     ciot_dfu_data_t *dfu = &data->dfu;
