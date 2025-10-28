@@ -26,9 +26,10 @@ typedef struct ciot_mbus_server_base
     ciot_mbus_server_cfg_t cfg;
     ciot_mbus_server_status_t status;
     ciot_mbus_data_t data;
+    ciot_iface_t *conn;
 } ciot_mbus_server_base_t;
 
-ciot_mbus_server_t ciot_mbus_server_new(void *handle, ciot_mbus_data_t *data, ciot_iface_t *iface);
+ciot_mbus_server_t ciot_mbus_server_new(void *handle, ciot_mbus_data_t *data, ciot_iface_t *conn);
 ciot_err_t ciot_mbus_server_init(ciot_mbus_server_t self);
 ciot_err_t ciot_mbus_server_start(ciot_mbus_server_t self, ciot_mbus_server_cfg_t *cfg);
 ciot_err_t ciot_mbus_server_stop(ciot_mbus_server_t self);

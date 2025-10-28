@@ -14,6 +14,7 @@
 #if CIOT_CONFIG_FEATURE_MBUS_SERVER == 1
 
 #include "ciot_mbus_server.h"
+#include "ciot_uart.h"
 #include "ciot_types.h"
 
 static ciot_err_t ciot_mbus_server_process_data(ciot_iface_t *iface, ciot_msg_data_t *data);
@@ -115,6 +116,11 @@ static ciot_err_t ciot_mbus_server_get_data(ciot_iface_t *iface, ciot_msg_data_t
     case CIOT_DATA_TYPE_CONFIG:
         data->mbus_server.which_type = CIOT_MBUS_SERVER_DATA_CONFIG_TAG;
         data->mbus_server.config = self->cfg;
+        if(self->cfg.which_type == CIOT_MBUS_SERVER_CFG_RTU_TAG) {
+            ciot_uart_base_t *uart = (ciot_uart_base_t*)self->conn;
+            data->mbus_server.config.rtu.uart = uart->cfg;
+            data->mbus_server.config.rtu.has_uart = true;
+        }
         break;
     case CIOT_DATA_TYPE_STATUS:
         data->mbus_server.which_type = CIOT_MBUS_SERVER_DATA_STATUS_TAG;

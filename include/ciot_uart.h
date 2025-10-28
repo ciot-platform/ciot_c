@@ -35,6 +35,7 @@ ciot_err_t ciot_uart_start(ciot_uart_t self, ciot_uart_cfg_t *cfg);
 ciot_err_t ciot_uart_stop(ciot_uart_t self);
 ciot_err_t ciot_uart_task(ciot_uart_t self);
 ciot_err_t ciot_uart_process_req(ciot_uart_t self, ciot_uart_req_t *req);
+ciot_err_t ciot_uart_set_gpio(ciot_uart_t self, ciot_uart_gpio_cfg_t *gpio);
 ciot_err_t ciot_uart_get_cfg(ciot_uart_t self, ciot_uart_cfg_t *cfg);
 ciot_err_t ciot_uart_get_status(ciot_uart_t self, ciot_uart_status_t *status);
 ciot_err_t ciot_uart_send_bytes(ciot_uart_t self, uint8_t *data, int size);

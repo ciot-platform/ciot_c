@@ -17,7 +17,8 @@ typedef enum ciot_state {
     CIOT_STATE_STARTED = 1, /* CIOT core is started. */
     CIOT_STATE_STARTING = 2, /* CIOT core is starting. */
     CIOT_STATE_BUSY = 3, /* CIOT core is busy. */
-    CIOT_STATE_ERROR = 4 /* CIOT core encountered an error. */
+    CIOT_STATE_PENDING_EVENT = 4, /* CIOT core has an event pending. */
+    CIOT_STATE_ERROR = 5 /* CIOT core encountered an error. */
 } ciot_state_t;
 
 /* Enum representing different serialization types for CIOT. */
@@ -78,6 +79,7 @@ extern "C" {
 #define CIOT_STATE_STATE_STARTED CIOT_STATE_STARTED
 #define CIOT_STATE_STATE_STARTING CIOT_STATE_STARTING
 #define CIOT_STATE_STATE_BUSY CIOT_STATE_BUSY
+#define CIOT_STATE_STATE_PENDING_EVENT CIOT_STATE_PENDING_EVENT
 #define CIOT_STATE_STATE_ERROR CIOT_STATE_ERROR
 
 #define _CIOT_SERIALIZATION_TYPE_MIN CIOT_SERIALIZATION_PROTOBUF

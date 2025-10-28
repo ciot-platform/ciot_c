@@ -14,12 +14,12 @@
 #if CIOT_CONFIG_FEATURE_MBUS_SERVER == 1
 
 #include "ciot_mbus_server.h"
+#include "ciot_uart.h"
 #include <stdlib.h>
 
 struct ciot_mbus_server
 {
     ciot_mbus_server_base_t base;
-    ciot_iface_t *iface;
     nmbs_t nmbs;
 };
 
@@ -32,20 +32,20 @@ static nmbs_error ciot_mbus_server_write_multiple_coils(uint16_t address, uint16
 static nmbs_error ciot_mbus_server_read_holding_registers(uint16_t address, uint16_t quantity, uint16_t *registers_out, uint8_t unit_id, void *arg);
 static nmbs_error ciot_mbus_server_write_multiple_registers(uint16_t address, uint16_t quantity, const uint16_t *registers, uint8_t unit_id, void *arg);
 
-ciot_mbus_server_t ciot_mbus_server_new(void *handle, ciot_mbus_data_t *data, ciot_iface_t *iface)
+ciot_mbus_server_t ciot_mbus_server_new(void *handle, ciot_mbus_data_t *data, ciot_iface_t *conn)
 {
     if(data == NULL) {
         CIOT_LOGE(TAG, "data is null");
         return NULL;
     }
-    if(iface == NULL) {
-        CIOT_LOGE(TAG, "iface is null");
+    if(conn == NULL) {
+        CIOT_LOGE(TAG, "conn is null");
         return NULL;
     }
     ciot_mbus_server_t self = calloc(1, sizeof(struct ciot_mbus_server));
     ciot_mbus_server_init(self);
     self->base.data = *data;
-    self->iface = iface;
+    self->base.conn = conn;
     return self;
 }
 
@@ -75,6 +75,9 @@ ciot_err_t ciot_mbus_server_start(ciot_mbus_server_t self, ciot_mbus_server_cfg_
     {
     case CIOT_MBUS_SERVER_CFG_RTU_TAG:
         platform_conf.transport = NMBS_TRANSPORT_RTU;
+        if(cfg->rtu.has_uart) {
+            ciot_uart_start((ciot_uart_t)self->base.conn, &cfg->rtu.uart);
+        }
         break;
     case CIOT_MBUS_SERVER_CFG_TCP_TAG:
         platform_conf.transport = NMBS_TRANSPORT_TCP;
@@ -107,7 +110,7 @@ ciot_err_t ciot_mbus_server_stop(ciot_mbus_server_t self)
 ciot_err_t ciot_mbus_server_task(ciot_mbus_server_t self)
 {
     CIOT_ERR_NULL_CHECK(self);
-    if (self->base.status.state == CIOT_MBUS_SERVER_STATE_STARTED && self->iface->state == CIOT_IFACE_STATE_STARTED)
+    if (self->base.status.state == CIOT_MBUS_SERVER_STATE_STARTED && self->base.conn->state == CIOT_IFACE_STATE_STARTED)
     {
         nmbs_error err = nmbs_server_poll(&self->nmbs);
         return err != NMBS_ERROR_NONE ? ciot_mbus_get_error(err) : CIOT_ERR_OK;
@@ -139,13 +142,13 @@ ciot_err_t ciot_mbus_server_get_reg(ciot_mbus_server_t self, uint16_t addr, void
 static int32_t ciot_mbus_server_read(uint8_t *buf, uint16_t count, int32_t byte_timeout_ms, void *arg)
 {
     ciot_mbus_server_t self = (ciot_mbus_server_t)arg;
-    return ciot_iface_read_bytes(self->iface, buf, count);
+    return ciot_iface_read_bytes(self->base.conn, buf, count);
 }
 
 static int32_t ciot_mbus_server_write(const uint8_t *buf, uint16_t count, int32_t byte_timeout_ms, void *arg)
 {
     ciot_mbus_server_t self = (ciot_mbus_server_t)arg;
-    return ciot_iface_send_bytes(self->iface, (uint8_t*)buf, count);
+    return ciot_iface_send_bytes(self->base.conn, (uint8_t*)buf, count);
 }
 
 static nmbs_error ciot_mbus_server_read_coils(uint16_t address, uint16_t quantity, nmbs_bitfield coils_out, uint8_t unit_id, void *arg)

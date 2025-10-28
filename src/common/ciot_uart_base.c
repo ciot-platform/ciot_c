@@ -114,6 +114,16 @@ ciot_err_t ciot_uart_get_cfg(ciot_uart_t self, ciot_uart_cfg_t *cfg)
     return CIOT_ERR_OK;
 }
 
+ciot_err_t ciot_uart_set_gpio(ciot_uart_t self, ciot_uart_gpio_cfg_t *gpio)
+{
+    CIOT_ERR_NULL_CHECK(self);
+    CIOT_ERR_NULL_CHECK(gpio);
+    ciot_uart_base_t *base = (ciot_uart_base_t*)self;
+    base->cfg.has_gpio = true;
+    base->cfg.gpio = *gpio;
+    return CIOT_ERR_OK;
+}
+
 ciot_err_t ciot_uart_get_status(ciot_uart_t self, ciot_uart_status_t *status)
 {
     CIOT_ERR_NULL_CHECK(self);

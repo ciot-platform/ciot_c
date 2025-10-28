@@ -48,7 +48,15 @@ ciot_err_t ciot_uart_start(ciot_uart_t self, ciot_uart_cfg_t *cfg)
     CIOT_ERR_NULL_CHECK(cfg);
     ciot_uart_base_t *base = &self->base;
 
+    if(base->status.state == CIOT_UART_STATE_STARTED &&
+       base->cfg.num == cfg->num)
+    {
+        CIOT_LOGW(TAG, "Port COM%d already started", base->cfg.num);
+        return CIOT_ERR_OK;
+    }
+
     base->cfg = *cfg;
+    base->status.error = CIOT_UART_ERROR_NONE;
 
     sprintf(self->port_name, "\\\\.\\COM%d", base->cfg.num);
 
@@ -159,23 +167,15 @@ static void ciot_uart_process_error(ciot_uart_t self, DWORD error)
 
     if(base->status.state == CIOT_UART_STATE_CLOSED && error == 0)
     {
-        ciot_event_t event = { 0 };
         base->status.state = CIOT_UART_STATE_STARTED;
-        event.type = CIOT_EVENT_TYPE_STARTED;
-        event.which_data = CIOT_EVENT_MSG_TAG;
-        event.msg.data.uart.status = base->status;
-        ciot_iface_send_event(&base->iface, &event);
+        ciot_iface_send_event_type(&base->iface, CIOT_EVENT_TYPE_STARTED);
         CIOT_LOGI(TAG, "UART_OPEN port:%s", self->port_name);
     }
 
     if(base->status.state == CIOT_UART_STATE_STARTED && error == CE_FRAME)
     {
-        ciot_event_t event = { 0 };
         base->status.state = CIOT_UART_STATE_CLOSED;
-        event.type = CIOT_EVENT_TYPE_STOPPED;
-        event.which_data = CIOT_EVENT_MSG_TAG;
-        event.msg.data.uart.status = base->status;
-        ciot_iface_send_event(&base->iface, &event);
+        ciot_iface_send_event_type(&base->iface, CIOT_EVENT_TYPE_STOPPED);
         CIOT_LOGI(TAG, "UART_CLOSED port:%s", self->port_name);
     }
 }

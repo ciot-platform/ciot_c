@@ -1,5 +1,19 @@
 # ciot_c Release
 
 ### Changes
-    - create ciot_mqtt_client_set_process_all_topics to allow ciot to handle mqtt messages from all topics
-    - create CIOT_LOG macro, to log ciot_log_data_t messages
+
+**Modbus Server and UART Integration:**
+
+* Enabled Modbus client and server features in the custom configuration by setting `CIOT_CONFIG_FEATURE_MBUS_CLIENT` and `CIOT_CONFIG_FEATURE_MBUS_SERVER` to 1 in `ciot_custom_config.h`.
+* Refactored the Modbus server to use a unified `conn` interface instead of a separate `iface` pointer, updating the structure, constructor, and all references for consistency and clarity (`ciot_mbus_server_base_t`, `ciot_mbus_server_new`, and related usage). [[1]](diffhunk://#diff-c86494485e15ca53d37bbb6e4ff1798afbe40cadf693fc8a342473f334670db5R29-R32) [[2]](diffhunk://#diff-7692b439c4b1916834495a096ae6cdb3cbb16652175e7d0b1240cd81dcd8a909R17-L22) [[3]](diffhunk://#diff-7692b439c4b1916834495a096ae6cdb3cbb16652175e7d0b1240cd81dcd8a909L35-R48) [[4]](diffhunk://#diff-7692b439c4b1916834495a096ae6cdb3cbb16652175e7d0b1240cd81dcd8a909L110-R113) [[5]](diffhunk://#diff-7692b439c4b1916834495a096ae6cdb3cbb16652175e7d0b1240cd81dcd8a909L142-R151) [[6]](diffhunk://#diff-6178e2d84001fac6ff56892db017346201e0ba1a5288b64050252a1e66f98eacR17) [[7]](diffhunk://#diff-6178e2d84001fac6ff56892db017346201e0ba1a5288b64050252a1e66f98eacR119-R123)
+* Extended the Modbus RTU configuration (`ciot_mbus_server_rtu_cfg_t`) to include a `uart` field with its own configuration and a `has_uart` flag, updating protocol buffer definitions and initializers accordingly. [[1]](diffhunk://#diff-c20d0f941afc5e7a3690a6b78c9f558e094b5dd6f4f2694593551782af1374baR8) [[2]](diffhunk://#diff-c20d0f941afc5e7a3690a6b78c9f558e094b5dd6f4f2694593551782af1374baR31-R32) [[3]](diffhunk://#diff-c20d0f941afc5e7a3690a6b78c9f558e094b5dd6f4f2694593551782af1374baL95-R105) [[4]](diffhunk://#diff-c20d0f941afc5e7a3690a6b78c9f558e094b5dd6f4f2694593551782af1374baR114) [[5]](diffhunk://#diff-c20d0f941afc5e7a3690a6b78c9f558e094b5dd6f4f2694593551782af1374baL129-R137) [[6]](diffhunk://#diff-c20d0f941afc5e7a3690a6b78c9f558e094b5dd6f4f2694593551782af1374baL189-R198)
+* Modified the Modbus server start logic to initialize UART if the RTU configuration specifies it (`ciot_mbus_server_start`).
+
+**UART Improvements:**
+
+* Added `ciot_uart_set_gpio` to allow setting UART GPIO configuration programmatically, and ensured UART initialization reuses existing configuration if already started. [[1]](diffhunk://#diff-06714c1bb32e03623be4193a1148fb24cb31829a4308a50e80984dafbed45cccR38) [[2]](diffhunk://#diff-c6772be7493f22302ee1b87ad6ee145156509971bff846b5d9540e7937c37e63R117-R126) [[3]](diffhunk://#diff-c8a5a36ea012ff34598ad0ee6f74aaf1c434a0083acbc5a0c877c116db5bcceaR78-R84) [[4]](diffhunk://#diff-c8a5a36ea012ff34598ad0ee6f74aaf1c434a0083acbc5a0c877c116db5bcceaR95) [[5]](diffhunk://#diff-ffccc2f85616dfd12ec2dbc6a3a71126f30eb2c9fdd873a1d71ee6f6fb46885fR58-R63) [[6]](diffhunk://#diff-63972ff7c01e2e6d441e83c0332b572d8442cca850beecff8f5a82296a80448fR51-R59)
+* Updated UART event handling on Windows to use `ciot_iface_send_event_type` for cleaner event emission.
+
+**CIOT State Machine Enhancements:**
+
+* Introduced a new `CIOT_STATE_PENDING_EVENT` state to handle events arriving while CIOT is busy, updating the enum, macros, and core state machine logic. [[1]](diffhunk://#diff-c7c50c04d8e1c8ae47d00c3bb95d91bfed66e9d5eeae3174c70f4fcc4b0dced6L20-R21) [[2]](diffhunk://#diff-c7c50c04d8e1c8ae47d00c3bb95d91bfed66e9d5eeae3174c70f4fcc4b0dced6R82) [[3]](diffhunk://#diff-ac3505c8e7850d45dfcfdd990afb140a041683f93b640fc2b17a8e05bdd30c10R89) [[4]](diffhunk://#diff-ac3505c8e7850d45dfcfdd990afb140a041683f93b640fc2b17a8e05bdd30c10R344-R349) [[5]](diffhunk://#diff-ac3505c8e7850d45dfcfdd990afb140a041683f93b640fc2b17a8e05bdd30c10L406-R416) [[6]](diffhunk://#diff-ac3505c8e7850d45dfcfdd990afb140a041683f93b640fc2b17a8e05bdd30c10R498-R509)

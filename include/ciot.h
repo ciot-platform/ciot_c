@@ -33,7 +33,7 @@
 #warning "Target undefined."
 #endif
 
-#define CIOT_VER 0,4,0,1
+#define CIOT_VER 0,5,0,0
 #define CIOT_IFACE_CFG_FILENAME "cfg%d.dat"
 
 #if defined(CIOT_TARGET_WIN) || defined(CIOT_TARGET_LINUX)

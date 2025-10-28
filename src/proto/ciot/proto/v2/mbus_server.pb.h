@@ -5,6 +5,7 @@
 #define PB_CIOT_CIOT_PROTO_V2_MBUS_SERVER_PB_H_INCLUDED
 #include <pb.h>
 #include "ciot/proto/v2/mbus.pb.h"
+#include "ciot/proto/v2/uart.pb.h"
 
 #if PB_PROTO_HEADER_VERSION != 40
 #error Regenerate this file with the current version of nanopb generator.
@@ -27,6 +28,8 @@ typedef struct ciot_mbus_server_stop {
 /* Message representing Modbus RTU configuration */
 typedef struct ciot_mbus_server_rtu_cfg {
     uint32_t server_id; /* Server ID */
+    bool has_uart;
+    ciot_uart_cfg_t uart; /* UART settings */
 } ciot_mbus_server_rtu_cfg_t;
 
 /* Message representing Modbus TCP configuration */
@@ -92,14 +95,14 @@ extern "C" {
 
 /* Initializer values for message structs */
 #define CIOT_MBUS_SERVER_STOP_INIT_DEFAULT       {0}
-#define CIOT_MBUS_SERVER_RTU_CFG_INIT_DEFAULT    {0}
+#define CIOT_MBUS_SERVER_RTU_CFG_INIT_DEFAULT    {0, false, CIOT_UART_CFG_INIT_DEFAULT}
 #define CIOT_MBUS_SERVER_TCP_CFG_INIT_DEFAULT    {0, 0}
 #define CIOT_MBUS_SERVER_CFG_INIT_DEFAULT        {0, {CIOT_MBUS_SERVER_RTU_CFG_INIT_DEFAULT}}
 #define CIOT_MBUS_SERVER_STATUS_INIT_DEFAULT     {_CIOT_MBUS_SERVER_STATE_MIN}
 #define CIOT_MBUS_SERVER_REQ_INIT_DEFAULT        {0, {CIOT_MBUS_FUNCTION_REQ_INIT_DEFAULT}}
 #define CIOT_MBUS_SERVER_DATA_INIT_DEFAULT       {0, {CIOT_MBUS_SERVER_STOP_INIT_DEFAULT}}
 #define CIOT_MBUS_SERVER_STOP_INIT_ZERO          {0}
-#define CIOT_MBUS_SERVER_RTU_CFG_INIT_ZERO       {0}
+#define CIOT_MBUS_SERVER_RTU_CFG_INIT_ZERO       {0, false, CIOT_UART_CFG_INIT_ZERO}
 #define CIOT_MBUS_SERVER_TCP_CFG_INIT_ZERO       {0, 0}
 #define CIOT_MBUS_SERVER_CFG_INIT_ZERO           {0, {CIOT_MBUS_SERVER_RTU_CFG_INIT_ZERO}}
 #define CIOT_MBUS_SERVER_STATUS_INIT_ZERO        {_CIOT_MBUS_SERVER_STATE_MIN}
@@ -108,6 +111,7 @@ extern "C" {
 
 /* Field tags (for use in manual encoding/decoding) */
 #define CIOT_MBUS_SERVER_RTU_CFG_SERVER_ID_TAG   1
+#define CIOT_MBUS_SERVER_RTU_CFG_UART_TAG        2
 #define CIOT_MBUS_SERVER_TCP_CFG_PORT_TAG        1
 #define CIOT_MBUS_SERVER_TCP_CFG_MAX_CONNECTIONS_TAG 2
 #define CIOT_MBUS_SERVER_CFG_RTU_TAG             1
@@ -126,9 +130,11 @@ extern "C" {
 #define CIOT_MBUS_SERVER_STOP_DEFAULT NULL
 
 #define CIOT_MBUS_SERVER_RTU_CFG_FIELDLIST(X, a) \
-X(a, STATIC,   SINGULAR, UINT32,   server_id,         1)
+X(a, STATIC,   SINGULAR, UINT32,   server_id,         1) \
+X(a, STATIC,   OPTIONAL, MESSAGE,  uart,              2)
 #define CIOT_MBUS_SERVER_RTU_CFG_CALLBACK NULL
 #define CIOT_MBUS_SERVER_RTU_CFG_DEFAULT NULL
+#define ciot_mbus_server_rtu_cfg_t_uart_MSGTYPE ciot_uart_cfg_t
 
 #define CIOT_MBUS_SERVER_TCP_CFG_FIELDLIST(X, a) \
 X(a, STATIC,   SINGULAR, UINT32,   port,              1) \
@@ -186,10 +192,10 @@ extern const pb_msgdesc_t ciot_mbus_server_data_t_msg;
 
 /* Maximum encoded size of messages (where known) */
 #define CIOT_CIOT_PROTO_V2_MBUS_SERVER_PB_H_MAX_SIZE CIOT_MBUS_SERVER_DATA_SIZE
-#define CIOT_MBUS_SERVER_CFG_SIZE                14
+#define CIOT_MBUS_SERVER_CFG_SIZE                76
 #define CIOT_MBUS_SERVER_DATA_SIZE               224
 #define CIOT_MBUS_SERVER_REQ_SIZE                221
-#define CIOT_MBUS_SERVER_RTU_CFG_SIZE            6
+#define CIOT_MBUS_SERVER_RTU_CFG_SIZE            74
 #define CIOT_MBUS_SERVER_STATUS_SIZE             2
 #define CIOT_MBUS_SERVER_STOP_SIZE               0
 #define CIOT_MBUS_SERVER_TCP_CFG_SIZE            12

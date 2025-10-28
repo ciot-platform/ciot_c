@@ -86,6 +86,7 @@ ciot_err_t ciot_task(ciot_t self)
         ciot_starting_task(self);
         break;
     case CIOT_STATE_BUSY:
+    case CIOT_STATE_PENDING_EVENT:
         ciot_busy_task(self);
         break;
     default:
@@ -340,6 +341,12 @@ static ciot_err_t ciot_busy_task(ciot_t self)
 
     ciot_receiver_t *receiver = &self->receiver;
 
+    if(self->status.state == CIOT_STATE_PENDING_EVENT && self->receiver.event.msg.iface.id < self->ifaces.count)
+    {
+        receiver->sender = self->ifaces.list[self->receiver.event.msg.iface.id];
+        self->status.state = CIOT_STATE_BUSY;
+    }
+
     if (receiver->sender == NULL)
     {
         CIOT_LOGE(TAG, "Sender is null");
@@ -403,7 +410,10 @@ static ciot_err_t ciot_busy_task(ciot_t self)
     }
 
     receiver->sender = NULL;
-    self->status.state = CIOT_STATE_STARTED;
+
+    self->status.state = self->status.state != CIOT_STATE_PENDING_EVENT
+        ? CIOT_STATE_STARTED
+        : CIOT_STATE_PENDING_EVENT;
 
     if(self->iface.event_handler != NULL)
     {
@@ -486,8 +496,16 @@ static ciot_err_t ciot_iface_event_handler(ciot_iface_t *sender, ciot_event_t *e
 
     if (self->status.state == CIOT_STATE_BUSY)
     {
-        CIOT_LOGE(TAG, "ciot busy. %s(%lu) evt:%s ignored", ciot_iface_to_str(sender), (long unsigned int)sender->info.id, ciot_event_to_str(event));
-        return CIOT_ERR_BUSY;
+        if(ciot_iface_is_equal(&event->msg.iface, &receiver->event.msg.iface))
+        {
+            CIOT_LOGI(TAG, "ciot busy but event from same iface. processing...");
+            self->status.state = CIOT_STATE_PENDING_EVENT;
+        }
+        else
+        {
+            CIOT_LOGE(TAG, "ciot busy. %s(%lu) evt:%s ignored", ciot_iface_to_str(sender), (long unsigned int)sender->info.id, ciot_event_to_str(event));
+            return CIOT_ERR_BUSY;
+        }
     }
 
     receiver->event = *event;
