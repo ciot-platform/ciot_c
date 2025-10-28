@@ -221,6 +221,18 @@ ciot_gpio_state_t ciot_gpio_get_state(ciot_gpio_t self, uint16_t id)
     return base->get_state(num);
 }
 
+void ciot_gpio_write_pin(ciot_gpio_t self, uint16_t pin_num, int value)
+{
+    ciot_gpio_base_t *base = (ciot_gpio_base_t*)self;
+    base->set_state(pin_num, value);
+}
+
+int ciot_gpio_read_pin(ciot_gpio_t self, uint16_t pin_num)
+{
+    ciot_gpio_base_t *base = (ciot_gpio_base_t*)self;
+    return base->get_state(pin_num);
+}
+
 static ciot_err_t ciot_gpio_process_set_status(ciot_gpio_t self, ciot_gpio_status_t *set_status)
 {
     ciot_gpio_base_t *base = (ciot_gpio_base_t*)self;
