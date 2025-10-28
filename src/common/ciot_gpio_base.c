@@ -127,6 +127,13 @@ static ciot_err_t ciot_gpio_get_data(ciot_iface_t *iface, ciot_msg_data_t *data)
         break;
     case CIOT_DATA_TYPE_STATUS:
         data->gpio.which_type = CIOT_GPIO_DATA_STATUS_TAG;
+        for (size_t i = 0; i < self->cfg.pins_count; i++)
+        {
+            if(self->cfg.pins[i].mode == CIOT_GPIO_MODE_INPUT)
+            {
+                self->status.states.bytes[i] = self->get_state(self->cfg.pins[i].num);
+            }
+        }
         data->gpio.status = self->status;
         break;
     default:
