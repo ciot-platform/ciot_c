@@ -127,6 +127,13 @@ static ciot_err_t ciot_gpio_get_data(ciot_iface_t *iface, ciot_msg_data_t *data)
         break;
     case CIOT_DATA_TYPE_STATUS:
         data->gpio.which_type = CIOT_GPIO_DATA_STATUS_TAG;
+        for (size_t i = 0; i < self->cfg.pins_count; i++)
+        {
+            if(self->cfg.pins[i].mode == CIOT_GPIO_MODE_INPUT)
+            {
+                self->status.states.bytes[i] = self->get_state(self->cfg.pins[i].num);
+            }
+        }
         data->gpio.status = self->status;
         break;
     default:
@@ -219,6 +226,18 @@ ciot_gpio_state_t ciot_gpio_get_state(ciot_gpio_t self, uint16_t id)
     if(base->get_state == NULL) return CIOT_GPIO_STATE_ERROR;
     int num = base->cfg.pins[id].num;
     return base->get_state(num);
+}
+
+void ciot_gpio_write_pin(ciot_gpio_t self, uint16_t pin_num, int value)
+{
+    ciot_gpio_base_t *base = (ciot_gpio_base_t*)self;
+    base->set_state(pin_num, value);
+}
+
+int ciot_gpio_read_pin(ciot_gpio_t self, uint16_t pin_num)
+{
+    ciot_gpio_base_t *base = (ciot_gpio_base_t*)self;
+    return base->get_state(pin_num);
 }
 
 static ciot_err_t ciot_gpio_process_set_status(ciot_gpio_t self, ciot_gpio_status_t *set_status)
