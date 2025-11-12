@@ -104,6 +104,16 @@ bool ciot_mqtt_client_is_connected(ciot_mqtt_client_t self)
     return base->status.state == CIOT_MQTT_CLIENT_STATE_CONNECTED;
 }
 
+ciot_err_t ciot_mqtt_client_set_will(ciot_mqtt_client_t self, ciot_mqtt_client_last_will_t *last_will)
+{
+    CIOT_ERR_NULL_CHECK(self);
+    CIOT_ERR_NULL_CHECK(last_will);  
+    ciot_mqtt_client_base_t *base = (ciot_mqtt_client_base_t*)self;
+    base->cfg.last_will = *last_will;
+    base->cfg.has_last_will = true;
+    return CIOT_ERR_OK;
+}
+
 static ciot_err_t ciot_mqtt_client_process_data(ciot_iface_t *iface, ciot_msg_data_t *data)
 {
     CIOT_ERR_TYPE_CHECK(data->which_type, CIOT_MSG_DATA_MQTT_CLIENT_TAG);
