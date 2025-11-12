@@ -56,6 +56,19 @@ ciot_err_t ciot_mqtt_client_start(ciot_mqtt_client_t self, ciot_mqtt_client_cfg_
         base->topic_len = strlen(base->cfg.topics.pub);
     }
 
+    if(cfg->has_last_will)
+    {
+        base->cfg.has_last_will = true;
+        base->cfg.last_will = cfg->last_will;
+    }
+
+    if(base->cfg.has_last_will)
+    {
+        opts.topic = mg_str(base->cfg.last_will.topic);
+        opts.message.buf = base->cfg.last_will.payload.bytes;
+        opts.message.len = base->cfg.last_will.payload.size;
+    }
+
     opts.client_id = mg_str(base->cfg.client_id);
     opts.user = mg_str(base->cfg.user);
     opts.pass = mg_str(base->cfg.password);
