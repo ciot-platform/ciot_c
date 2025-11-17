@@ -344,6 +344,7 @@ static void ciot_wifi_ap_event_handler(void *handler_args, esp_event_base_t even
         tcp->status->state = CIOT_TCP_STATE_CONNECTED;
         tcp->status->conn_count++;
         base->status.disconnect_reason = 0;
+        ciot_iface_send_event_type(&base->iface, CIOT_WIFI_EVENT_AP_STA_CONNECTED);
         break;
     }
     case WIFI_EVENT_AP_STADISCONNECTED:
@@ -352,6 +353,7 @@ static void ciot_wifi_ap_event_handler(void *handler_args, esp_event_base_t even
         tcp->status->state = CIOT_TCP_STATE_STARTED;
         base->status.disconnect_reason = ((wifi_event_ap_stadisconnected_t*)event_data)->reason;
         CIOT_LOGI(TAG, "reason: %u", (unsigned int)base->status.disconnect_reason);
+        ciot_iface_send_event_type(&base->iface, CIOT_WIFI_EVENT_AP_STA_DISCONNECTED);
         break;
     }
     default:
@@ -390,7 +392,7 @@ static void ciot_wifi_sta_event_handler(void *handler_args, esp_event_base_t eve
     case WIFI_EVENT_STA_START:
     {
         CIOT_LOGI(TAG, "WIFI_EVENT_STA_START");
-        if(base->cfg.ssid[0] != '\0')
+        if (base->cfg.ssid[0] != '\0')
         {
             CIOT_LOGI(TAG, "Wifi sta connecting...");
             tcp->status->state = CIOT_TCP_STATE_CONNECTING;
@@ -432,7 +434,7 @@ static void ciot_wifi_sta_event_handler(void *handler_args, esp_event_base_t eve
         memset(base->info.ap.ssid, 0, sizeof(base->info.ap.ssid));
         ciot_iface_send_event_type(&self->base.iface, CIOT_EVENT_TYPE_STOPPED);
         CIOT_LOGI(TAG, "reason: %u", (unsigned int)base->status.disconnect_reason);
-        if(base->status.tcp.state == CIOT_TCP_STATE_CONNECTED || self->reconnecting)
+        if (base->status.tcp.state == CIOT_TCP_STATE_CONNECTED || self->reconnecting)
         {
             CIOT_LOGI(TAG, "Connection losted. Connecting again...");
             esp_wifi_connect();
@@ -446,4 +448,4 @@ static void ciot_wifi_sta_event_handler(void *handler_args, esp_event_base_t eve
     }
 }
 
-#endif  //!CIOT_CONFIG_FEATURE_WIFI == 1
+#endif //! CIOT_CONFIG_FEATURE_WIFI == 1
