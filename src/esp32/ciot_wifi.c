@@ -148,6 +148,43 @@ ciot_err_t ciot_wifi_send_bytes(ciot_iface_t *iface, uint8_t *bytes, int size)
     return CIOT_ERR_NOT_SUPPORTED;
 }
 
+ciot_err_t ciot_wifi_scan(ciot_wifi_t self)
+{
+    CIOT_ERR_NULL_CHECK(self);
+    CIOT_LOGI(TAG, "Starting WiFi scan");
+
+    wifi_mode_t mode;
+    
+    esp_err_t err = esp_wifi_get_mode(&mode);
+    if(err != ESP_OK)
+    {
+        CIOT_LOGE(TAG, "Failed to get wifi mode: %d", err);
+        return CIOT_ERR_FAIL;
+    }
+
+    if(mode != WIFI_MODE_STA && mode != WIFI_MODE_APSTA)
+    {
+        CIOT_LOGE(TAG, "WiFi scan requires STA mode");
+        return CIOT_ERR_INVALID_STATE;
+    }
+
+    wifi_scan_config_t scan_config = {
+        .ssid = 0,
+        .bssid = 0,
+        .channel = 0,
+        .show_hidden = true,
+        .scan_type = WIFI_SCAN_TYPE_ACTIVE,
+        .scan_time.active.min = 100,
+        .scan_time.active.max = 300,
+    };
+
+    ESP_ERROR_CHECK(esp_wifi_scan_start(&scan_config, false));
+
+    self->base.status.scan_state = CIOT_WIFI_SCAN_STATE_SCANNING;
+
+    return CIOT_ERR_OK;
+}
+
 static esp_err_t esp_wifi_init_mode(ciot_wifi_type_t type)
 {
     wifi_mode_t mode;
@@ -255,6 +292,12 @@ static void ciot_wifi_ap_event_handler(void *handler_args, esp_event_base_t even
 
     switch (event_id)
     {
+    case WIFI_EVENT_SCAN_DONE:
+    {
+        CIOT_LOGI(TAG, "WIFI_EVENT_SCAN_DONE");
+        self->base.status.scan_state = CIOT_WIFI_SCAN_STATE_DONE;
+        break;
+    }
     case WIFI_EVENT_AP_START:
     {
         CIOT_LOGI(TAG, "WIFI_EVENT_AP_START");
