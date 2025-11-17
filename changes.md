@@ -2,17 +2,24 @@
 
 ### Changes
 
-**Timeout Configuration Improvements**
+### WiFi Scanning & AP Management Enhancements
 
-* Added new macros `CIOT_CONFIG_START_TIMEOUT_SECS` and `CIOT_CONFIG_BUSY_TIMEOUT_SECS` to `ciot_config.h` to allow configuration of interface start and busy state timeouts.
-* Refactored code in `ciot.c` to use these macros instead of hardcoded timeout values, ensuring consistency and easier configuration. [[1]](diffhunk://#diff-ac3505c8e7850d45dfcfdd990afb140a041683f93b640fc2b17a8e05bdd30c10L19-R25) [[2]](diffhunk://#diff-ac3505c8e7850d45dfcfdd990afb140a041683f93b640fc2b17a8e05bdd30c10L265-R273) [[3]](diffhunk://#diff-ac3505c8e7850d45dfcfdd990afb140a041683f93b640fc2b17a8e05bdd30c10L311-R319)
+* Added a unified API for WiFi scanning, including `ciot_wifi_scan`, `ciot_wifi_get_scanned_ap`, and `ciot_wifi_get_scanned_aps` functions, as well as the `ciot_wifi_ap_list_t` structure for managing scanned APs in `include/ciot_wifi.h`, with implementations for both ESP32 and ESP8266. [[1]](diffhunk://#diff-ca06c9e501fbf825c6fd9ca3cd0cce0ce9db4ddb5c48c00c94d2c023ccb800d0R31-R44) [[2]](diffhunk://#diff-ca06c9e501fbf825c6fd9ca3cd0cce0ce9db4ddb5c48c00c94d2c023ccb800d0R57-R59) [[3]](diffhunk://#diff-1e5fcda8059ac0f18c5557188647b0a89a590410665a42881e045675369a6279R152-R192) [[4]](diffhunk://#diff-3178431e9d6c268319f8e759b5ad1f5805a9c1a44db140add61f0b66bcb3580dR152-R192)
+* Implemented logic to update and store the list of scanned APs after a scan completes, including memory management and populating AP info fields, in both ESP32 and ESP8266 WiFi modules. [[1]](diffhunk://#diff-1e5fcda8059ac0f18c5557188647b0a89a590410665a42881e045675369a6279R292-R316) [[2]](diffhunk://#diff-3178431e9d6c268319f8e759b5ad1f5805a9c1a44db140add61f0b66bcb3580dR292-R316)
+* Modified event handlers to process scan completion events, update scan state, send scan result events, and refresh the AP list. [[1]](diffhunk://#diff-1e5fcda8059ac0f18c5557188647b0a89a590410665a42881e045675369a6279L308-R389) [[2]](diffhunk://#diff-3178431e9d6c268319f8e759b5ad1f5805a9c1a44db140add61f0b66bcb3580dL313-R388)
 
-**Busy State Timeout Handling**
+### API & Request Handling
 
-* Introduced a new `timeout_timer` field to `ciot_receiver_t` in `ciot.h`, and added logic to reset this timer on start/stop of CIOT. [[1]](diffhunk://#diff-e3a87c483eaad2e3f831ea32fa5bb0c2538d10b268422ac8bf3e6da43110f554R78) [[2]](diffhunk://#diff-ac3505c8e7850d45dfcfdd990afb140a041683f93b640fc2b17a8e05bdd30c10R68) [[3]](diffhunk://#diff-ac3505c8e7850d45dfcfdd990afb140a041683f93b640fc2b17a8e05bdd30c10R78)
-* Implemented timeout checking in the `ciot_busy_task` function; if the busy state exceeds the configured timeout, the state transitions to `CIOT_STATE_STARTED` and returns a timeout error.
-* Updated event handling logic to set the busy timeout timer whenever entering the busy state, ensuring that all busy transitions are properly timed.
+* Updated the WiFi request handler to support new scan and AP info request types, enabling clients to trigger scans and retrieve AP details via the request interface.
 
-API improvements:
+### Build System & Configuration Updates
 
-* Replaced the `ciot_mqtt_client_is_connected` function with `ciot_mqtt_client_get_state`, which returns the client's full state instead of just a boolean, in both `include/ciot_mqtt_client.h` and `src/common/ciot_mqtt_client_base.c`. [[1]](diffhunk://#diff-a638c8162c9fd3c46a613972d55fb3e86f31fb500834c9975f267f2e88874652L64-R64) [[2]](diffhunk://#diff-3c29355ff0857480c7a57573c88ad3ec552a012ff62443b7bcc7fd8537b3efb9L101-R113)
+* Updated build system paths for ESP8266 to reference the new `ciot_c` directory structure, ensuring correct inclusion and source directories.
+* Added `iphlpapi` to Windows target link libraries in `examples/device/CMakelists.txt`.
+* Increased ESP32 flash size configuration from 2MB to 4MB and enabled header flash size update in `sdkconfig.old`.
+* Added a new `grpc` target to the `Makefile` for .NET-based gRPC operations.
+
+### Minor Fixes
+
+* Corrected typos (`reconecting` → `reconnecting`) and improved logic for reconnecting and AP disconnect reason handling in ESP8266 WiFi code. [[1]](diffhunk://#diff-3178431e9d6c268319f8e759b5ad1f5805a9c1a44db140add61f0b66bcb3580dL29-R36) [[2]](diffhunk://#diff-3178431e9d6c268319f8e759b5ad1f5805a9c1a44db140add61f0b66bcb3580dL347-R422) [[3]](diffhunk://#diff-3178431e9d6c268319f8e759b5ad1f5805a9c1a44db140add61f0b66bcb3580dL361-R440) [[4]](diffhunk://#diff-3178431e9d6c268319f8e759b5ad1f5805a9c1a44db140add61f0b66bcb3580dL292)
+* Updated UART configuration to use GPIO struct for pin assignment in ESP32 and ESP8266 examples. [[1]](diffhunk://#diff-6773dffa63c9d9ef98be84b887af7e3d9e42cbddd75bbdb9d2d997e7d1a072b3L27-R31) [[2]](diffhunk://#diff-df44eea7045a5329763fff4c6777ffff67783c090181511ecbcd327cbb4487cbL26-R27)
