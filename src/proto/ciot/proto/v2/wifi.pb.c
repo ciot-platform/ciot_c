@@ -33,9 +33,6 @@ PB_BIND(CIOT_WIFI_REQ_GET_AP, ciot_wifi_req_get_ap_t, AUTO)
 PB_BIND(CIOT_WIFI_REQ, ciot_wifi_req_t, AUTO)
 
 
-PB_BIND(CIOT_WIFI_RESP, ciot_wifi_resp_t, AUTO)
-
-
 PB_BIND(CIOT_WIFI_DATA, ciot_wifi_data_t, AUTO)
 
 

@@ -97,9 +97,6 @@ static ciot_err_t ciot_wifi_set_cfg(ciot_wifi_t self, ciot_wifi_cfg_t *cfg)
 
     memcpy(&base->cfg, cfg, sizeof(*cfg));
 
-    // strcpy(base->ssid, cfg->ssid);
-    // strcpy(base->password, cfg->password);
-
     if (cfg->has_tcp)
     {
         CIOT_LOGI(TAG, "Set tcp config");
@@ -107,6 +104,21 @@ static ciot_err_t ciot_wifi_set_cfg(ciot_wifi_t self, ciot_wifi_cfg_t *cfg)
     }
 
     return CIOT_ERR_OK;
+}
+
+ciot_err_t ciot_wifi_scan(ciot_wifi_t self)
+{
+    return CIOT_ERR_NOT_SUPPORTED;
+}
+
+ciot_err_t ciot_wifi_get_scanned_ap(ciot_wifi_t self, int id, ciot_wifi_ap_info_t *ap_info)
+{
+    return CIOT_ERR_NOT_SUPPORTED;
+}
+
+ciot_err_t ciot_wifi_get_scanned_aps(ciot_wifi_t self, ciot_wifi_ap_list_t *ap_list)
+{
+    return CIOT_ERR_NOT_SUPPORTED;
 }
 
 #endif // CIOT_CONFIG_FEATURE_WIFI == 1
