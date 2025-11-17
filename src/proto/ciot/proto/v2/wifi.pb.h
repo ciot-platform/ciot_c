@@ -21,7 +21,7 @@ typedef enum ciot_wifi_type {
 typedef enum ciot_wifi_scan_state {
     CIOT_WIFI_SCAN_STATE_IDLE = 0, /* Wi-Fi scan is idle. */
     CIOT_WIFI_SCAN_STATE_SCANNING = 1, /* Wi-Fi scan is in progress. */
-    CIOT_WIFI_SCAN_STATE_SCANNED = 2, /* Wi-Fi scan completed successfully. */
+    CIOT_WIFI_SCAN_STATE_DONE = 2, /* Wi-Fi scan completed successfully. */
     CIOT_WIFI_SCAN_STATE_ERROR = 3 /* Error occurred during Wi-Fi scan. */
 } ciot_wifi_scan_state_t;
 
@@ -127,7 +127,7 @@ extern "C" {
 #define _CIOT_WIFI_SCAN_STATE_ARRAYSIZE ((ciot_wifi_scan_state_t)(CIOT_WIFI_SCAN_STATE_ERROR+1))
 #define CIOT_WIFI_SCAN_STATE_WIFI_SCAN_STATE_IDLE CIOT_WIFI_SCAN_STATE_IDLE
 #define CIOT_WIFI_SCAN_STATE_WIFI_SCAN_STATE_SCANNING CIOT_WIFI_SCAN_STATE_SCANNING
-#define CIOT_WIFI_SCAN_STATE_WIFI_SCAN_STATE_SCANNED CIOT_WIFI_SCAN_STATE_SCANNED
+#define CIOT_WIFI_SCAN_STATE_WIFI_SCAN_STATE_DONE CIOT_WIFI_SCAN_STATE_DONE
 #define CIOT_WIFI_SCAN_STATE_WIFI_SCAN_STATE_ERROR CIOT_WIFI_SCAN_STATE_ERROR
 
 
