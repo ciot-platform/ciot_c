@@ -61,7 +61,7 @@ ciot_err_t ciot_mqtt_client_send(ciot_mqtt_client_t self, uint8_t *data, int siz
 ciot_err_t ciot_mqtt_client_set_topics(ciot_mqtt_client_t self, char *d2b, char *b2d);
 ciot_err_t ciot_mqtt_client_set_subtopic(ciot_mqtt_client_t self, char *subtopic, int len);
 ciot_err_t ciot_mqtt_client_update_data_rate(ciot_mqtt_client_t self, int bytes_sended);
-bool ciot_mqtt_client_is_connected(ciot_mqtt_client_t self);
+ciot_mqtt_client_state_t ciot_mqtt_client_get_state(ciot_mqtt_client_t self);
 
 #ifdef __cplusplus
 }
