@@ -20,5 +20,5 @@ add_executable(${PROJECT_NAME}
 
 if(WIN32)
     target_link_libraries(${PROJECT_NAME} ws2_32)
-    target_link_libraries(${PROJECT_NAME} ws2_32 bcrypt)
+    target_link_libraries(${PROJECT_NAME} iphlpapi ws2_32 bcrypt)
 endif()
