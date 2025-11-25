@@ -187,7 +187,7 @@ ciot_err_t ciot_delete_all(ciot_t self)
     CIOT_ERR_NULL_CHECK(self->storage);
     for (int i = 0; i < self->ifaces.count; i++)
     {
-        char filename[16];
+        char filename[32];
         sprintf(filename, CIOT_IFACE_CFG_FILENAME, i);
         ciot_err_t err = self->storage->remove(self->storage, filename);
         CIOT_LOGI(TAG, "Deleting configuration file: %s", filename);
