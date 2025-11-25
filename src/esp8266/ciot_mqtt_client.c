@@ -44,8 +44,20 @@ ciot_err_t ciot_mqtt_client_start(ciot_mqtt_client_t self, ciot_mqtt_client_cfg_
     CIOT_ERR_NULL_CHECK(self);
     CIOT_ERR_NULL_CHECK(cfg);
     ciot_mqtt_client_base_t *base = &self->base;
-    base->cfg = *cfg;
 
+    if(cfg->has_last_will == false && base->cfg.has_last_will)
+    {
+        cfg->has_last_will = true;
+        cfg->last_will = base->cfg.last_will;
+    }
+
+    if(cfg->has_topics == false && base->cfg.has_topics)
+    {
+        cfg->has_topics = true;
+        cfg->topics = base->cfg.topics;
+    }
+
+    base->cfg = *cfg;
     if (base->cfg.has_topics)
     {
         strcpy(base->topic_sub, base->cfg.topics.sub);
@@ -58,6 +70,12 @@ ciot_err_t ciot_mqtt_client_start(ciot_mqtt_client_t self, ciot_mqtt_client_cfg_
         .client_id = base->cfg.client_id,
         .username = base->cfg.user,
         .password = base->cfg.password,
+        .keepalive = base->cfg.has_session ? base->cfg.session.keep_alive : 120,
+        .disable_clean_session = base->cfg.has_session ? !base->cfg.session.clean_session : false,
+        .lwt_msg = base->cfg.has_last_will ? (const char*)base->cfg.last_will.payload.bytes : NULL,
+        .lwt_msg_len = base->cfg.has_last_will ? base->cfg.last_will.payload.size : 0,
+        .lwt_qos = base->cfg.has_last_will ? base->cfg.last_will.qos : 0,
+        .lwt_topic = base->cfg.has_last_will ? base->cfg.last_will.topic : NULL,
 #ifdef CONFIG_MBEDTLS_CERTIFICATE_BUNDLE
         .broker.verification.crt_bundle_attach = esp_crt_bundle_attach,
 #endif

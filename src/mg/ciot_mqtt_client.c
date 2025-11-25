@@ -48,6 +48,18 @@ ciot_err_t ciot_mqtt_client_start(ciot_mqtt_client_t self, ciot_mqtt_client_cfg_
     ciot_mqtt_client_base_t *base = &self->base;
     struct mg_mqtt_opts opts = { 0 };
 
+    if(cfg->has_last_will == false && base->cfg.has_last_will)
+    {
+        cfg->has_last_will = true;
+        cfg->last_will = base->cfg.last_will;
+    }
+
+    if(cfg->has_topics == false && base->cfg.has_topics)
+    {
+        cfg->has_topics = true;
+        cfg->topics = base->cfg.topics;
+    }
+
     base->cfg = *cfg;
     if(base->cfg.has_topics)
     {
@@ -56,14 +68,9 @@ ciot_err_t ciot_mqtt_client_start(ciot_mqtt_client_t self, ciot_mqtt_client_cfg_
         base->topic_len = strlen(base->cfg.topics.pub);
     }
 
-    if(cfg->has_last_will)
-    {
-        base->cfg.has_last_will = true;
-        base->cfg.last_will = cfg->last_will;
-    }
-
     if(base->cfg.has_last_will)
     {
+        opts.retain = base->cfg.last_will.retain;
         opts.topic = mg_str(base->cfg.last_will.topic);
         opts.message.buf = base->cfg.last_will.payload.bytes;
         opts.message.len = base->cfg.last_will.payload.size;
@@ -74,8 +81,17 @@ ciot_err_t ciot_mqtt_client_start(ciot_mqtt_client_t self, ciot_mqtt_client_cfg_
     opts.pass = mg_str(base->cfg.password);
     opts.qos = base->cfg.qos;
     opts.version = 4;
-    opts.keepalive = 60;
-    opts.clean = true;
+
+    if(base->cfg.has_session)
+    {
+        opts.clean = base->cfg.session.clean_session;
+        opts.keepalive = (uint16_t)base->cfg.session.keep_alive;
+    }
+    else
+    {
+        opts.clean = true;
+        opts.keepalive = 60;
+    }
 
     if(self->connection != NULL && self->connection->is_closing == false)
     {
