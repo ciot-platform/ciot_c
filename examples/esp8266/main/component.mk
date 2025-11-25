@@ -28,7 +28,6 @@ COMPONENT_ADD_INCLUDEDIRS += $(CIOT_PATH)/ciot_c/libs/nanomodbus
 COMPONENT_SRCDIRS += $(CIOT_PATH)/ciot_c/src/core
 COMPONENT_SRCDIRS += $(CIOT_PATH)/ciot_c/src/common
 COMPONENT_SRCDIRS += $(CIOT_PATH)/ciot_c/src/esp8266
-COMPONENT_SRCDIRS += $(CIOT_PATH)/ciot_c/src/mg
 COMPONENT_SRCDIRS += $(CIOT_PATH)/ciot_c/src/proto/nanopb
 COMPONENT_SRCDIRS += $(CIOT_PATH)/ciot_c/src/proto/ciot/proto/v2
 COMPONENT_SRCDIRS += $(CIOT_PATH)/ciot_c/libs/nanomodbus
