@@ -61,19 +61,19 @@
                 "${ESP8266_PATH}/components/**/include",
                 "${workspaceFolder}/examples/esp8266/build/include",
                 "${workspaceFolder}/examples/esp8266/main/**",
-                "${CIOT_PATH}/include",
-                "${CIOT_PATH}/src/esp32",
-                "${CIOT_PATH}/src/common",
-                "${CIOT_PATH}/src/proto/nanopb",
-                "${CIOT_PATH}/src/proto"
+                "${CIOT_SDK_ROOT}/include",
+                "${CIOT_SDK_ROOT}/src/esp8266",
+                "${CIOT_SDK_ROOT}/src/common",
+                "${CIOT_SDK_ROOT}/src/proto/nanopb",
+                "${CIOT_SDK_ROOT}/src/proto"
             ],
             "browse": {
                 "path": [
                     "${ESP8266_PATH}/components/**",
-                    "${CIOT_PATH}/src/esp8266/**",
-                    "${CIOT_PATH}/src/mg/**",
-                    "${CIOT_PATH}/src/common/**",
-                    "${CIOT_PATH}/src/core/**",
+                    "${CIOT_SDK_ROOT}/src/esp8266/**",
+                    "${CIOT_SDK_ROOT}/src/mg/**",
+                    "${CIOT_SDK_ROOT}/src/common/**",
+                    "${CIOT_SDK_ROOT}/src/core/**",
                     "${workspaceFolder}/examples/esp8266/main/**"
                 ],
                 "limitSymbolsToIncludedHeaders": false
