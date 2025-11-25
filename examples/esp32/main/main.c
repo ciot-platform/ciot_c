@@ -26,9 +26,9 @@ ciot_msg_data_t uart_cfg = {
             .num = 2,
             .has_gpio = true,
             .gpio = {
-                .rx = 16,
                 .tx = 17,
-            }
+                .rx = 16,
+            },
         },
     },
 };
