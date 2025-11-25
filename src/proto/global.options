@@ -29,6 +29,8 @@ Ciot.MqttClientCfg.client_id max_size:32
 Ciot.MqttClientCfg.url max_size:48
 Ciot.MqttClientCfg.user max_size:32
 Ciot.MqttClientCfg.password max_size:32
+Ciot.MqttClientLastWill.topic max_size:48
+Ciot.MqttClientLastWill.payload max_size:128
 Ciot.MqttClientReqPublish.topic max_size:48
 Ciot.MqttClientReqPublish.payload fixed_length:true
 Ciot.MqttClientReqPublish.payload max_size:128
