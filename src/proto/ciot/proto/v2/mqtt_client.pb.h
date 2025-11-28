@@ -52,10 +52,23 @@ typedef struct ciot_mqtt_client_topics_cfg {
     char sub[48]; /* Topic used to receive data. */
 } ciot_mqtt_client_topics_cfg_t;
 
+typedef PB_BYTES_ARRAY_T(128) ciot_mqtt_client_last_will_payload_t;
+typedef struct ciot_mqtt_client_last_will {
+    char topic[48]; /* Topic for the last will message. */
+    ciot_mqtt_client_last_will_payload_t payload; /* Payload for the last will message. */
+    uint32_t qos; /* Quality of Service level for the last will message. */
+    bool retain; /* Retain flag for the last will message. */
+} ciot_mqtt_client_last_will_t;
+
 /* Message used to stop MQTT client interface */
 typedef struct ciot_mqtt_client_stop {
     char dummy_field;
 } ciot_mqtt_client_stop_t;
+
+typedef struct ciot_mqtt_client_session_cfg {
+    bool clean_session; /* Clean session flag */
+    int32_t keep_alive; /* Keep alive interval in seconds */
+} ciot_mqtt_client_session_cfg_t;
 
 /* Message representing configuration for the MQTT client. */
 typedef struct ciot_mqtt_client_cfg {
@@ -66,7 +79,11 @@ typedef struct ciot_mqtt_client_cfg {
     uint32_t qos; /* Quality of Service level for MQTT communication. */
     bool has_topics;
     ciot_mqtt_client_topics_cfg_t topics; /* Topics configuration for MQTT communication. */
-    ciot_mqtt_client_broker_kind_t broker_kind; /* MQTT broker kind */
+    ciot_mqtt_client_broker_kind_t broker_kind; /* MQTT broker kind. */
+    bool has_last_will;
+    ciot_mqtt_client_last_will_t last_will; /* Last will message configuration. */
+    bool has_session;
+    ciot_mqtt_client_session_cfg_t session; /* Session configuration. */
 } ciot_mqtt_client_cfg_t;
 
 /* Message representing status information for the MQTT client. */
@@ -146,6 +163,8 @@ extern "C" {
 
 
 
+
+
 #define ciot_mqtt_client_cfg_t_broker_kind_ENUMTYPE ciot_mqtt_client_broker_kind_t
 
 #define ciot_mqtt_client_status_t_state_ENUMTYPE ciot_mqtt_client_state_t
@@ -158,8 +177,10 @@ extern "C" {
 /* Initializer values for message structs */
 #define CIOT_MQTT_CLIENT_ERROR_INIT_DEFAULT      {0, 0, 0, 0, 0, 0}
 #define CIOT_MQTT_CLIENT_TOPICS_CFG_INIT_DEFAULT {"", ""}
+#define CIOT_MQTT_CLIENT_LAST_WILL_INIT_DEFAULT  {"", {0, {0}}, 0, 0}
 #define CIOT_MQTT_CLIENT_STOP_INIT_DEFAULT       {0}
-#define CIOT_MQTT_CLIENT_CFG_INIT_DEFAULT        {"", "", "", "", 0, false, CIOT_MQTT_CLIENT_TOPICS_CFG_INIT_DEFAULT, _CIOT_MQTT_CLIENT_BROKER_KIND_MIN}
+#define CIOT_MQTT_CLIENT_SESSION_CFG_INIT_DEFAULT {0, 0}
+#define CIOT_MQTT_CLIENT_CFG_INIT_DEFAULT        {"", "", "", "", 0, false, CIOT_MQTT_CLIENT_TOPICS_CFG_INIT_DEFAULT, _CIOT_MQTT_CLIENT_BROKER_KIND_MIN, false, CIOT_MQTT_CLIENT_LAST_WILL_INIT_DEFAULT, false, CIOT_MQTT_CLIENT_SESSION_CFG_INIT_DEFAULT}
 #define CIOT_MQTT_CLIENT_STATUS_INIT_DEFAULT     {_CIOT_MQTT_CLIENT_STATE_MIN, 0, 0, 0, false, CIOT_MQTT_CLIENT_ERROR_INIT_DEFAULT}
 #define CIOT_MQTT_CLIENT_REQ_PUBLISH_INIT_DEFAULT {"", {0}, 0}
 #define CIOT_MQTT_CLIENT_REQ_SUBSCRIBE_INIT_DEFAULT {"", 0}
@@ -167,8 +188,10 @@ extern "C" {
 #define CIOT_MQTT_CLIENT_DATA_INIT_DEFAULT       {0, {CIOT_MQTT_CLIENT_STOP_INIT_DEFAULT}}
 #define CIOT_MQTT_CLIENT_ERROR_INIT_ZERO         {0, 0, 0, 0, 0, 0}
 #define CIOT_MQTT_CLIENT_TOPICS_CFG_INIT_ZERO    {"", ""}
+#define CIOT_MQTT_CLIENT_LAST_WILL_INIT_ZERO     {"", {0, {0}}, 0, 0}
 #define CIOT_MQTT_CLIENT_STOP_INIT_ZERO          {0}
-#define CIOT_MQTT_CLIENT_CFG_INIT_ZERO           {"", "", "", "", 0, false, CIOT_MQTT_CLIENT_TOPICS_CFG_INIT_ZERO, _CIOT_MQTT_CLIENT_BROKER_KIND_MIN}
+#define CIOT_MQTT_CLIENT_SESSION_CFG_INIT_ZERO   {0, 0}
+#define CIOT_MQTT_CLIENT_CFG_INIT_ZERO           {"", "", "", "", 0, false, CIOT_MQTT_CLIENT_TOPICS_CFG_INIT_ZERO, _CIOT_MQTT_CLIENT_BROKER_KIND_MIN, false, CIOT_MQTT_CLIENT_LAST_WILL_INIT_ZERO, false, CIOT_MQTT_CLIENT_SESSION_CFG_INIT_ZERO}
 #define CIOT_MQTT_CLIENT_STATUS_INIT_ZERO        {_CIOT_MQTT_CLIENT_STATE_MIN, 0, 0, 0, false, CIOT_MQTT_CLIENT_ERROR_INIT_ZERO}
 #define CIOT_MQTT_CLIENT_REQ_PUBLISH_INIT_ZERO   {"", {0}, 0}
 #define CIOT_MQTT_CLIENT_REQ_SUBSCRIBE_INIT_ZERO {"", 0}
@@ -184,6 +207,12 @@ extern "C" {
 #define CIOT_MQTT_CLIENT_ERROR_TRANSPORT_SOCK_TAG 6
 #define CIOT_MQTT_CLIENT_TOPICS_CFG_PUB_TAG      1
 #define CIOT_MQTT_CLIENT_TOPICS_CFG_SUB_TAG      2
+#define CIOT_MQTT_CLIENT_LAST_WILL_TOPIC_TAG     1
+#define CIOT_MQTT_CLIENT_LAST_WILL_PAYLOAD_TAG   2
+#define CIOT_MQTT_CLIENT_LAST_WILL_QOS_TAG       3
+#define CIOT_MQTT_CLIENT_LAST_WILL_RETAIN_TAG    4
+#define CIOT_MQTT_CLIENT_SESSION_CFG_CLEAN_SESSION_TAG 1
+#define CIOT_MQTT_CLIENT_SESSION_CFG_KEEP_ALIVE_TAG 2
 #define CIOT_MQTT_CLIENT_CFG_CLIENT_ID_TAG       1
 #define CIOT_MQTT_CLIENT_CFG_URL_TAG             2
 #define CIOT_MQTT_CLIENT_CFG_USER_TAG            3
@@ -191,6 +220,8 @@ extern "C" {
 #define CIOT_MQTT_CLIENT_CFG_QOS_TAG             5
 #define CIOT_MQTT_CLIENT_CFG_TOPICS_TAG          6
 #define CIOT_MQTT_CLIENT_CFG_BROKER_KIND_TAG     7
+#define CIOT_MQTT_CLIENT_CFG_LAST_WILL_TAG       8
+#define CIOT_MQTT_CLIENT_CFG_SESSION_TAG         9
 #define CIOT_MQTT_CLIENT_STATUS_STATE_TAG        1
 #define CIOT_MQTT_CLIENT_STATUS_CONN_COUNT_TAG   2
 #define CIOT_MQTT_CLIENT_STATUS_DATA_RATE_TAG    3
@@ -225,10 +256,24 @@ X(a, STATIC,   SINGULAR, STRING,   sub,               2)
 #define CIOT_MQTT_CLIENT_TOPICS_CFG_CALLBACK NULL
 #define CIOT_MQTT_CLIENT_TOPICS_CFG_DEFAULT NULL
 
+#define CIOT_MQTT_CLIENT_LAST_WILL_FIELDLIST(X, a) \
+X(a, STATIC,   SINGULAR, STRING,   topic,             1) \
+X(a, STATIC,   SINGULAR, BYTES,    payload,           2) \
+X(a, STATIC,   SINGULAR, UINT32,   qos,               3) \
+X(a, STATIC,   SINGULAR, BOOL,     retain,            4)
+#define CIOT_MQTT_CLIENT_LAST_WILL_CALLBACK NULL
+#define CIOT_MQTT_CLIENT_LAST_WILL_DEFAULT NULL
+
 #define CIOT_MQTT_CLIENT_STOP_FIELDLIST(X, a) \
 
 #define CIOT_MQTT_CLIENT_STOP_CALLBACK NULL
 #define CIOT_MQTT_CLIENT_STOP_DEFAULT NULL
+
+#define CIOT_MQTT_CLIENT_SESSION_CFG_FIELDLIST(X, a) \
+X(a, STATIC,   SINGULAR, BOOL,     clean_session,     1) \
+X(a, STATIC,   SINGULAR, INT32,    keep_alive,        2)
+#define CIOT_MQTT_CLIENT_SESSION_CFG_CALLBACK NULL
+#define CIOT_MQTT_CLIENT_SESSION_CFG_DEFAULT NULL
 
 #define CIOT_MQTT_CLIENT_CFG_FIELDLIST(X, a) \
 X(a, STATIC,   SINGULAR, STRING,   client_id,         1) \
@@ -237,10 +282,14 @@ X(a, STATIC,   SINGULAR, STRING,   user,              3) \
 X(a, STATIC,   SINGULAR, STRING,   password,          4) \
 X(a, STATIC,   SINGULAR, UINT32,   qos,               5) \
 X(a, STATIC,   OPTIONAL, MESSAGE,  topics,            6) \
-X(a, STATIC,   SINGULAR, UENUM,    broker_kind,       7)
+X(a, STATIC,   SINGULAR, UENUM,    broker_kind,       7) \
+X(a, STATIC,   OPTIONAL, MESSAGE,  last_will,         8) \
+X(a, STATIC,   OPTIONAL, MESSAGE,  session,           9)
 #define CIOT_MQTT_CLIENT_CFG_CALLBACK NULL
 #define CIOT_MQTT_CLIENT_CFG_DEFAULT NULL
 #define ciot_mqtt_client_cfg_t_topics_MSGTYPE ciot_mqtt_client_topics_cfg_t
+#define ciot_mqtt_client_cfg_t_last_will_MSGTYPE ciot_mqtt_client_last_will_t
+#define ciot_mqtt_client_cfg_t_session_MSGTYPE ciot_mqtt_client_session_cfg_t
 
 #define CIOT_MQTT_CLIENT_STATUS_FIELDLIST(X, a) \
 X(a, STATIC,   SINGULAR, UENUM,    state,             1) \
@@ -287,7 +336,9 @@ X(a, STATIC,   ONEOF,    MESSAGE,  (type,request,request),   4)
 
 extern const pb_msgdesc_t ciot_mqtt_client_error_t_msg;
 extern const pb_msgdesc_t ciot_mqtt_client_topics_cfg_t_msg;
+extern const pb_msgdesc_t ciot_mqtt_client_last_will_t_msg;
 extern const pb_msgdesc_t ciot_mqtt_client_stop_t_msg;
+extern const pb_msgdesc_t ciot_mqtt_client_session_cfg_t_msg;
 extern const pb_msgdesc_t ciot_mqtt_client_cfg_t_msg;
 extern const pb_msgdesc_t ciot_mqtt_client_status_t_msg;
 extern const pb_msgdesc_t ciot_mqtt_client_req_publish_t_msg;
@@ -298,7 +349,9 @@ extern const pb_msgdesc_t ciot_mqtt_client_data_t_msg;
 /* Defines for backwards compatibility with code written before nanopb-0.4.0 */
 #define CIOT_MQTT_CLIENT_ERROR_FIELDS &ciot_mqtt_client_error_t_msg
 #define CIOT_MQTT_CLIENT_TOPICS_CFG_FIELDS &ciot_mqtt_client_topics_cfg_t_msg
+#define CIOT_MQTT_CLIENT_LAST_WILL_FIELDS &ciot_mqtt_client_last_will_t_msg
 #define CIOT_MQTT_CLIENT_STOP_FIELDS &ciot_mqtt_client_stop_t_msg
+#define CIOT_MQTT_CLIENT_SESSION_CFG_FIELDS &ciot_mqtt_client_session_cfg_t_msg
 #define CIOT_MQTT_CLIENT_CFG_FIELDS &ciot_mqtt_client_cfg_t_msg
 #define CIOT_MQTT_CLIENT_STATUS_FIELDS &ciot_mqtt_client_status_t_msg
 #define CIOT_MQTT_CLIENT_REQ_PUBLISH_FIELDS &ciot_mqtt_client_req_publish_t_msg
@@ -308,12 +361,14 @@ extern const pb_msgdesc_t ciot_mqtt_client_data_t_msg;
 
 /* Maximum encoded size of messages (where known) */
 #define CIOT_CIOT_PROTO_V2_MQTT_CLIENT_PB_H_MAX_SIZE CIOT_MQTT_CLIENT_DATA_SIZE
-#define CIOT_MQTT_CLIENT_CFG_SIZE                256
-#define CIOT_MQTT_CLIENT_DATA_SIZE               259
+#define CIOT_MQTT_CLIENT_CFG_SIZE                462
+#define CIOT_MQTT_CLIENT_DATA_SIZE               465
 #define CIOT_MQTT_CLIENT_ERROR_SIZE              36
+#define CIOT_MQTT_CLIENT_LAST_WILL_SIZE          188
 #define CIOT_MQTT_CLIENT_REQ_PUBLISH_SIZE        186
 #define CIOT_MQTT_CLIENT_REQ_SIZE                189
 #define CIOT_MQTT_CLIENT_REQ_SUBSCRIBE_SIZE      55
+#define CIOT_MQTT_CLIENT_SESSION_CFG_SIZE        13
 #define CIOT_MQTT_CLIENT_STATUS_SIZE             63
 #define CIOT_MQTT_CLIENT_STOP_SIZE               0
 #define CIOT_MQTT_CLIENT_TOPICS_CFG_SIZE         98

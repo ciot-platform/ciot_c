@@ -18,17 +18,16 @@ else
   CIOT_PATH := $(shell realpath --relative-to=$(MAKEFILE_DIR) $(CIOT_PATH))
 endif
 
-EXTRA_COMPONENT_DIRS += CIOT_PATH
+EXTRA_COMPONENT_DIRS += CIOT_PATH/ciot_c
 
-COMPONENT_ADD_INCLUDEDIRS += $(CIOT_PATH)/include
-COMPONENT_ADD_INCLUDEDIRS += $(CIOT_PATH)/src/proto
-COMPONENT_ADD_INCLUDEDIRS += $(CIOT_PATH)/src/proto/nanopb
-COMPONENT_ADD_INCLUDEDIRS += $(CIOT_PATH)/libs/nanomodbus
+COMPONENT_ADD_INCLUDEDIRS += $(CIOT_PATH)/ciot_c/include
+COMPONENT_ADD_INCLUDEDIRS += $(CIOT_PATH)/ciot_c/src/proto
+COMPONENT_ADD_INCLUDEDIRS += $(CIOT_PATH)/ciot_c/src/proto/nanopb
+COMPONENT_ADD_INCLUDEDIRS += $(CIOT_PATH)/ciot_c/libs/nanomodbus
 
-COMPONENT_SRCDIRS += $(CIOT_PATH)/src/core
-COMPONENT_SRCDIRS += $(CIOT_PATH)/src/common
-COMPONENT_SRCDIRS += $(CIOT_PATH)/src/esp8266
-COMPONENT_SRCDIRS += $(CIOT_PATH)/src/mg
-COMPONENT_SRCDIRS += $(CIOT_PATH)/src/proto/nanopb
-COMPONENT_SRCDIRS += $(CIOT_PATH)/src/proto/ciot/proto/v2
-COMPONENT_SRCDIRS += $(CIOT_PATH)/libs/nanomodbus
+COMPONENT_SRCDIRS += $(CIOT_PATH)/ciot_c/src/core
+COMPONENT_SRCDIRS += $(CIOT_PATH)/ciot_c/src/common
+COMPONENT_SRCDIRS += $(CIOT_PATH)/ciot_c/src/esp8266
+COMPONENT_SRCDIRS += $(CIOT_PATH)/ciot_c/src/proto/nanopb
+COMPONENT_SRCDIRS += $(CIOT_PATH)/ciot_c/src/proto/ciot/proto/v2
+COMPONENT_SRCDIRS += $(CIOT_PATH)/ciot_c/libs/nanomodbus

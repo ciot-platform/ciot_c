@@ -45,6 +45,18 @@ ciot_err_t ciot_wifi_process_req(ciot_wifi_t self, ciot_wifi_req_t *req)
 {
     CIOT_ERR_NULL_CHECK(self);
     CIOT_ERR_NULL_CHECK(req);
+    ciot_wifi_base_t *base = (ciot_wifi_base_t *)self;
+    switch (req->which_type)
+    {
+        case CIOT_WIFI_REQ_SCAN_TAG:
+            return ciot_wifi_scan(self);
+        case CIOT_WIFI_REQ_GET_AP_TAG:
+            req->which_type = CIOT_WIFI_REQ_AP_INFO_TAG;
+            base->iface.req_status.state = CIOT_IFACE_REQ_STATE_IDLE;
+            return ciot_wifi_get_scanned_ap(self, req->get_ap.id, &req->ap_info);
+    default:
+        break;
+    }
     return CIOT_ERR_NOT_SUPPORTED;    
 }
 

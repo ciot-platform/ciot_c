@@ -9,6 +9,11 @@ gen:
 	del src\proto\ciot\proto\v2\iface_manager.pb.c
 	del src\proto\ciot\proto\v2\iface_manager.pb.h
 
+grpc:
+	powershell -Command "dotnet clean '$(CIOT_PATH)\ciot_cs\Ciot.Protos\Ciot.Protos.csproj' -v:diag"
+	powershell -Command dotnet build '$(CIOT_PATH)\ciot_cs\Ciot.Protos\Ciot.Protos.csproj' -v:diag"
+	powershell -Command dotnet run --project ..\ciot_cs\Ciot.Grpc\Ciot.Grpc.csproj --configuration Debug -v:diag"
+
 help:
 	@echo gen-ciot: generate ANSI-C proto files
 	

@@ -23,8 +23,8 @@
          .config = {
              .baud_rate = 115200,
              .num = 2,
-             .rx_pin = 16,
-             .tx_pin = 17,
+             .gpio.rx = 16,
+             .gpio.tx = 17,
          },
      },
  };

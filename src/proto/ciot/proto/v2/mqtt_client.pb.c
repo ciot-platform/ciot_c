@@ -12,7 +12,13 @@ PB_BIND(CIOT_MQTT_CLIENT_ERROR, ciot_mqtt_client_error_t, AUTO)
 PB_BIND(CIOT_MQTT_CLIENT_TOPICS_CFG, ciot_mqtt_client_topics_cfg_t, AUTO)
 
 
+PB_BIND(CIOT_MQTT_CLIENT_LAST_WILL, ciot_mqtt_client_last_will_t, AUTO)
+
+
 PB_BIND(CIOT_MQTT_CLIENT_STOP, ciot_mqtt_client_stop_t, AUTO)
+
+
+PB_BIND(CIOT_MQTT_CLIENT_SESSION_CFG, ciot_mqtt_client_session_cfg_t, AUTO)
 
 
 PB_BIND(CIOT_MQTT_CLIENT_CFG, ciot_mqtt_client_cfg_t, 2)

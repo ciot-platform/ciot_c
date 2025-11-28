@@ -24,8 +24,11 @@ ciot_msg_data_t uart_cfg = {
         .config = {
             .baud_rate = 115200,
             .num = 2,
-            .rx_pin = 16,
-            .tx_pin = 17,
+            .has_gpio = true,
+            .gpio = {
+                .tx = 17,
+                .rx = 16,
+            },
         },
     },
 };

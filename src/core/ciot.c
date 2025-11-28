@@ -16,7 +16,13 @@
 #include "ciot_timer.h"
 #include "ciot_serializer_pb.h"
 
-#define CIOT_IFACE_START_TIMEOUT_SECS 5
+#ifndef CIOT_CONFIG_START_TIMEOUT_SECS
+#define CIOT_CONFIG_START_TIMEOUT_SECS 5
+#endif
+
+#ifndef CIOT_CONFIG_BUSY_TIMEOUT_SECS
+#define CIOT_CONFIG_BUSY_TIMEOUT_SECS 30
+#endif
 
 static const char *TAG = "ciot";
 
@@ -59,6 +65,7 @@ ciot_err_t ciot_start(ciot_t self, ciot_cfg_t *cfg)
     self->starter.timer = 0;
     self->starter.iface_id = 0;
     self->starter.waiting_result = false;
+    self->receiver.timeout_timer = 0;
     self->status.state = CIOT_STATE_STARTING;
     CIOT_LOGI(TAG, "CIOT_STATE_STARTING");
     return CIOT_ERR_OK;
@@ -68,6 +75,7 @@ ciot_err_t ciot_stop(ciot_t self)
 {
     CIOT_ERR_NULL_CHECK(self);
     self->status.state = CIOT_STATE_IDLE;
+    self->receiver.timeout_timer = 0;
     CIOT_LOGV(TAG, "CIOT_STATE_IDLE");
     return CIOT_ERR_OK;
 }
@@ -179,7 +187,7 @@ ciot_err_t ciot_delete_all(ciot_t self)
     CIOT_ERR_NULL_CHECK(self->storage);
     for (int i = 0; i < self->ifaces.count; i++)
     {
-        char filename[16];
+        char filename[32];
         sprintf(filename, CIOT_IFACE_CFG_FILENAME, i);
         ciot_err_t err = self->storage->remove(self->storage, filename);
         CIOT_LOGI(TAG, "Deleting configuration file: %s", filename);
@@ -262,7 +270,7 @@ static ciot_err_t ciot_starting_task(ciot_t self)
             starter->iface_id++;
             starter->waiting_result = false;
         }
-        else if (ciot_timer_compare(&starter->timer, CIOT_IFACE_START_TIMEOUT_SECS))
+        else if (ciot_timer_compare(&starter->timer, CIOT_CONFIG_START_TIMEOUT_SECS))
         {
             CIOT_LOGE(TAG, "Interface [%lu]:%s Timeout", (long unsigned int)starter->iface_id, ciot_iface_to_str(self->ifaces.list[starter->iface_id]));
             starter->iface_id++;
@@ -308,7 +316,7 @@ static ciot_err_t ciot_starting_task(ciot_t self)
                 ciot_err_t err = iface->process_data(iface, &msg.data);
                 if (err == CIOT_ERR_OK)
                 {
-                    ciot_timer_init(&starter->timer, CIOT_IFACE_START_TIMEOUT_SECS);
+                    ciot_timer_init(&starter->timer, CIOT_CONFIG_START_TIMEOUT_SECS);
                     starter->waiting_result = true;
                 }
                 else
@@ -341,10 +349,18 @@ static ciot_err_t ciot_busy_task(ciot_t self)
 
     ciot_receiver_t *receiver = &self->receiver;
 
+    if(ciot_timer_now() > receiver->timeout_timer)
+    {
+        CIOT_LOGE(TAG, "ciot busy task timeout");
+        self->status.state = CIOT_STATE_STARTED;
+        return CIOT_ERR_TIMEOUT;
+    }
+
     if(self->status.state == CIOT_STATE_PENDING_EVENT && self->receiver.event.msg.iface.id < self->ifaces.count)
     {
         receiver->sender = self->ifaces.list[self->receiver.event.msg.iface.id];
         self->status.state = CIOT_STATE_BUSY;
+        receiver->timeout_timer = ciot_timer_now() + CIOT_CONFIG_BUSY_TIMEOUT_SECS;
     }
 
     if (receiver->sender == NULL)
@@ -551,6 +567,7 @@ static ciot_err_t ciot_iface_event_handler(ciot_iface_t *sender, ciot_event_t *e
         else
         {
             self->status.state = CIOT_STATE_BUSY;
+            receiver->timeout_timer = ciot_timer_now() + CIOT_CONFIG_BUSY_TIMEOUT_SECS;
         }
     }
     else if(self->status.state == CIOT_STATE_STARTED)
@@ -558,6 +575,7 @@ static ciot_err_t ciot_iface_event_handler(ciot_iface_t *sender, ciot_event_t *e
         CIOT_LOGI(TAG, "Event received from %s", ciot_iface_to_str(sender));
         receiver->sender = sender;
         self->status.state = CIOT_STATE_BUSY;
+        receiver->timeout_timer = ciot_timer_now() + CIOT_CONFIG_BUSY_TIMEOUT_SECS;
     }
 
     return CIOT_ERR_OK;
