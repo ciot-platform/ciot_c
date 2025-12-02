@@ -1,0 +1,11 @@
+{
+    "idf.flashType": "UART",
+    "idf.portWin": "COM1",
+    "idf.buildPathWin": "${workspaceFolder}/build/esp32",
+    "cmake.buildDirectory": "${workspaceFolder}/build/win32",
+    "files.associations": {
+        "ciot_storage_nvs.h": "c",
+        "list": "c",
+        "ranges": "c"
+    }
+}

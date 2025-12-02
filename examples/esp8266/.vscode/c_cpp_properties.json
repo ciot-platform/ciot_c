@@ -1,0 +1,42 @@
+{
+  "env": {
+    "IDF_PATH": "C:/msys32/home/BINAR/esp",
+    "IDF_COMPILER": "${IDF_PATH}/xtensa-lx106-elf/bin/xtensa-lx106-elf-gcc.exe"
+  },
+  "configurations": [
+    {
+      "name": "ESP-IDF",
+      "compilerPath": "${IDF_COMPILER}",
+      "forcedInclude": [
+        "${workspaceFolder}/build/include/sdkconfig.h"
+      ],
+      "includePath": [
+        "${IDF_PATH}/components/**/include",
+        "${workspaceFolder}/build/include",
+        "${workspaceFolder}/main/**",
+        "${CIOT_PATH}/include",
+        "${CIOT_PATH}/src/esp32",
+        "${CIOT_PATH}/src/common",
+        "${CIOT_PATH}/src/proto/nanopb",
+        "${CIOT_PATH}/src/proto"
+      ],
+      "browse": {
+        "path": [
+          "${IDF_PATH}/components/**",
+          "${CIOT_PATH}/src/esp8266/**",
+          "${CIOT_PATH}/src/mg/**",
+          "${CIOT_PATH}/src/common/**",
+          "${CIOT_PATH}/src/core/**",
+          "${workspaceFolder}/main/**"
+        ],
+        "limitSymbolsToIncludedHeaders": false
+      },
+      "compilerArgs": [
+        "-DIDF_VER",
+        "-DICACHE_FLASH",
+        "-DTARGET_X4_ESP12F"
+      ]
+    }
+  ],
+  "version": 4
+}

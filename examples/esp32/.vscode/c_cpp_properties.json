@@ -1,0 +1,40 @@
+{
+  "env": {
+    "CIOT_DIR": "../..",
+    "IDF_COMPILER": "C:\\Users\\Strea\\.espressif\\tools\\xtensa-esp-elf\\esp-13.2.0_20240530\\xtensa-esp-elf\\bin\\xtensa-esp32-elf-gcc.exe"
+  },
+  "configurations": [
+    {
+      "name": "ESP-IDF",
+      "compilerPath": "${config:idf.toolsPathWin}\\tools\\xtensa-esp-elf\\esp-14.2.0_20241119\\xtensa-esp-elf\\bin\\xtensa-esp32s3-elf-gcc.exe",
+      "forcedInclude": [
+        "${workspaceFolder}/build/config/sdkconfig.h"
+      ],
+      "includePath": [
+        "${config:idf.espIdfPathWin}/components/**",
+        "${workspaceFolder}/main/**",
+        "${CIOT_DIR}/include/**",
+        "${CIOT_DIR}/src/esp32/**",
+        "${CIOT_DIR}/src/common/**",
+        "${CIOT_DIR}/src/proto/nanopb",
+        "${CIOT_DIR}/src/proto"
+      ],
+      "browse": {
+        "path": [
+          "${config:idf.espIdfPathWin}/components",
+          "${CIOT_DIR}/src/esp32/**",
+          "${CIOT_DIR}/src/common/**",
+          "${CIOT_DIR}/src/core/**",
+          "${workspaceFolder}/main/**"
+        ],
+        "limitSymbolsToIncludedHeaders": false
+      },
+      "compilerArgs": [
+        "-DESP_PLATFORM",
+        "-DIDF_VER",
+        "-DBOARD_HG3"
+      ]
+    }
+  ],
+  "version": 4
+}

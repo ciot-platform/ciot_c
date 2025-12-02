@@ -1,0 +1,99 @@
+* long_names:false
+* anonymous_oneof:true
+
+Ciot.Info.version fixed_length:true
+Ciot.Info.version max_size:4
+Ciot.Info.ifaces max_count:10
+Ciot.Status.ifaces max_count:10
+
+Ciot.Msg.raw max_size:128
+Ciot.Event.raw max_size:128
+
+Ciot.SysInfo.app_ver fixed_length:true
+Ciot.SysInfo.app_ver max_size:4
+Ciot.SysInfo.hw_name max_size:16
+
+Ciot.HttpServerCfg.address max_size:48
+Ciot.HttpServerCfg.route max_size:32
+Ciot.HttpServerCfg.root max_size:32
+
+Ciot.HttpClientCfg.url max_size:48
+Ciot.HttpClientReqSend.body fixed_length:true
+Ciot.HttpClientReqSend.body max_size:128
+Ciot.HttpClientReqSetHeader.header max_size:16
+Ciot.HttpClientReqSetHeader.value max_size:16
+
+Ciot.MqttClientTopicsCfg.pub max_size:48
+Ciot.MqttClientTopicsCfg.sub max_size:48
+Ciot.MqttClientCfg.client_id max_size:32
+Ciot.MqttClientCfg.url max_size:48
+Ciot.MqttClientCfg.user max_size:32
+Ciot.MqttClientCfg.password max_size:32
+Ciot.MqttClientLastWill.topic max_size:48
+Ciot.MqttClientLastWill.payload max_size:128
+Ciot.MqttClientReqPublish.topic max_size:48
+Ciot.MqttClientReqPublish.payload fixed_length:true
+Ciot.MqttClientReqPublish.payload max_size:128
+Ciot.MqttClientReqSubscribe.topic max_size:48
+
+Ciot.Log.tag max_size:16
+Ciot.Log.message max_size:128
+
+Ciot.UartReq.send_data max_size:128
+
+Ciot.NtpCfg.timezone max_size:16
+Ciot.NtpCfg.server1 max_size:48
+Ciot.NtpCfg.server2 max_size:48
+Ciot.NtpCfg.server3 max_size:48
+
+Ciot.BleCfg.mac fixed_length:true
+Ciot.BleCfg.mac max_size:6
+Ciot.BleInfo.hw_mac fixed_length:true
+Ciot.BleInfo.hw_mac max_size:6
+Ciot.BleInfo.sw_mac fixed_length:true
+Ciot.BleInfo.sw_mac max_size:6
+Ciot.BleReq.set_mac fixed_length:true
+Ciot.BleReq.set_mac max_size:6
+
+Ciot.GpioCfg.pins max_count:16
+Ciot.GpioStatus.states max_size:16
+
+Ciot.OtaCfg.url max_size:48
+
+Ciot.StorageFile.path max_size:32
+Ciot.StorageFile.data fixed_length:true
+Ciot.StorageFile.data max_size:128
+Ciot.StorageReqDelete.path max_size:32
+
+Ciot.TcpCfg.ip fixed_length:true
+Ciot.TcpCfg.ip max_size:4
+Ciot.TcpCfg.gateway fixed_length:true
+Ciot.TcpCfg.gateway max_size:4
+Ciot.TcpCfg.mask fixed_length:true
+Ciot.TcpCfg.mask max_size:4
+Ciot.TcpCfg.dns fixed_length:true
+Ciot.TcpCfg.dns max_size:4
+Ciot.TcpInfo.mac fixed_length:true
+Ciot.TcpInfo.mac max_size:6
+Ciot.TcpInfo.ip fixed_length:true
+Ciot.TcpInfo.ip max_size:4
+
+Ciot.UsbReq.send_data fixed_length:true
+Ciot.UsbReq.send_data max_size:128
+Ciot.UsbReq.send_bytes fixed_length:true
+Ciot.UsbReq.send_bytes max_size:128
+
+Ciot.WifiApInfo.bssid fixed_length:true
+Ciot.WifiApInfo.bssid max_size:6
+Ciot.WifiApInfo.ssid max_size:32
+Ciot.WifiCfg.ssid max_size:32
+Ciot.WifiCfg.password max_size:64 
+
+Ciot.BleScnAdvInfo.mac fixed_length:true
+Ciot.BleScnAdvInfo.mac max_size:6
+Ciot.BleScnAdv.payload max_size:38
+
+Ciot.LogData.tag max_size:16
+Ciot.LogData.message max_size:128
+
+Ciot.MbusFunctionReq.data max_count:32

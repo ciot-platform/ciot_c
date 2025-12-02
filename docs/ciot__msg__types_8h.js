@@ -1,0 +1,45 @@
+var ciot__msg__types_8h =
+[
+    [ "ciot_msg_iface_info_t", "structciot__msg__iface__info__t.html", "structciot__msg__iface__info__t" ],
+    [ "ciot_msg_error_t", "structciot__msg__error__t.html", "structciot__msg__error__t" ],
+    [ "ciot_msg_data_u", "unionciot__msg__data__u.html", "unionciot__msg__data__u" ],
+    [ "ciot_msg_header_t", "structciot__msg__header__t.html", "structciot__msg__header__t" ],
+    [ "ciot_msg_t", "structciot__msg__t.html", "structciot__msg__t" ],
+    [ "CIOT_MSG_GET_SIZE", "ciot__msg__types_8h.html#a9ba863166c0f0c740fef8994c7f21598", null ],
+    [ "CIOT_MSG_HEADER_SIZE", "ciot__msg__types_8h.html#aa577da47450d2b604f58ee6e957c7b1a", null ],
+    [ "CIOT_MSG_MAX_SIZE", "ciot__msg__types_8h.html#a3c8f8294a63f46a7a7ed043ba8dacc93", null ],
+    [ "ciot_msg_iface_type_t", "ciot__msg__types_8h.html#ab6f673a5ce5d4f6d33343a054480f608", [
+      [ "CIOT_IFACE_TYPE_UNKNOWN", "ciot__msg__types_8h.html#ab6f673a5ce5d4f6d33343a054480f608a75837371354fe9353d77acc9fc49ee6d", null ],
+      [ "CIOT_IFACE_TYPE_CIOT", "ciot__msg__types_8h.html#ab6f673a5ce5d4f6d33343a054480f608ad57b9f27f19fb7d16c08c4857ae7291d", null ],
+      [ "CIOT_IFACE_TYPE_STORAGE", "ciot__msg__types_8h.html#ab6f673a5ce5d4f6d33343a054480f608a613cf065591c3e8300a4fe009a044aec", null ],
+      [ "CIOT_IFACE_TYPE_SYSTEM", "ciot__msg__types_8h.html#ab6f673a5ce5d4f6d33343a054480f608a327aeede0ef7fba282b1911dfa988d28", null ],
+      [ "CIOT_IFACE_TYPE_UART", "ciot__msg__types_8h.html#ab6f673a5ce5d4f6d33343a054480f608ab3a691e3ca526bb17bd62366d83bbcd7", null ],
+      [ "CIOT_IFACE_TYPE_USB", "ciot__msg__types_8h.html#ab6f673a5ce5d4f6d33343a054480f608a2c76f658f22fa29ed49d56c697215918", null ],
+      [ "CIOT_IFACE_TYPE_TCP", "ciot__msg__types_8h.html#ab6f673a5ce5d4f6d33343a054480f608ab013ddfd461842f9031bed420c5720bc", null ],
+      [ "CIOT_IFACE_TYPE_ETH", "ciot__msg__types_8h.html#ab6f673a5ce5d4f6d33343a054480f608aa3dce94aa5a8e8a6c1a0592f59cdb747", null ],
+      [ "CIOT_IFACE_TYPE_WIFI", "ciot__msg__types_8h.html#ab6f673a5ce5d4f6d33343a054480f608a53e8d8ba26c3663e0a7f9d8a70aa2770", null ],
+      [ "CIOT_IFACE_TYPE_BLE", "ciot__msg__types_8h.html#ab6f673a5ce5d4f6d33343a054480f608a7ca4cc3f201a9ce47e80e5e6685e6fd5", null ],
+      [ "CIOT_IFACE_TYPE_BLE_SCN", "ciot__msg__types_8h.html#ab6f673a5ce5d4f6d33343a054480f608a9d8b8db1db47ef5baf0a7894264e364c", null ],
+      [ "CIOT_IFACE_TYPE_GPIO", "ciot__msg__types_8h.html#ab6f673a5ce5d4f6d33343a054480f608a22891d22cf46370531f6eb833b037235", null ],
+      [ "CIOT_IFACE_TYPE_NTP", "ciot__msg__types_8h.html#ab6f673a5ce5d4f6d33343a054480f608a08b41fe63e5a4b8ea4710adaac89f8b8", null ],
+      [ "CIOT_IFACE_TYPE_OTA", "ciot__msg__types_8h.html#ab6f673a5ce5d4f6d33343a054480f608ae07a8e59d7924852ed66075eefcd1c3d", null ],
+      [ "CIOT_IFACE_TYPE_DFU", "ciot__msg__types_8h.html#ab6f673a5ce5d4f6d33343a054480f608acf86ce5e05bba2ba30d275ce78438806", null ],
+      [ "CIOT_IFACE_TYPE_HTTP_CLIENT", "ciot__msg__types_8h.html#ab6f673a5ce5d4f6d33343a054480f608ad89e327f418602211b2202c414291750", null ],
+      [ "CIOT_IFACE_TYPE_HTTP_SERVER", "ciot__msg__types_8h.html#ab6f673a5ce5d4f6d33343a054480f608ab91f2d2aa5ecf13c79d0028a487584ca", null ],
+      [ "CIOT_IFACE_TYPE_MQTT", "ciot__msg__types_8h.html#ab6f673a5ce5d4f6d33343a054480f608a3065d35cd0a10d31382d9c5b38249ca5", null ],
+      [ "CIOT_IFACE_TYPE_CUSTOM", "ciot__msg__types_8h.html#ab6f673a5ce5d4f6d33343a054480f608aff200c36869c4d69a1cb8edf4d45202a", null ],
+      [ "CIOT_IFACE_TYPE_BRIDGE", "ciot__msg__types_8h.html#ab6f673a5ce5d4f6d33343a054480f608a67c77e20c41ae475451f4f01a3b2fdb4", null ]
+    ] ],
+    [ "ciot_msg_type_t", "ciot__msg__types_8h.html#a3519ce8c894c6e69c9969c9b419c09cb", [
+      [ "CIOT_MSG_TYPE_UNKNOWN", "ciot__msg__types_8h.html#a3519ce8c894c6e69c9969c9b419c09cba65c33be2457e343493460c29d3b03e0e", null ],
+      [ "CIOT_MSG_TYPE_START", "ciot__msg__types_8h.html#a3519ce8c894c6e69c9969c9b419c09cbacada4954ca221fdc25c2c478625d6a9e", null ],
+      [ "CIOT_MSG_TYPE_STOP", "ciot__msg__types_8h.html#a3519ce8c894c6e69c9969c9b419c09cbae01a23d279f8674eb8e7fbc4c8b30a28", null ],
+      [ "CIOT_MSG_TYPE_GET_CONFIG", "ciot__msg__types_8h.html#a3519ce8c894c6e69c9969c9b419c09cba9ca32ac07611a36e17181e4e2dee5ba7", null ],
+      [ "CIOT_MSG_TYPE_GET_STATUS", "ciot__msg__types_8h.html#a3519ce8c894c6e69c9969c9b419c09cba8ebce537fc418c0a5dc2231de2660d5e", null ],
+      [ "CIOT_MSG_TYPE_REQUEST", "ciot__msg__types_8h.html#a3519ce8c894c6e69c9969c9b419c09cba168673ee4b498d56024c3c46d5d6d53a", null ],
+      [ "CIOT_MSG_TYPE_ERROR", "ciot__msg__types_8h.html#a3519ce8c894c6e69c9969c9b419c09cba5ca3e5de0b2ddc69c53654a0d13d713a", null ],
+      [ "CIOT_MSG_TYPE_EVENT", "ciot__msg__types_8h.html#a3519ce8c894c6e69c9969c9b419c09cba07a7987e3b4a2f82eb41213b25068458", null ],
+      [ "CIOT_MSG_TYPE_CUSTOM", "ciot__msg__types_8h.html#a3519ce8c894c6e69c9969c9b419c09cba2161a50e60627d09f6278819d93cb4f8", null ]
+    ] ],
+    [ "ciot_msg_type_to_str", "ciot__msg__types_8h.html#ad74fa5c942e63dc4c806fbfd6414db45", null ]
+];

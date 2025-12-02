@@ -1,0 +1,7 @@
+/.devcontainer
+**/build
+**/_build
+.vscode/settings.json
+deprecated
+bkp
+__pycache__

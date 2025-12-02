@@ -1,0 +1,58 @@
+# Sparkplug B Protocol Buffer Options
+# Conservative memory limits for embedded systems
+
+
+# Global options
+* long_names:false
+* anonymous_oneof:true
+* package:"Sparkplugb"
+
+# Payload - Main message
+Sparkplugb.Payload.metrics max_count:8
+Sparkplugb.Payload.uuid max_size:36
+Sparkplugb.Payload.body max_size:128
+
+# Template
+Sparkplugb.Payload.Template.version max_size:16
+Sparkplugb.Payload.Template.metrics max_count:4
+Sparkplugb.Payload.Template.parameters max_count:4
+Sparkplugb.Payload.Template.template_ref max_size:32
+
+# Template.Parameter
+Sparkplugb.Payload.Template.Parameter.name max_size:32
+Sparkplugb.Payload.Template.Parameter.string_value max_size:32
+
+# DataSet
+Sparkplugb.Payload.DataSet.types max_count:8
+Sparkplugb.Payload.DataSet.rows max_count:8
+Sparkplugb.Payload.DataSet.columns max_count:8 max_size:32
+
+# DataSet.Row
+Sparkplugb.Payload.DataSet.Row.elements max_count:8
+
+# DataSet.DataSetValue
+Sparkplugb.Payload.DataSet.DataSetValue.string_value max_size:32
+
+# PropertySet
+Sparkplugb.Payload.PropertySet.keys max_count:4 max_size:32
+Sparkplugb.Payload.PropertySet.values max_count:4
+
+# PropertySetList
+Sparkplugb.Payload.PropertySetList.propertyset max_count:2 type:FT_POINTER
+
+# PropertyValue
+Sparkplugb.Payload.PropertyValue.string_value max_size:32
+
+# MetaData
+Sparkplugb.Payload.MetaData.content_type max_size:32
+Sparkplugb.Payload.MetaData.file_name max_size:32
+Sparkplugb.Payload.MetaData.file_type max_size:16
+Sparkplugb.Payload.MetaData.md5 max_size:32
+Sparkplugb.Payload.MetaData.description max_size:64
+
+# Metric
+Sparkplugb.Payload.Metric.name max_size:32
+Sparkplugb.Payload.Metric.string_value max_size:32
+Sparkplugb.Payload.Metric.bytes_value max_size:32
+Sparkplugb.Payload.Metric.metrics type:FT_POINTER
+Sparkplugb.Payload.Metric.template_value type:FT_POINTER

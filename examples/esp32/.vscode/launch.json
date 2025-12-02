@@ -1,0 +1,31 @@
+{
+    // Use IntelliSense to learn about possible attributes.
+    // Hover to view descriptions of existing attributes.
+    // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "Web App (win32)",
+            "request": "launch",
+            "type": "msedge",
+            "url": "http://127.0.0.1:80",
+            "webRoot": "${workspaceFolder}/main/web",
+            "preLaunchTask": "Build Web"
+        },
+        {
+            "name": "Web App (esp32/hg3)",
+            "request": "launch",
+            "type": "msedge",
+            "url": "http://192.168.4.1:80",
+            "webRoot": "${workspaceFolder}/main/web"
+        },
+        {
+            "name": "Web App (debug)",
+            "request": "launch",
+            "type": "msedge",
+            "url": "http://127.0.0.1:80",
+            "webRoot": "${workspaceFolder}/web",
+            "preLaunchTask": "Build Web Debug"
+        }
+    ]
+}

@@ -1,0 +1,78 @@
+name: pipeline
+
+on:
+  push:
+    branches:
+      - "develop"
+      - "release"
+      - "main"
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+        with:
+          fetch-depth: 0
+
+      - name: Set common env
+        run: |
+          echo "RELEASE_CHANGELOG=changes.md" >> $GITHUB_ENV
+          echo "HEADER_FILE=include/ciot.h" >> $GITHUB_ENV
+          echo "VERSION_MACRO_NAME=CIOT_VER" >> $GITHUB_ENV
+
+      - name: Set alpha env
+        if: ${{ github.ref == 'refs/heads/develop' }}
+        run: |
+          echo "RELEASE_PRE=true" >> $GITHUB_ENV
+          echo "RELEASE_SUFFIX=alpha" >> $GITHUB_ENV
+          echo "RELEASE_KIND=pre-release" >> $GITHUB_ENV
+
+      - name: Set beta env
+        if: ${{ github.ref == 'refs/heads/release' }}
+        run: |
+          echo "RELEASE_PRE=true" >> $GITHUB_ENV
+          echo "RELEASE_SUFFIX=beta" >> $GITHUB_ENV
+          echo "RELEASE_KIND=pre-release" >> $GITHUB_ENV
+
+      - name: Set release env
+        if: ${{ github.ref == 'refs/heads/main' }}
+        run: |
+          echo "RELEASE_PRE=false" >> $GITHUB_ENV
+          echo "RELEASE_SUFFIX=" >> $GITHUB_ENV
+          echo "RELEASE_KIND=release" >> $GITHUB_ENV
+
+      - name: Extract firmware version
+        run: |
+          version=$(grep '${{ env.VERSION_MACRO_NAME }}' ${{ env.HEADER_FILE }} | sed -E 's/.*${{ env.VERSION_MACRO_NAME }} *([0-9]+), *([0-9]+), *([0-9]+), *([0-9]+).*/\1.\2.\3.\4/')
+          if [[ -z "$version" ]]; then
+            echo "Error: ${{ env.VERSION_MACRO_NAME }} not found or malformed in ${{ env.HEADER_FILE }}"
+            exit 1
+          fi
+          echo "FIRMWARE_VERSION=$version" >> $GITHUB_ENV
+
+      - name: Create TAG
+        if: ${{ github.ref == 'refs/heads/develop' || github.ref == 'refs/heads/release' || github.ref == 'refs/heads/main' }}
+        run: |
+          git config user.name "github-actions"
+          git config user.email "github-actions@github.com"
+
+          if [ -n "${{ env.RELEASE_SUFFIX }}" ]; then
+            tag="v${{ env.FIRMWARE_VERSION }}-${{ env.RELEASE_SUFFIX }}"
+          else
+            tag="v${{ env.FIRMWARE_VERSION }}"
+          fi
+
+          git tag -a "$tag" -m "Release $tag"
+          git push origin "$tag"
+          echo "FINAL_TAG=$tag" >> $GITHUB_ENV
+
+      - name: Create release
+        if: ${{ github.ref == 'refs/heads/develop' || github.ref == 'refs/heads/release' || github.ref == 'refs/heads/main' }}
+        uses: softprops/action-gh-release@v1
+        with:
+          prerelease: ${{ env.RELEASE_PRE }}
+          body_path: ${{ github.workspace }}/${{ env.RELEASE_CHANGELOG }}
+          name: ${{ env.RELEASE_KIND }} ${{ env.FINAL_TAG }}
+          tag_name: ${{ env.FINAL_TAG }}

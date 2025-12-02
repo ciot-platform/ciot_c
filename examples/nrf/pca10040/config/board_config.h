@@ -1,0 +1,41 @@
+/**
+ * @file board_config.h
+ * @author your name (you@domain.com)
+ * @brief 
+ * @version 0.1
+ * @date 2024-09-25
+ * 
+ * @copyright Copyright (c) 2024
+ * 
+ */
+
+#ifndef __BOARD_CONFIG__H__
+#define __BOARD_CONFIG__H__
+
+#define BOARD_HARDWARE_NAME "PCA10040"
+
+#define BOARD_FEATURE_STORAGE 0
+#define BOARD_FEATURE_SYSTEM 1
+#define BOARD_FEATURE_UART 1
+#define BOARD_FEATURE_USB 0
+#define BOARD_FEATURE_ETHERNET 0
+#define BOARD_FEATURE_WIFI 0
+#define BOARD_FEATURE_BLE_SCN 1
+#define BOARD_FEATURE_BLE_ADV 1
+#define BOARD_FEATURE_GPIO 0
+#define BOARD_FEATURE_NTP 0
+#define BOARD_FEATURE_OTA 0
+#define BOARD_FEATURE_DFU 0
+#define BOARD_FEATURE_HTTP_CLIENT 0
+#define BOARD_FEATURE_HTTP_SERVER 0
+#define BOARD_FEATURE_MQTT_CLIENT 0
+#define BOARD_FEATURE_TIMER 0
+#define BOARD_FEATURE_SERIALIZER 0
+#define BOARD_FEATURE_LOGGER 1
+#define BOARD_UART_RX_BUF_SIZE 256
+#define BOARD_UART_TX_BUF_SIZE 1024
+#define BOARD_BLE_SCN_ADV_FIFO_SIZE 10
+
+#define BOARD_USB_MODE 0
+
+#endif  //!__BOARD_CONFIG__H__

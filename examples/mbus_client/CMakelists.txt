@@ -1,0 +1,9 @@
+cmake_minimum_required(VERSION 3.10...3.25)
+
+if(DEFINED ENV{IDF_PATH})
+    include($ENV{IDF_PATH}/tools/cmake/project.cmake)
+    project(mbus_client)
+else()
+    project(mbus_client)
+    add_subdirectory(main)
+endif()

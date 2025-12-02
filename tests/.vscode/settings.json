@@ -1,0 +1,10 @@
+{
+    "files.associations": {
+        "ciot_storage.h": "c",
+        "ciot_sys.h": "c",
+        "ciot_uart.h": "c",
+        "ciot_sys_data.h": "c",
+        "ciot_storage_data.h": "c",
+        "ciot_config.h": "c"
+    }
+}

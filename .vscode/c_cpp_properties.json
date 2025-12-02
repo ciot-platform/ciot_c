@@ -1,0 +1,132 @@
+{
+    "env": {
+        "IDF_COMPILER": "C:\\Users\\BINAR\\.espressif\\tools\\xtensa-esp-elf\\esp-13.2.0_20240530\\xtensa-esp-elf\\bin\\xtensa-esp32-elf-gcc.exe",
+        "CIOT_SDK_ROOT": "../ciot_c",
+        "NRF_SDK17": "../nRF5_SDK_17.1.0_ddde560/",
+        "HG_TCP_DIR": "..//hg_tcp",
+        "HG_PCM_DIR": "..//hg_pcm",
+        "CIOT_TARGET": "",
+        "NRF_SDK_ROOT": "${NRF_SDK17}",
+        "NRF_TARGET": "pca10056",
+        "NRF_SOFTDEVICE": "s140",
+        "NRF_SOFTDEVICE_FLAG": "S140",
+        "NRF_SD_BLE_API_VERSION": "7",
+        "ESP8266_PATH": "C:/msys32/home/BINAR/esp",
+        "ESP8266_COMPILER": "${ESP8266_PATH}/xtensa-lx106-elf/bin/xtensa-lx106-elf-gcc.exe"
+    },
+    "configurations": [
+        {
+            "name": "windows-gcc-x64",
+            "compilerPath": "C:/ProgramData/mingw64/mingw64/bin/gcc.exe",
+            "cStandard": "${default}",
+            "cppStandard": "${default}",
+            "intelliSenseMode": "windows-gcc-x64",
+            "configurationProvider": "ms-vscode.cmake-tools"
+        },
+        {
+            "name": "ESP-IDF",
+            "compilerPath": null,
+            "forcedInclude": [
+                "${workspaceFolder}/examples/esp32/build/config/sdkconfig.h"
+            ],
+            "includePath": [
+                "${config:idf.espIdfPathWin}/components/**",
+                "${workspaceFolder}/examples/esp32/main/**",
+                "include/**",
+                "src/esp32/**",
+                "src/common/**",
+                "src/proto/nanopb",
+                "src/proto"
+            ],
+            "browse": {
+                "path": [
+                    "${config:idf.espIdfPathWin}/components",
+                    "${workspaceFolder}/examples/esp32/main/**"
+                ],
+                "limitSymbolsToIncludedHeaders": false
+            },
+            "compilerArgs": [
+                "-DESP_PLATFORM",
+                "-DIDF_VER",
+                "-DBOARD_HG3"
+            ]
+        },
+        {
+            "name": "ESP8266",
+            "compilerPath": "${ESP8266_COMPILER}",
+            "forcedInclude": [
+                "${workspaceFolder}/examples/esp8266/build/include/sdkconfig.h"
+            ],
+            "includePath": [
+                "${ESP8266_PATH}/components/**/include",
+                "${workspaceFolder}/examples/esp8266/build/include",
+                "${workspaceFolder}/examples/esp8266/main/**",
+                "${CIOT_SDK_ROOT}/include",
+                "${CIOT_SDK_ROOT}/src/esp8266",
+                "${CIOT_SDK_ROOT}/src/common",
+                "${CIOT_SDK_ROOT}/src/proto/nanopb",
+                "${CIOT_SDK_ROOT}/src/proto"
+            ],
+            "browse": {
+                "path": [
+                    "${ESP8266_PATH}/components/**",
+                    "${CIOT_SDK_ROOT}/src/esp8266/**",
+                    "${CIOT_SDK_ROOT}/src/mg/**",
+                    "${CIOT_SDK_ROOT}/src/common/**",
+                    "${CIOT_SDK_ROOT}/src/core/**",
+                    "${workspaceFolder}/examples/esp8266/main/**"
+                ],
+                "limitSymbolsToIncludedHeaders": false
+            },
+            "compilerArgs": [
+                "-DIDF_VER",
+                "-DICACHE_FLASH",
+                "-DTARGET_X4_ESP12F"
+            ]
+        },
+        {
+            "name": "nrf-sdk17",
+            "compilerPath": "C:/ProgramData/chocolatey/lib/gcc-arm-embedded/tools/gcc-arm-none-eabi-10.3-2021.10/bin/arm-none-eabi-gcc",
+            "compilerArgs": [
+                "-DAPP_TIMER_V2",
+                "-DAPP_TIMER_V2_RTC1_ENABLED",
+                "-DBOARD_PCA10056",
+                "-DCONFIG_GPIO_AS_PINRESET",
+                "-DFLOAT_ABI_HARD",
+                "-DNRF52840_XXAA",
+                "-DNRF_SD_BLE_API_VERSION",
+                "-DS140",
+                "-mcpu=cortex-m4"
+            ],
+            "includePath": [
+                "../nRF5_SDK_17/components/ant/**",
+                "../nRF5_SDK_17/components/ble/**",
+                "../nRF5_SDK_17/components/boards/**",
+                "../nRF5_SDK_17/components/drivers_ext/**",
+                "../nRF5_SDK_17/components/drivers_nrf/**",
+                "../nRF5_SDK_17/components/libraries/**",
+                "../nRF5_SDK_17/components/nfc/**",
+                "../nRF5_SDK_17/components/proprietary_rf/**",
+                "../nRF5_SDK_17/components/serialization/**",
+                "../nRF5_SDK_17/components/softdevice/common/**",
+                "../nRF5_SDK_17/components/softdevice/mbr/**",
+                "../nRF5_SDK_17/components/softdevice/s140/**",
+                "../nRF5_SDK_17/components/toolchain/**",
+                "../nRF5_SDK_17/modules/**",
+                "../nRF5_SDK_17/external/**",
+                "../nRF5_SDK_17/integration/**",
+                "${workspaceFolder}/include/**",
+                "${workspaceFolder}/src/proto/**",
+                "${workspaceFolder}/src/nrf",
+                "../hg_ble/**"
+            ],
+            "forcedInclude": [],
+            "defines": [
+                "_DEBUG",
+                "UNICODE",
+                "_UNICODE"
+            ]
+        }
+    ],
+    "version": 4
+}

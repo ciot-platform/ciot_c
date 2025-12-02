@@ -1,0 +1,36 @@
+{
+    "name": "ciot_c",
+    "version": "0.11.0",
+    "description": "Library for IoT projects",
+    "keywords": ["IoT", "Automation", "TA"],
+    "repository":
+    {
+      "type": "git",
+      "url": "https://github.com/ciot-platform/ciot_c.git"
+    },
+    "authors":
+    [
+      {
+        "name": "Wesley José Santos",
+        "email": "wesleypro37@gmail.com",
+        "url": "https://github.com/WesleyJoseSantos"
+      }
+    ],
+    "license": "MIT",
+    "homepage": "https://github.com/WesleyJoseSantos",
+    "dependencies": {},
+    "export": {
+      "exclude": [
+        "examples",
+        "tests"
+      ]
+    },
+    "frameworks": [
+      "*"
+    ],
+    "platforms": [
+      "espressif32",
+      "espressif8266",
+      "native"
+    ]
+  }
