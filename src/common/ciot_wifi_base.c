@@ -161,4 +161,29 @@ ciot_err_t ciot_wifi_toggle(ciot_wifi_t self)
     return ciot_wifi_start(self, &base->cfg);
 }
 
+ciot_err_t ciot_wifi_get_scanned_ap(ciot_wifi_t self, int id, ciot_wifi_ap_info_t *ap_info)
+{
+    CIOT_ERR_NULL_CHECK(self);
+    CIOT_ERR_NULL_CHECK(ap_info);
+
+    ciot_wifi_base_t *base = (ciot_wifi_base_t*)self;
+
+    if (id < 0 || id >= base->ap_list.count)
+    {
+        return CIOT_ERR_INVALID_INDEX;
+    }
+
+    *ap_info = base->ap_list.items[id];
+    return CIOT_ERR_OK;
+}
+
+ciot_err_t ciot_wifi_get_scanned_aps(ciot_wifi_t self, ciot_wifi_ap_list_t *ap_list)
+{
+    CIOT_ERR_NULL_CHECK(self);
+    CIOT_ERR_NULL_CHECK(ap_list);
+    ciot_wifi_base_t *base = (ciot_wifi_base_t*)self;
+    *ap_list = base->ap_list;
+    return CIOT_ERR_OK;
+}
+
 #endif // CIOT_CONFIG_FEATURE_WIFI == 1
