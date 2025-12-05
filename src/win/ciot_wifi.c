@@ -26,6 +26,7 @@ struct ciot_wifi
 static const char *TAG = "ciot_wifi";
 
 static ciot_err_t ciot_wifi_set_cfg(ciot_wifi_t self, ciot_wifi_cfg_t *cfg);
+static ciot_err_t ciot_wifi_update_ap_list(ciot_wifi_t self);
 
 ciot_wifi_t ciot_wifi_new(ciot_wifi_type_t type)
 {
@@ -108,17 +109,42 @@ static ciot_err_t ciot_wifi_set_cfg(ciot_wifi_t self, ciot_wifi_cfg_t *cfg)
 
 ciot_err_t ciot_wifi_scan(ciot_wifi_t self)
 {
-    return CIOT_ERR_NOT_SUPPORTED;
+    CIOT_LOGI(TAG, "WIFI_EVENT_SCAN_DONE");
+    ciot_wifi_base_t *base = &self->base;
+    base->status.scan_state = CIOT_WIFI_SCAN_STATE_DONE;
+    base->ap_list.count = 5; // Mock 5 access points found
+    ciot_event_t *event = calloc(1, sizeof(ciot_event_t));
+    event->type = CIOT_EVENT_TYPE_DONE;
+    event->which_data = CIOT_EVENT_MSG_TAG;
+    event->msg.id = base->iface.req_status.id;
+    event->msg.has_iface = true;
+    event->msg.iface = base->iface.info;
+    event->msg.has_data = true;
+    event->msg.data.which_type = CIOT_MSG_DATA_WIFI_TAG;
+    event->msg.data.wifi.which_type = CIOT_WIFI_DATA_REQUEST_TAG;
+    event->msg.data.wifi.request.which_type = CIOT_WIFI_REQ_SCAN_RESULT_TAG;
+    event->msg.data.wifi.request.scan_result.count = base->ap_list.count;
+    ciot_wifi_update_ap_list(self);
+    ciot_iface_send_event(&base->iface, event);
+    free(event);
+    return CIOT_ERR_OK;
 }
 
-ciot_err_t ciot_wifi_get_scanned_ap(ciot_wifi_t self, int id, ciot_wifi_ap_info_t *ap_info)
+static ciot_err_t ciot_wifi_update_ap_list(ciot_wifi_t self)
 {
-    return CIOT_ERR_NOT_SUPPORTED;
-}
-
-ciot_err_t ciot_wifi_get_scanned_aps(ciot_wifi_t self, ciot_wifi_ap_list_t *ap_list)
-{
-    return CIOT_ERR_NOT_SUPPORTED;
+    ciot_wifi_base_t *base = &self->base;
+    if(base->ap_list.count > 0 && base->ap_list.items != NULL) {
+        free(base->ap_list.items);
+        base->ap_list.items = NULL;
+    }
+    base->ap_list.items = calloc(base->ap_list.count, sizeof(ciot_wifi_ap_info_t));
+    for (size_t i = 0; i < base->ap_list.count; i++)
+    {
+        base->ap_list.items[i].rssi = -30 - (i * 10);
+        snprintf(base->ap_list.items[i].ssid, sizeof(base->ap_list.items[i].ssid), "Mocked_AP_%d", (int)i);
+        base->ap_list.items[i].authmode = 3; // WPA2
+    }
+    return CIOT_ERR_OK;
 }
 
 #endif // CIOT_CONFIG_FEATURE_WIFI == 1

@@ -9,8 +9,23 @@ SDK_ROOT := $(NRF_SDK_17)
 $(OUTPUT_DIRECTORY)/pca10040.out: \
   LINKER_SCRIPT  := pca10040.ld
 
+SRC_FILES += $(wildcard $(PROJ_DIR)/src/*.c)
+SRC_FILES += $(wildcard $(CIOT_DIR)/src/ciot/proto/v2/*.c)
+SRC_FILES += $(wildcard $(CIOT_DIR)/src/core/*.c)
+SRC_FILES += $(wildcard $(CIOT_DIR)/src/common/*.c)
+SRC_FILES += $(wildcard $(CIOT_DIR)/src/nrf/*.c)
+SRC_FILES += $(wildcard $(CIOT_DIR)/src/nanopb/*.c)
+SRC_FILES += $(HG_PCM_SRC_FILES)
+
+INC_FOLDERS += $(CIOT_DIR)/include
+INC_FOLDERS += $(CIOT_DIR)/src
+INC_FOLDERS += $(CIOT_DIR)/src/nanopb
+INC_FOLDERS += $(CIOT_DIR)/src/nanomodbus
+INC_FOLDERS += $(HG_PCM_INC_FOLDERS)
+
 # Source files common to all targets
 SRC_FILES += \
+  ../../main.c  \
   $(SDK_ROOT)/modules/nrfx/mdk/gcc_startup_nrf52.S \
   $(SDK_ROOT)/components/libraries/log/src/nrf_log_backend_rtt.c \
   $(SDK_ROOT)/components/libraries/log/src/nrf_log_backend_serial.c \
@@ -72,6 +87,7 @@ SRC_FILES += \
 
 # Include folders common to all targets
 INC_FOLDERS += \
+  ../../ \
   $(SDK_ROOT)/components/nfc/ndef/generic/message \
   $(SDK_ROOT)/components/nfc/t2t_lib \
   $(SDK_ROOT)/components/nfc/t4t_parser/hl_detection_procedure \
@@ -281,7 +297,7 @@ default: pca10040
 # Print all targets that can be built
 help:
 	@echo following targets are available:
-	@echo		pca10040
+	@@echo		pca10040
 	@echo		flash_softdevice
 	@echo		sdk_config - starting external tool for editing sdk_config.h
 	@echo		flash      - flashing binary

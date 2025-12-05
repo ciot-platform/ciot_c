@@ -34,7 +34,7 @@ typedef struct device_ifaces
     ciot_sys_t sys;
     ciot_uart_t uart;
     ciot_iface_t *list[DEVICE_IFACE_ID_COUNT];
-    ciot_msg_data_t *cfgs[DEVICE_IFACE_ID_CIOT];
+    ciot_msg_data_t *cfgs[DEVICE_IFACE_ID_COUNT];
 } device_ifaces_t;
 
 typedef struct device_decoder

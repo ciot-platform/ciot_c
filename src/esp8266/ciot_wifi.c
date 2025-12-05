@@ -168,28 +168,6 @@ ciot_err_t ciot_wifi_scan(ciot_wifi_t self)
     return esp_wifi_scan_start(NULL, false);
 }
 
-ciot_err_t ciot_wifi_get_scanned_ap(ciot_wifi_t self, int id, ciot_wifi_ap_info_t *ap_info)
-{
-    CIOT_ERR_NULL_CHECK(self);
-    CIOT_ERR_NULL_CHECK(ap_info);
-
-    if (id < 0 || id >= self->base.ap_list.count)
-    {
-        return CIOT_ERR_INVALID_INDEX;
-    }
-
-    *ap_info = self->base.ap_list.items[id];
-    return CIOT_ERR_OK;
-}
-
-ciot_err_t ciot_wifi_get_scanned_aps(ciot_wifi_t self, ciot_wifi_ap_list_t *ap_list)
-{
-    CIOT_ERR_NULL_CHECK(self);
-    CIOT_ERR_NULL_CHECK(ap_list);
-    *ap_list = self->base.ap_list;
-    return CIOT_ERR_OK;
-}
-
 static esp_err_t esp_wifi_init_mode(ciot_wifi_type_t type)
 {
     wifi_mode_t mode;

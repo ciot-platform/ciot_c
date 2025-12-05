@@ -326,5 +326,6 @@ bool ciot_iface_event_is_ack(ciot_event_type_t event_type)
 {
     return (event_type == CIOT_EVENT_TYPE_STARTED ||
             event_type == CIOT_EVENT_TYPE_STOPPED ||
+            event_type == CIOT_EVENT_TYPE_DONE ||
             event_type == CIOT_EVENT_TYPE_ERROR);
 }

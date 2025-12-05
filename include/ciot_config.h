@@ -12,9 +12,7 @@
 #ifndef __CIOT_CONFIG__H__
 #define __CIOT_CONFIG__H__
 
-#ifdef ESP_PLATFORM
-#define CIOT_PLATFORM_ESP32 1
-#elif defined(__linux__)
+#if defined(__linux__)
 #define CIOT_PLATFORM_LINUX 1
 #define CIOT_PLATFORM_MONGOOSE 1
 #elif defined(_WIN32)
@@ -22,6 +20,10 @@
 #define CIOT_PLATFORM_MONGOOSE 1
 #elif defined(ICACHE_FLASH) || defined(ICACHE_RAM_ATTR)
 #define CIOT_PLATFORM_ESP8266 1
+#elif defined(ESP_PLATFORM)
+#define CIOT_PLATFORM_ESP32 1
+#elif defined(NRF52)
+#define CIOT_PLATFORM_NRF 1
 #else
 #define CIOT_PLATFORM_DEFAULT 1
 #warning "Unknown platform, default configuration will be used"
