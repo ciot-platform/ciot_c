@@ -22,6 +22,8 @@
 #define CIOT_PLATFORM_ESP8266 1
 #elif defined(ESP_PLATFORM)
 #define CIOT_PLATFORM_ESP32 1
+#elif defined(NRF52)
+#define CIOT_PLATFORM_NRF 1
 #else
 #define CIOT_PLATFORM_DEFAULT 1
 #warning "Unknown platform, default configuration will be used"
