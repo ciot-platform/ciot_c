@@ -23,8 +23,6 @@ struct ciot_mbus_client
     nmbs_t nmbs;
 };
 
-static const char *TAG = "ciot_mbus_client";
-
 static int32_t ciot_mbus_client_read(uint8_t *buf, uint16_t count, int32_t byte_timeout_ms, void *arg);
 static int32_t ciot_mbus_client_write(const uint8_t *buf, uint16_t count, int32_t byte_timeout_ms, void *arg);
 
