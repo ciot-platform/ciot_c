@@ -24,6 +24,10 @@
 
 #define UART_PIN_DISCONNECTED 0xFFFFFFFF
 
+#ifndef CIOT_CONFIG_UART_TX_BUF_SIZE
+#define CIOT_CONFIG_UART_TX_BUF_SIZE 256
+#endif
+
 typedef struct ciot_uart_fifo
 {
     app_fifo_t tx;
