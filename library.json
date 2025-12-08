@@ -21,6 +21,7 @@
     "dependencies": {},
     "export": {
       "exclude": [
+        "src/protos",
         "examples",
         "tests"
       ]
