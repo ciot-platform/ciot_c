@@ -33,6 +33,8 @@ ciot_err_t ciot_iface_send_rsp(ciot_iface_t *self, ciot_msg_t *rsp)
     CIOT_ERR_NULL_CHECK(self);
     CIOT_ERR_NULL_CHECK(rsp);
 
+    rsp->type = CIOT_MSG_TYPE_RESPONSE;
+
     if (self->req_status.state != CIOT_IFACE_REQ_STATE_IDLE)
     {
         CIOT_LOGE(TAG, "Iface %s (%lu) is busy", ciot_iface_to_str(self), (long unsigned int)self->info.id);
@@ -48,6 +50,8 @@ ciot_err_t ciot_iface_send_req(ciot_iface_t *self, ciot_msg_t *req)
 {
     CIOT_ERR_NULL_CHECK(self);
     CIOT_ERR_NULL_CHECK(req);
+
+    req->type = CIOT_MSG_TYPE_REQUEST;
 
     if (self->req_status.state != CIOT_IFACE_REQ_STATE_IDLE &&
         req->data.which_type != self->req_status.data_type &&
@@ -74,6 +78,7 @@ ciot_err_t ciot_iface_send_error(ciot_iface_t *self, ciot_iface_type_t iface_typ
     msg->iface.type = iface_type;
     msg->iface.id = iface_id;
     msg->error = err;
+    msg->type = CIOT_MSG_TYPE_RESPONSE;
     self->req_status.state = CIOT_IFACE_REQ_STATE_IDLE;
     return ciot_iface_send_rsp(self, msg);
 }
@@ -164,6 +169,7 @@ ciot_err_t ciot_iface_register_req(ciot_iface_t *self, ciot_iface_info_t *iface,
     self->req_status.state = state;
     self->req_status.id = msg->id;
     self->req_status.data_type = msg->data.which_type;
+    self->req_status.has_iface = true;
     self->req_status.iface = *iface;
     return CIOT_ERR_OK;
 }
@@ -285,7 +291,7 @@ const char* ciot_iface_type_to_str(ciot_iface_type_t iface_type)
 
 bool ciot_iface_is_equal(ciot_iface_info_t *self, ciot_iface_info_t *other)
 {
-    if(self == NULL|| other == NULL) return self == other;
+    if(self == NULL || other == NULL) return self == other;
     return memcmp(self, other, sizeof(ciot_iface_info_t)) == 0;
 }
 
