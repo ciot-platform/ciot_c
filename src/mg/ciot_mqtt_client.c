@@ -72,7 +72,7 @@ ciot_err_t ciot_mqtt_client_start(ciot_mqtt_client_t self, ciot_mqtt_client_cfg_
     {
         opts.retain = base->cfg.last_will.retain;
         opts.topic = mg_str(base->cfg.last_will.topic);
-        opts.message.buf = base->cfg.last_will.payload.bytes;
+        opts.message.buf = (char*)base->cfg.last_will.payload.bytes;
         opts.message.len = base->cfg.last_will.payload.size;
     }
 

@@ -2,26 +2,20 @@
 
 ### Changes
 
-**PlatformIO support**
+**Build System Improvements**
+* Refactored `common.mk` and `examples/nrf/Makefile` to use `CIOT_PATH` and `NRF_PATH` environment variables for SDK and source paths, improving portability and flexibility across different environments. (`common/common.mk`, `examples/nrf/Makefile`) [[1]](diffhunk://#diff-9a085cebaa5a67450bd47efe6cb4f465de32208b8ab022112777f8f1ef72d7f0L4-R10) [[2]](diffhunk://#diff-2f47c1eb7196159b8df6694a7b5bc68f7653dfa3ddb855366d8417e991b8c101R4-R7)
+* Updated `Makefile` and build configuration in `examples/nrf/pca10040/armgcc/Makefile` to include additional source and include directories for CIOT modules, improving build completeness. (`examples/nrf/pca10040/armgcc/Makefile`) [[1]](diffhunk://#diff-d1cf1a7d069010ec62f1934509acd3e120134843ee80eb6faef07bdad2654c06R12-R28) [[2]](diffhunk://#diff-d1cf1a7d069010ec62f1934509acd3e120134843ee80eb6faef07bdad2654c06R90)
 
-Great changes on project structure do support PlatformIO projects.
+**Platform and Configuration Updates**
+* Improved platform detection in `ciot_config.h` to support NRF52, ESP32, and other platforms, ensuring correct feature flags are set for each build target. (`include/ciot_config.h`)
+* Added a new custom configuration file for NRF examples (`ciot_custom_config.h`) and removed the obsolete `board_config.h`, centralizing feature flags and hardware settings. (`examples/nrf/ciot_custom_config.h`, `examples/nrf/pca10040/config/board_config.h`) [[1]](diffhunk://#diff-2a89af5cf74a87bd3aac3fb025f0a01adee4a2a0b3ba7e99481bf07b864f529aR1-R52) [[2]](diffhunk://#diff-f079894448c867228db115785ecdbabb64eb22950e190ab3bd9a9dac69d517d3L1-L41)
 
-**Project structure and configuration improvements:**
+**WiFi Feature Enhancements**
+* Refactored WiFi scan result handling: moved generic scan result functions to the common layer (`ciot_wifi_base.c`) and removed platform-specific duplicates from ESP32 and ESP8266 implementations, reducing code duplication and improving maintainability. (`src/common/ciot_wifi_base.c`, `src/esp32/ciot_wifi.c`, `src/esp8266/ciot_wifi.c`) [[1]](diffhunk://#diff-eef672241b635d4c1209cc3ad8db038d86150871db5b6aaf036ec69d255125d5R164-R188) [[2]](diffhunk://#diff-1e5fcda8059ac0f18c5557188647b0a89a590410665a42881e045675369a6279L171-L192) [[3]](diffhunk://#diff-3178431e9d6c268319f8e759b5ad1f5805a9c1a44db140add61f0b66bcb3580dL171-L192)
+* Enhanced the Windows WiFi mock implementation to simulate scan results and update the access point list, making testing and development easier on Windows. (`src/win/ciot_wifi.c`) [[1]](diffhunk://#diff-8a6c22470fbec8643ba65a416b15a8435d1cc45108012c87a228162c3251797fR29) [[2]](diffhunk://#diff-8a6c22470fbec8643ba65a416b15a8435d1cc45108012c87a228162c3251797fL111-R147)
 
-* Refactored source and include directory paths in `common/Common.cmake` to move protocol, nanopb, modbus, and cryptographic sources from `proto` and `libs` subfolders to top-level `src` subfolders, simplifying the build system and project organization. (`common/Common.cmake`)
-* Updated platform detection macros in `include/ciot_config.h` to automatically define platform-specific flags for ESP32, ESP8266, Linux, and Windows, improving portability and configuration management. (`include/ciot_config.h`)
+**General Codebase Maintenance**
+* Updated CIOT version number and cleaned up unused variables and configuration flags throughout the codebase for clarity and consistency. (`include/ciot.h`, `src/common/ciot_mbus_client.c`, `src/nrf/ciot_uart.c`, `examples/esp32/.vscode/c_cpp_properties.json`, `examples/esp32/.vscode/settings.json`, `examples/esp32/sdkconfig`, `examples/esp8266/main/component.mk`, `examples/nrf/main.h`, `examples/nrf/pca10040/armgcc/Makefile`, `src/core/ciot_iface.c`) [[1]](diffhunk://#diff-e3a87c483eaad2e3f831ea32fa5bb0c2538d10b268422ac8bf3e6da43110f554L36-R36) [[2]](diffhunk://#diff-3902ca8296f5f13e0b494219ee7accbede4d5edf43a7b2e8c2ff31b2764dedc3L26-L27) [[3]](diffhunk://#diff-ffccc2f85616dfd12ec2dbc6a3a71126f30eb2c9fdd873a1d71ee6f6fb46885fR27-R30) [[4]](diffhunk://#diff-859300dece04e1500bfb2d406d0e5e87c9b54a0cf11e09b263e42d2f4eab764fL9-R9) [[5]](diffhunk://#diff-0167bc1764820ef02cc7cc5be8c22d61960a9fa9e610a8270d5224886630a70cL8-R14) [[6]](diffhunk://#diff-d54d6cb871acfe4792df917afb24278eb7055948c6e3c2d41a2055da4f5df131L382-R382) [[7]](diffhunk://#diff-d17ce4e060bb5a5386cdbdb3d43b27e52cf16debb3a062aa77300f8373f25488R24-R34) [[8]](diffhunk://#diff-c1d8fa22de716ebcd11b7e0a2e503fd0a00372621025b0515645a5cd2d3030f4L37-R37) [[9]](diffhunk://#diff-d1cf1a7d069010ec62f1934509acd3e120134843ee80eb6faef07bdad2654c06L284-R300) [[10]](diffhunk://#diff-defced0a0a7679a338faf83db3f262138a323d33221f3139c5f179e4da9fc330R329)
 
-**Windows build improvements:**
-
-* Added `iphlpapi` to the list of libraries linked for Windows builds in multiple example CMake files, ensuring proper compilation and runtime support on Windows. (`examples/ciota/CMakelists.txt`, `examples/cli/CMakelists.txt`, `examples/mbus_client/main/CMakeLists.txt`, `examples/mbus_server/main/CMakeLists.txt`, `examples/sparkplugb/CMakelists.txt`) [[1]](diffhunk://#diff-4458cdb0e5751d1b3eeccbc8a8e3e6290cb8599e18ec539f9449564d691525eaL22-R22) [[2]](diffhunk://#diff-6cec75c7deb0227ce976eff10c7c738781314818ebb732f2b1ca44415e344c36L22-R22) [[3]](diffhunk://#diff-00419bd8656d68fb69f978b53d1aefc92cfff0c1593e1c4ee4c0c6578b39a47bL39-R39) [[4]](diffhunk://#diff-077542f7361e5283e88762fac4ae213a8d62cca3b7853bb5fcd513b8170e13e3L38-R38) [[5]](diffhunk://#diff-33a86eb082877b72e29179975da4fa91223d7a430dc91e8c8ecf9ff0eb9a860fL23)
-* Updated the cryptography include path for Windows builds from `libs/crypt` to `src/crypt` in `common/Common.cmake`, aligning with the new project structure. (`common/Common.cmake`)
-
-**Project metadata and versioning:**
-
-* Incremented project version to `0.11.0` in both `include/ciot.h` and `library.json`, reflecting the new release and changes. (`include/ciot.h`, `library.json`) [[1]](diffhunk://#diff-e3a87c483eaad2e3f831ea32fa5bb0c2538d10b268422ac8bf3e6da43110f554L36-R36) [[2]](diffhunk://#diff-64cc7cdde6789dc1c1c4a6f406cd1ff6a6a00027097788e2d52fc27b0d75502eL2-R3)
-* Updated `library.json` for PlatformIO with the new project name (`ciot_c`), version, and an export section to exclude `examples` and `tests` from published packages. (`library.json`)
-
-**Miscellaneous fixes:**
-
-* Fixed an include path in `include/ciot_mbus.h` to use `nanomodbus/nanomodbus.h` for consistency with the new source layout. (`include/ciot_mbus.h`)
-* Removed unused parsing for the `--encrypted` option in the OTA CLI parser. (`examples/cli/parsers/ota_parser.c`)
+**MQTT Client**
+* Explicitly cast the `payload.bytes` to `char*` in the MQTT client's last will message assignment to ensure correct type handling.

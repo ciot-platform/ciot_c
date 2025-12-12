@@ -21,13 +21,14 @@ endif
 EXTRA_COMPONENT_DIRS += CIOT_PATH/ciot_c
 
 COMPONENT_ADD_INCLUDEDIRS += $(CIOT_PATH)/ciot_c/include
+COMPONENT_ADD_INCLUDEDIRS += $(CIOT_PATH)/ciot_c/src
 COMPONENT_ADD_INCLUDEDIRS += $(CIOT_PATH)/ciot_c/src/proto
 COMPONENT_ADD_INCLUDEDIRS += $(CIOT_PATH)/ciot_c/src/proto/nanopb
-COMPONENT_ADD_INCLUDEDIRS += $(CIOT_PATH)/ciot_c/libs/nanomodbus
+COMPONENT_ADD_INCLUDEDIRS += $(CIOT_PATH)/ciot_c/src/nanomodbus
 
 COMPONENT_SRCDIRS += $(CIOT_PATH)/ciot_c/src/core
 COMPONENT_SRCDIRS += $(CIOT_PATH)/ciot_c/src/common
 COMPONENT_SRCDIRS += $(CIOT_PATH)/ciot_c/src/esp8266
-COMPONENT_SRCDIRS += $(CIOT_PATH)/ciot_c/src/proto/nanopb
-COMPONENT_SRCDIRS += $(CIOT_PATH)/ciot_c/src/proto/ciot/proto/v2
-COMPONENT_SRCDIRS += $(CIOT_PATH)/ciot_c/libs/nanomodbus
+COMPONENT_SRCDIRS += $(CIOT_PATH)/ciot_c/src/nanopb
+COMPONENT_SRCDIRS += $(CIOT_PATH)/ciot_c/src/ciot/proto/v2
+COMPONENT_SRCDIRS += $(CIOT_PATH)/ciot_c/src/nanomodbus
