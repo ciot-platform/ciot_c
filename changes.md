@@ -2,20 +2,51 @@
 
 ### Changes
 
-**Build System Improvements**
-* Refactored `common.mk` and `examples/nrf/Makefile` to use `CIOT_PATH` and `NRF_PATH` environment variables for SDK and source paths, improving portability and flexibility across different environments. (`common/common.mk`, `examples/nrf/Makefile`) [[1]](diffhunk://#diff-9a085cebaa5a67450bd47efe6cb4f465de32208b8ab022112777f8f1ef72d7f0L4-R10) [[2]](diffhunk://#diff-2f47c1eb7196159b8df6694a7b5bc68f7653dfa3ddb855366d8417e991b8c101R4-R7)
-* Updated `Makefile` and build configuration in `examples/nrf/pca10040/armgcc/Makefile` to include additional source and include directories for CIOT modules, improving build completeness. (`examples/nrf/pca10040/armgcc/Makefile`) [[1]](diffhunk://#diff-d1cf1a7d069010ec62f1934509acd3e120134843ee80eb6faef07bdad2654c06R12-R28) [[2]](diffhunk://#diff-d1cf1a7d069010ec62f1934509acd3e120134843ee80eb6faef07bdad2654c06R90)
+**PlatformIO Example Project:**
 
-**Platform and Configuration Updates**
-* Improved platform detection in `ciot_config.h` to support NRF52, ESP32, and other platforms, ensuring correct feature flags are set for each build target. (`include/ciot_config.h`)
-* Added a new custom configuration file for NRF examples (`ciot_custom_config.h`) and removed the obsolete `board_config.h`, centralizing feature flags and hardware settings. (`examples/nrf/ciot_custom_config.h`, `examples/nrf/pca10040/config/board_config.h`) [[1]](diffhunk://#diff-2a89af5cf74a87bd3aac3fb025f0a01adee4a2a0b3ba7e99481bf07b864f529aR1-R52) [[2]](diffhunk://#diff-f079894448c867228db115785ecdbabb64eb22950e190ab3bd9a9dac69d517d3L1-L41)
+* Added a complete PlatformIO example for ESP32, including configuration files (`platformio.ini`, `CMakeLists.txt`, partition table, and VSCode settings), source code (`main.c`, `main.h`), and documentation for headers, libraries, and tests. This provides a ready-to-use template for ESP32 development with CIOT. [[1]](diffhunk://#diff-ac23d73afce33fdffd3955bde561026effe49229d00515a2aec38748f2cf5e39R1-R34) [[2]](diffhunk://#diff-4227f1584cf8af0da0a8099524a7abda4c388be7566da1bd6a0c0c0ac5bc9b9aR1-R3) [[3]](diffhunk://#diff-5af74fdad6fcfcff5860c915c8f79ec78ecee3174c675d12103987c6e564a795R1-R6) [[4]](diffhunk://#diff-436f575e32384e621b1abe4a572c9faea18867f1f48afa4758e4ed334f83f2b9R1-R208) [[5]](diffhunk://#diff-46d1bd8d5e97532d81ecc4f132deaefe1accd29013d810d243e225d658908cb3R1-R83) [[6]](diffhunk://#diff-8e5d92913cd451c249ac01ed03d254c606001d442876aba19284ef8ad1788812R1-R9) [[7]](diffhunk://#diff-5fbfc34c4c2679cb0ea46c1188b26e05860b117d0e043f4badb75b4cd777b508R1-R37) [[8]](diffhunk://#diff-99be0ade476c22f102e7e249b65dc195e5c0080c231eeb071623cd8ece2292b0R1-R46) [[9]](diffhunk://#diff-f8fbb20dda2d6e682b4bed94067ea41d732b2f46500ddfc17cfa81e77f7f8301R1-R11) [[10]](diffhunk://#diff-1394c74609a5a22e3efb7e65f96cc098a23a34b2d727c826ef3076ab190421e9R1-R5) [[11]](diffhunk://#diff-daa08993ffd5f7bfa630c12738d4676bc4e5493f44bce0b35c2cb6fa8ff15152R1-R10) [[12]](diffhunk://#diff-0fa9dbc5a135d1c620264b0b9f8449aed629605472b662e84867bf33fd3acf45R1-R16)
 
-**WiFi Feature Enhancements**
-* Refactored WiFi scan result handling: moved generic scan result functions to the common layer (`ciot_wifi_base.c`) and removed platform-specific duplicates from ESP32 and ESP8266 implementations, reducing code duplication and improving maintainability. (`src/common/ciot_wifi_base.c`, `src/esp32/ciot_wifi.c`, `src/esp8266/ciot_wifi.c`) [[1]](diffhunk://#diff-eef672241b635d4c1209cc3ad8db038d86150871db5b6aaf036ec69d255125d5R164-R188) [[2]](diffhunk://#diff-1e5fcda8059ac0f18c5557188647b0a89a590410665a42881e045675369a6279L171-L192) [[3]](diffhunk://#diff-3178431e9d6c268319f8e759b5ad1f5805a9c1a44db140add61f0b66bcb3580dL171-L192)
-* Enhanced the Windows WiFi mock implementation to simulate scan results and update the access point list, making testing and development easier on Windows. (`src/win/ciot_wifi.c`) [[1]](diffhunk://#diff-8a6c22470fbec8643ba65a416b15a8435d1cc45108012c87a228162c3251797fR29) [[2]](diffhunk://#diff-8a6c22470fbec8643ba65a416b15a8435d1cc45108012c87a228162c3251797fL111-R147)
+**New Proxy Example:**
 
-**General Codebase Maintenance**
-* Updated CIOT version number and cleaned up unused variables and configuration flags throughout the codebase for clarity and consistency. (`include/ciot.h`, `src/common/ciot_mbus_client.c`, `src/nrf/ciot_uart.c`, `examples/esp32/.vscode/c_cpp_properties.json`, `examples/esp32/.vscode/settings.json`, `examples/esp32/sdkconfig`, `examples/esp8266/main/component.mk`, `examples/nrf/main.h`, `examples/nrf/pca10040/armgcc/Makefile`, `src/core/ciot_iface.c`) [[1]](diffhunk://#diff-e3a87c483eaad2e3f831ea32fa5bb0c2538d10b268422ac8bf3e6da43110f554L36-R36) [[2]](diffhunk://#diff-3902ca8296f5f13e0b494219ee7accbede4d5edf43a7b2e8c2ff31b2764dedc3L26-L27) [[3]](diffhunk://#diff-ffccc2f85616dfd12ec2dbc6a3a71126f30eb2c9fdd873a1d71ee6f6fb46885fR27-R30) [[4]](diffhunk://#diff-859300dece04e1500bfb2d406d0e5e87c9b54a0cf11e09b263e42d2f4eab764fL9-R9) [[5]](diffhunk://#diff-0167bc1764820ef02cc7cc5be8c22d61960a9fa9e610a8270d5224886630a70cL8-R14) [[6]](diffhunk://#diff-d54d6cb871acfe4792df917afb24278eb7055948c6e3c2d41a2055da4f5df131L382-R382) [[7]](diffhunk://#diff-d17ce4e060bb5a5386cdbdb3d43b27e52cf16debb3a062aa77300f8373f25488R24-R34) [[8]](diffhunk://#diff-c1d8fa22de716ebcd11b7e0a2e503fd0a00372621025b0515645a5cd2d3030f4L37-R37) [[9]](diffhunk://#diff-d1cf1a7d069010ec62f1934509acd3e120134843ee80eb6faef07bdad2654c06L284-R300) [[10]](diffhunk://#diff-defced0a0a7679a338faf83db3f262138a323d33221f3139c5f179e4da9fc330R329)
+* Added a new `proxy` example project with its own CMake configuration and custom CIOT feature configuration header, demonstrating how to build and configure a proxy application using CIOT. [[1]](diffhunk://#diff-c34bbe988fbe83ad25dc3eb04cba40a8cc1d81f069b1773b76de741e5612cb70R14) [[2]](diffhunk://#diff-93a469c005d2ba2d4108fee75b9e8639b3ed4b69f4098fc21c17bc19a2421ef9R1-R24) [[3]](diffhunk://#diff-c908031da5b5241dfc406bbda163bde5a1b12bf780e6198bc4047f3b16857489R1-R53)
 
-**MQTT Client**
-* Explicitly cast the `payload.bytes` to `char*` in the MQTT client's last will message assignment to ensure correct type handling.
+**Build System and Directory Structure Updates:**
+
+* Updated all relevant build scripts (`CMakeLists.txt`, `component.mk`, and Makefiles) to use the new `protos` directory structure for protocol buffers and nanopb sources and includes, ensuring builds reference the correct file locations. [[1]](diffhunk://#diff-d17ce4e060bb5a5386cdbdb3d43b27e52cf16debb3a062aa77300f8373f25488L25-R33) [[2]](diffhunk://#diff-d1cf1a7d069010ec62f1934509acd3e120134843ee80eb6faef07bdad2654c06L13-R13) [[3]](diffhunk://#diff-d1cf1a7d069010ec62f1934509acd3e120134843ee80eb6faef07bdad2654c06R22)
+
+**Proxy:**
+
+* Added option to use an interface as `proxy`. This feature allows an client to use an CIoT device as proxy to send an message to another CIoT device as below sample:
+
+```
+ciot_mqtt_client (ciot application) ------> ciot_mqtt_client (ciot device 1) ---proxy---> ciot_uart (ciot device 1) ------> ciot_uart (ciot device 2) 
+``` 
+
+This can be achieved adding an proxy configuration to the message sent by ciot application to ciot device 1
+
+```json
+// message sent by ciot application
+{
+    "message": {
+        "id": 0,
+        // ciot device 2 interface
+        "iface": {
+            "id": 1,
+            "type": "IFACE_TYPE_SYS"
+        },
+        // message to sent to ciot device 2
+        "data": {
+            "get_data": {
+                "type": "DATA_TYPE_INFO"
+            }
+        },
+        // ciot device 1 proxy used to send message
+        "proxy": {
+            "iface": {
+                "id": 9,
+                "type": "IFACE_TYPE_UART"
+            }
+        }
+    }
+}
+```
