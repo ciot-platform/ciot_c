@@ -228,8 +228,8 @@ const char *ciot_event_to_str(ciot_event_t *event)
             return "EVENT_STOPPED";
         case CIOT_EVENT_TYPE_ERROR:
             return "EVENT_ERROR";
-        case CIOT_EVENT_TYPE_REQUEST:
-            return "EVENT_REQUEST";
+        case CIOT_EVENT_TYPE_MSG:
+            return "EVENT_MSG";
         case CIOT_EVENT_TYPE_DONE:
             return "EVENT_DONE";
         case CIOT_EVENT_TYPE_STATE_CHANGED:
