@@ -22,7 +22,7 @@
 #define CIOT_PLATFORM_ESP8266 1
 #elif defined(ESP_PLATFORM)
 #define CIOT_PLATFORM_ESP32 1
-#elif defined(NRF52)
+#elif defined(NRF52) || defined(NRF52840_XXAA) || defined(NRF52833_XXAA)
 #define CIOT_PLATFORM_NRF 1
 #else
 #define CIOT_PLATFORM_DEFAULT 1
