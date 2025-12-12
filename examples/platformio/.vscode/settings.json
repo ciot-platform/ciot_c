@@ -1,0 +1,16 @@
+{
+    "files.associations": {
+        "*.gdapc": "json",
+        "*.gdadc": "json",
+        "*.shc": "json",
+        "ciot.h": "c",
+        "ciot_iface.h": "c",
+        "ciot_err.h": "c",
+        "stdbool.h": "c",
+        "ciot_types.h": "c",
+        "event.pb.h": "c",
+        "logger.pb.h": "c",
+        "main.h": "c",
+        "ciot_storage.h": "c"
+    }
+}
