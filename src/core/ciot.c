@@ -376,66 +376,120 @@ static ciot_err_t ciot_busy_task(ciot_t self)
     if (sender->req_status.state != CIOT_IFACE_REQ_STATE_IDLE && (event->which_data == CIOT_EVENT_MSG_TAG))
     {
         CIOT_LOGI(TAG, "Processing event from %s", ciot_iface_to_str(sender));
-        bool iface_is_equal = sender->req_status.state == CIOT_IFACE_REQ_STATE_SENDED 
-            ? ciot_iface_is_equal(&sender->req_status.iface, &event->msg.iface)
-            : ciot_iface_is_equal(&sender->info, &event->msg.iface);
-        if ((ciot_iface_event_is_ack(event->type) || event->type == CIOT_EVENT_TYPE_REQUEST) &&
+        bool iface_is_equal = ciot_iface_is_equal(
+            sender->req_status.state == CIOT_IFACE_REQ_STATE_SENDED 
+            ? &sender->req_status.iface 
+            : &sender->info, 
+            &event->msg.iface
+        );
+        if (receiver->proxy != NULL) {
+            iface_is_equal = ciot_iface_is_equal(&sender->info, &receiver->proxy->info);
+            if(iface_is_equal)
+            {
+                receiver->proxy = NULL;
+            }
+        }
+        if ((ciot_iface_event_is_ack(event->type) || event->type == CIOT_EVENT_TYPE_MSG) &&
             iface_is_equal)
         {
-            if (sender->req_status.state == CIOT_IFACE_REQ_STATE_SENDED &&
-                sender->req_status.id == event->msg.id)
-            {
-                CIOT_LOGI(TAG, "Request done");
-                event->type = CIOT_EVENT_TYPE_DONE;
-            }
-            else
-            {
+            // if (sender->req_status.id == event->msg.id)
+            // {
+            //     CIOT_LOGI(TAG, "Request done");
+            //     event->type = CIOT_EVENT_TYPE_DONE;
+            // }
+            // else
+            // {
                 CIOT_LOGI(TAG, "Response sended");
                 event->msg.id = sender->req_status.id;
+                event->type = CIOT_EVENT_TYPE_DONE;
                 ciot_iface_send_rsp(self->ifaces.list[sender->req_status.iface.id], &event->msg);
-            }
+            // }
             sender->req_status.state = CIOT_IFACE_REQ_STATE_IDLE;
         }
         CIOT_LOGI(TAG, "Event processed");
     }
 
-    if (event->type == CIOT_EVENT_TYPE_REQUEST)
+    if (event->type == CIOT_EVENT_TYPE_MSG)
     {
-        CIOT_LOGI(TAG, "Processing request from %s", ciot_iface_to_str(sender));
-        // CIOT_LOG_MSG_P(TAG, CIOT_LOGV, "RX REQ <- ", sender, event->msg);
-        uint8_t id = event->msg.iface.id;
-        if (id < self->ifaces.count /*&& event->msg->type <= CIOT__MSG_TYPE__MSG_TYPE_REQUEST*/)
+        if(event->msg.error == CIOT_ERR_OK)
         {
-            ciot_iface_t *iface = self->ifaces.list[id];
-            if (iface != NULL)
+            if(event->msg.type == CIOT_MSG_TYPE_REQUEST)
             {
-                CIOT_LOGI(TAG, "Processing message");
-                ciot_iface_process_msg(iface, &event->msg, sender);
-                if (iface->req_status.state == CIOT_IFACE_REQ_STATE_IDLE)
+                if(event->msg.has_proxy == true && event->msg.proxy.state == CIOT_PROXY_STATE_PENDING)
                 {
-                    event->type = CIOT_EVENT_TYPE_DONE;
+                    // Proxy request handling
+                    CIOT_LOGI(TAG, "Processing proxy request from %s", ciot_iface_to_str(sender));
+                    uint8_t proxy_id = event->msg.proxy.iface.id;
+                    if (proxy_id < self->ifaces.count)
+                    {
+                        self->receiver.proxy = self->ifaces.list[proxy_id];
+                        if (self->receiver.proxy != NULL && self->receiver.proxy->info.type == event->msg.proxy.iface.type)
+                        {
+                            CIOT_LOGI(TAG, "Forwarding message to proxy iface %s", ciot_iface_to_str(self->receiver.proxy));
+                            event->msg.proxy.state = CIOT_PROXY_STATE_READY_TO_PROCESS;
+                            ciot_err_t err = ciot_iface_send_msg(self->receiver.proxy, &event->msg);
+                            ciot_iface_register_req(self->receiver.proxy, &sender->info, &event->msg, CIOT_IFACE_REQ_STATE_SENDED);
+                            event->msg.proxy.state = CIOT_PROXY_STATE_SENT; // sent messages will be not processed locally
+                            if(err != CIOT_ERR_OK)
+                            {
+                                self->receiver.proxy->req_status.state = CIOT_IFACE_REQ_STATE_IDLE;
+                            }
+                        }
+                        else
+                        {
+                            CIOT_LOGE(TAG, "Error. Invalid proxy %d.", proxy_id);
+                            event->type = CIOT_EVENT_TYPE_ERROR;
+                            ciot_iface_send_error(sender, CIOT_IFACE_TYPE_UNDEFINED, proxy_id, &event->msg, CIOT_ERR_NULL_ARG);
+                        }
+                    }
+                }
+                else
+                {
+                    // Direct request handling
+                    CIOT_LOGI(TAG, "Processing request from %s", ciot_iface_to_str(sender));
+                    // CIOT_LOG_MSG_P(TAG, CIOT_LOGV, "RX REQ <- ", sender, event->msg);
+                    uint8_t id = event->msg.iface.id;
+                    if (id < self->ifaces.count /*&& event->msg->type <= CIOT__MSG_TYPE__MSG_TYPE_REQUEST*/)
+                    {
+                        ciot_iface_t *iface = self->ifaces.list[id];
+                        if (iface != NULL)
+                        {
+                            CIOT_LOGI(TAG, "Processing message");
+                            ciot_iface_process_msg(iface, &event->msg, sender);
+                            if (iface->req_status.state == CIOT_IFACE_REQ_STATE_IDLE)
+                            {
+                                event->type = CIOT_EVENT_TYPE_DONE;
+                            }
+                        }
+                        else if(event->msg.iface.type == CIOT_IFACE_TYPE_CUSTOM)
+                        {
+                            CIOT_LOGE(TAG, "Error. %d iface is null.", id);
+                            event->type = CIOT_EVENT_TYPE_ERROR;
+                            ciot_iface_send_error(sender, CIOT_IFACE_TYPE_UNDEFINED, id, &event->msg, CIOT_ERR_NULL_ARG);
+                        }
+            
+                    }
                 }
             }
-            else if(event->msg.iface.type == CIOT_IFACE_TYPE_CUSTOM)
-            {
-                CIOT_LOGE(TAG, "Error. %d iface is null.", id);
-                event->type = CIOT_EVENT_TYPE_ERROR;
-                ciot_iface_send_error(sender, CIOT_IFACE_TYPE_UNDEFINED, id, &event->msg, CIOT_ERR_NULL_ARG);
-            }
+        }
+        else
+        {
+            CIOT_LOGE(TAG, "Error in request message: %s", ciot_err_to_message(event->msg.error));
         }
     }
 
     receiver->sender = NULL;
-
+    
     self->status.state = self->status.state != CIOT_STATE_PENDING_EVENT
-        ? CIOT_STATE_STARTED
-        : CIOT_STATE_PENDING_EVENT;
-
-    if(self->iface.event_handler != NULL)
+    ? CIOT_STATE_STARTED
+    : CIOT_STATE_PENDING_EVENT;
+    
+    if(self->iface.event_handler != NULL && (event->msg.has_proxy == false || event->msg.proxy.state == CIOT_PROXY_STATE_READY_TO_PROCESS))
     {
         self->iface.event_handler(sender, event, self->iface.event_args);
     }
-
+    
+    event->msg.has_proxy = false;
     CIOT_LOGI(TAG, "ciot done");
 
     return CIOT_ERR_OK;
@@ -504,7 +558,7 @@ static ciot_err_t ciot_iface_event_handler(ciot_iface_t *sender, ciot_event_t *e
 
     if ((event->type == CIOT_EVENT_TYPE_DATA || 
          event->type == CIOT_EVENT_TYPE_INTERNAL ||
-         event->type == CIOT_EVENT_TYPE_CUSTOM) && 
+         (event->type == CIOT_EVENT_TYPE_CUSTOM && !event->msg.has_proxy)) && 
          self->iface.event_handler != NULL)
     {
         return self->iface.event_handler(sender, event, self->iface.event_args);
@@ -527,7 +581,7 @@ static ciot_err_t ciot_iface_event_handler(ciot_iface_t *sender, ciot_event_t *e
     receiver->event = *event;
     receiver->sender = sender;
     
-    if (event->type == CIOT_EVENT_TYPE_REQUEST)
+    if (event->type == CIOT_EVENT_TYPE_MSG)
     {
         if (self->status.state != CIOT_STATE_STARTED)
         {
@@ -547,7 +601,8 @@ static ciot_err_t ciot_iface_event_handler(ciot_iface_t *sender, ciot_event_t *e
         }
 #endif 
 
-        if(receiver->event.msg.iface.type == CIOT_IFACE_TYPE_CUSTOM)
+        if(receiver->event.msg.iface.type == CIOT_IFACE_TYPE_CUSTOM &&
+           receiver->event.msg.has_proxy == false)
         {
             if(self->iface.event_handler != NULL)
             {
