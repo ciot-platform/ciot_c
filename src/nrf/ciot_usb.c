@@ -249,7 +249,7 @@ static void ciot_cdc_acm_event_handler(app_usbd_class_inst_t const *p_inst, app_
         ret_code_t ret;
         do
         {
-            ciot_iface_process_data(&self->base.iface, self->rx_byte, 1, CIOT_EVENT_TYPE_REQUEST);
+            ciot_iface_process_data(&self->base.iface, self->rx_byte, 1, CIOT_EVENT_TYPE_MSG);
             ret = app_usbd_cdc_acm_read(&m_app_cdc_acm,
                                         self->rx_byte,
                                         1);

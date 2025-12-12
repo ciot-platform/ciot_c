@@ -198,7 +198,7 @@ static ciot_err_t ciot_uart_process_status(ciot_uart_t self, COMSTAT *status)
             {
                 if(ReadFile(self->handle, &byte, 1, &self->bytes_read, NULL))
                 {
-                    ciot_err_t err = ciot_iface_process_data(&base->iface, &byte, 1, CIOT_EVENT_TYPE_REQUEST);
+                    ciot_err_t err = ciot_iface_process_data(&base->iface, &byte, 1, CIOT_EVENT_TYPE_MSG);
                     if(err != CIOT_ERR_OK)
                     {
                         base->status.error = err;

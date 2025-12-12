@@ -122,7 +122,7 @@ static void ciot_httpc_event_handler(struct mg_connection *c, int ev, void *ev_d
                   "\r\n",
                   ciot_httpc_get_method(base->cfg.method), mg_url_uri(base->cfg.url), (int)host.len,
                   host.buf, self->data_to_send.size);
-             mg_send(c, self->data_to_send.data, self->data_to_send.size);
+        mg_send(c, self->data_to_send.data, self->data_to_send.size);
         base->status.state = CIOT_HTTP_CLIENT_STATE_CONNECTED;
         break;
     }
@@ -132,7 +132,7 @@ static void ciot_httpc_event_handler(struct mg_connection *c, int ev, void *ev_d
         struct mg_http_message *hm = ev_data, tmp = {0};
         mg_http_parse((char *)c->recv.buf, c->recv.len, &tmp);
         base->status.state = CIOT_HTTP_CLIENT_STATE_IDLE;
-        event.type = CIOT_EVENT_TYPE_REQUEST;
+        event.type = CIOT_EVENT_TYPE_MSG;
         memcpy(&event.raw.bytes, hm->body.buf, hm->body.len);
         event.raw.size = hm->body.len;
         ciot_iface_send_event(&base->iface, &event);
