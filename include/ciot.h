@@ -74,6 +74,7 @@ typedef struct ciot_receiver
 {
     bool serialized;
     ciot_iface_t *sender;
+    ciot_iface_t *proxy;
     ciot_event_t event;
     uint64_t timeout_timer;
 } ciot_receiver_t;
