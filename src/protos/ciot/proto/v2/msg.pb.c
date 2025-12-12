@@ -6,7 +6,14 @@
 #error Regenerate this file with the current version of nanopb generator.
 #endif
 
+PB_BIND(CIOT_PROXY, ciot_proxy_t, AUTO)
+
+
 PB_BIND(CIOT_MSG, ciot_msg_t, 2)
+
+
+
+
 
 
 

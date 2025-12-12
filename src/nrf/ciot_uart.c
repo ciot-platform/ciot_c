@@ -197,7 +197,7 @@ static void ciot_uart_event_handler(nrf_drv_uart_event_t *event, void *args)
                 nrf_drv_uart_rx(&self->handle, self->rx_byte, 1);
                 break;
             }
-            ciot_err_t err = ciot_iface_process_data(&self->base.iface, event->data.rxtx.p_data, event->data.rxtx.bytes, CIOT_EVENT_TYPE_REQUEST);
+            ciot_err_t err = ciot_iface_process_data(&self->base.iface, event->data.rxtx.p_data, event->data.rxtx.bytes, CIOT_EVENT_TYPE_MSG);
             if(err != CIOT_ERR_OK)
             {
                 base->status.error = err;

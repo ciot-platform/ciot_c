@@ -211,7 +211,7 @@ static void ciot_uart_event_handler(ciot_uart_t self, uart_event_t *event)
             uint8_t byte;
             uart_read_bytes(base->cfg.num, &byte, 1, portMAX_DELAY);
             event->size--;
-            ciot_iface_process_data(&base->iface, &byte, 1, CIOT_EVENT_TYPE_REQUEST);
+            ciot_iface_process_data(&base->iface, &byte, 1, CIOT_EVENT_TYPE_MSG);
         }
         break;
     case UART_FIFO_OVF:

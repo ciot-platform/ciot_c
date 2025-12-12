@@ -130,7 +130,7 @@ static esp_err_t ciot_post_handler(httpd_req_t *req)
 
     httpd_req_recv(req, (char *)event.raw.bytes, req->content_len);
 
-    event.type = CIOT_EVENT_TYPE_REQUEST;
+    event.type = CIOT_EVENT_TYPE_MSG;
     event.raw.size = req->content_len;
     ciot_iface_send_event(&self->base.iface, &event);
 

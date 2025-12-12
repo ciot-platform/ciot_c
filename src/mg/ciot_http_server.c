@@ -134,7 +134,7 @@ static void ciot_http_server_event_handler(struct mg_connection *c, int ev, void
         self->conn_tx = c;
         if (mg_match(hm->uri, mg_str(base->cfg.route), NULL) && check_method(hm, "POST"))
         {
-            event.type = CIOT_EVENT_TYPE_REQUEST;
+            event.type = CIOT_EVENT_TYPE_MSG;
             memcpy(event.raw.bytes, hm->body.buf, hm->body.len);
             event.raw.size = hm->body.len;
             ciot_iface_send_event(&base->iface, &event);
