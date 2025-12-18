@@ -75,7 +75,7 @@ static ciot_err_t ciot_ble_scn_get_data(ciot_iface_t *iface, ciot_msg_data_t *da
 
     ciot_ble_scn_base_t *self = iface->ptr;
     ciot_data_type_t data_type = data->get_data.type;
-    data->which_type = CIOT_MSG_DATA_BLE_TAG;
+    data->which_type = CIOT_MSG_DATA_BLE_SCN_TAG;
 
     switch (data_type)
     {
