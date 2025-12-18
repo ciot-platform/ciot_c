@@ -12,7 +12,26 @@
 #error Regenerate this file with the current version of nanopb generator.
 #endif
 
+/* Enum definitions */
+typedef enum ciot_msg_type {
+    CIOT_MSG_TYPE_REQUEST = 0, /* Request message. */
+    CIOT_MSG_TYPE_RESPONSE = 1, /* Response message. */
+    CIOT_MSG_TYPE_NOTIFICATION = 2 /* Notification message. */
+} ciot_msg_type_t;
+
+typedef enum ciot_proxy_state {
+    CIOT_PROXY_STATE_PENDING = 0, /* Proxy is pending. CIoT will send message using the proxy interface. */
+    CIOT_PROXY_STATE_READY_TO_PROCESS = 1, /* Proxy is ready. CIoT will process the message locally. */
+    CIOT_PROXY_STATE_SENT = 2 /* Proxy is sent. CIoT will not process the message locally. */
+} ciot_proxy_state_t;
+
 /* Struct definitions */
+typedef struct ciot_proxy {
+    bool has_iface;
+    ciot_iface_info_t iface; /* Proxy interface information. */
+    ciot_proxy_state_t state; /* Proxy state. */
+} ciot_proxy_t;
+
 /* Represents an CioT message */
 typedef struct ciot_msg {
     uint32_t id; /* Message ID. */
@@ -21,6 +40,9 @@ typedef struct ciot_msg {
     ciot_err_t error; /* Error code. */
     bool has_data;
     ciot_msg_data_t data; /* Message data. */
+    ciot_msg_type_t type; /* Message type. */
+    bool has_proxy;
+    ciot_proxy_t proxy; /* Proxy information. */
 } ciot_msg_t;
 
 
@@ -28,36 +50,76 @@ typedef struct ciot_msg {
 extern "C" {
 #endif
 
+/* Helper constants for enums */
+#define _CIOT_MSG_TYPE_MIN CIOT_MSG_TYPE_REQUEST
+#define _CIOT_MSG_TYPE_MAX CIOT_MSG_TYPE_NOTIFICATION
+#define _CIOT_MSG_TYPE_ARRAYSIZE ((ciot_msg_type_t)(CIOT_MSG_TYPE_NOTIFICATION+1))
+#define CIOT_MSG_TYPE_MSG_TYPE_REQUEST CIOT_MSG_TYPE_REQUEST
+#define CIOT_MSG_TYPE_MSG_TYPE_RESPONSE CIOT_MSG_TYPE_RESPONSE
+#define CIOT_MSG_TYPE_MSG_TYPE_NOTIFICATION CIOT_MSG_TYPE_NOTIFICATION
+
+#define _CIOT_PROXY_STATE_MIN CIOT_PROXY_STATE_PENDING
+#define _CIOT_PROXY_STATE_MAX CIOT_PROXY_STATE_SENT
+#define _CIOT_PROXY_STATE_ARRAYSIZE ((ciot_proxy_state_t)(CIOT_PROXY_STATE_SENT+1))
+#define CIOT_PROXY_STATE_PROXY_STATE_PENDING CIOT_PROXY_STATE_PENDING
+#define CIOT_PROXY_STATE_PROXY_STATE_READY_TO_PROCESS CIOT_PROXY_STATE_READY_TO_PROCESS
+#define CIOT_PROXY_STATE_PROXY_STATE_SENT CIOT_PROXY_STATE_SENT
+
+#define ciot_proxy_t_state_ENUMTYPE ciot_proxy_state_t
+
+#define ciot_msg_t_error_ENUMTYPE ciot_err_t
+#define ciot_msg_t_type_ENUMTYPE ciot_msg_type_t
+
+
 /* Initializer values for message structs */
-#define CIOT_MSG_INIT_DEFAULT                    {0, false, CIOT_IFACE_INFO_INIT_DEFAULT, _CIOT_ERR_MIN, false, CIOT_MSG_DATA_INIT_DEFAULT}
-#define CIOT_MSG_INIT_ZERO                       {0, false, CIOT_IFACE_INFO_INIT_ZERO, _CIOT_ERR_MIN, false, CIOT_MSG_DATA_INIT_ZERO}
+#define CIOT_PROXY_INIT_DEFAULT                  {false, CIOT_IFACE_INFO_INIT_DEFAULT, _CIOT_PROXY_STATE_MIN}
+#define CIOT_MSG_INIT_DEFAULT                    {0, false, CIOT_IFACE_INFO_INIT_DEFAULT, _CIOT_ERR_MIN, false, CIOT_MSG_DATA_INIT_DEFAULT, _CIOT_MSG_TYPE_MIN, false, CIOT_PROXY_INIT_DEFAULT}
+#define CIOT_PROXY_INIT_ZERO                     {false, CIOT_IFACE_INFO_INIT_ZERO, _CIOT_PROXY_STATE_MIN}
+#define CIOT_MSG_INIT_ZERO                       {0, false, CIOT_IFACE_INFO_INIT_ZERO, _CIOT_ERR_MIN, false, CIOT_MSG_DATA_INIT_ZERO, _CIOT_MSG_TYPE_MIN, false, CIOT_PROXY_INIT_ZERO}
 
 /* Field tags (for use in manual encoding/decoding) */
+#define CIOT_PROXY_IFACE_TAG                     1
+#define CIOT_PROXY_STATE_TAG                     2
 #define CIOT_MSG_ID_TAG                          1
 #define CIOT_MSG_IFACE_TAG                       2
 #define CIOT_MSG_ERROR_TAG                       3
 #define CIOT_MSG_DATA_TAG                        4
+#define CIOT_MSG_TYPE_TAG                        5
+#define CIOT_MSG_PROXY_TAG                       6
 
 /* Struct field encoding specification for nanopb */
+#define CIOT_PROXY_FIELDLIST(X, a) \
+X(a, STATIC,   OPTIONAL, MESSAGE,  iface,             1) \
+X(a, STATIC,   SINGULAR, UENUM,    state,             2)
+#define CIOT_PROXY_CALLBACK NULL
+#define CIOT_PROXY_DEFAULT NULL
+#define ciot_proxy_t_iface_MSGTYPE ciot_iface_info_t
+
 #define CIOT_MSG_FIELDLIST(X, a) \
 X(a, STATIC,   SINGULAR, UINT32,   id,                1) \
 X(a, STATIC,   OPTIONAL, MESSAGE,  iface,             2) \
 X(a, STATIC,   SINGULAR, UENUM,    error,             3) \
-X(a, STATIC,   OPTIONAL, MESSAGE,  data,              4)
+X(a, STATIC,   OPTIONAL, MESSAGE,  data,              4) \
+X(a, STATIC,   SINGULAR, UENUM,    type,              5) \
+X(a, STATIC,   OPTIONAL, MESSAGE,  proxy,             6)
 #define CIOT_MSG_CALLBACK NULL
 #define CIOT_MSG_DEFAULT NULL
 #define ciot_msg_t_iface_MSGTYPE ciot_iface_info_t
 #define ciot_msg_t_data_MSGTYPE ciot_msg_data_t
+#define ciot_msg_t_proxy_MSGTYPE ciot_proxy_t
 
+extern const pb_msgdesc_t ciot_proxy_t_msg;
 extern const pb_msgdesc_t ciot_msg_t_msg;
 
 /* Defines for backwards compatibility with code written before nanopb-0.4.0 */
+#define CIOT_PROXY_FIELDS &ciot_proxy_t_msg
 #define CIOT_MSG_FIELDS &ciot_msg_t_msg
 
 /* Maximum encoded size of messages (where known) */
+#define CIOT_PROXY_SIZE                          12
 #if defined(Ciot_MsgData_size)
 #define CIOT_CIOT_PROTO_V2_MSG_PB_H_MAX_SIZE     CIOT_MSG_SIZE
-#define CIOT_MSG_SIZE                            (24 + Ciot_MsgData_size)
+#define CIOT_MSG_SIZE                            (40 + Ciot_MsgData_size)
 #endif
 
 #ifdef __cplusplus

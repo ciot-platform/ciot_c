@@ -221,7 +221,7 @@ static void ciot_mqtt_client_event_handler(struct mg_connection *c, int ev, void
         struct mg_mqtt_message *mm = (struct mg_mqtt_message *)ev_data;
         if(base->process_all_topics || (strlen(base->cfg.topics.sub) == mm->topic.len && strncmp(mm->topic.buf, base->cfg.topics.sub, mm->topic.len) == 0))
         {
-            event.type = CIOT_EVENT_TYPE_REQUEST;
+            event.type = CIOT_EVENT_TYPE_MSG;
             memcpy(event.raw.bytes, mm->data.buf, mm->data.len);
             event.raw.size = mm->data.len;
             ciot_iface_send_event(&base->iface, &event);

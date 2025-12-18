@@ -33,7 +33,7 @@
 #warning "Target undefined."
 #endif
 
-#define CIOT_VER 0,12,0,3
+#define CIOT_VER 0,13,0,0
 #define CIOT_IFACE_CFG_FILENAME "cfg%d.dat"
 
 #if defined(CIOT_TARGET_WIN) || defined(CIOT_TARGET_LINUX)
@@ -74,6 +74,7 @@ typedef struct ciot_receiver
 {
     bool serialized;
     ciot_iface_t *sender;
+    ciot_iface_t *proxy;
     ciot_event_t event;
     uint64_t timeout_timer;
 } ciot_receiver_t;

@@ -10,7 +10,7 @@ $(OUTPUT_DIRECTORY)/pca10040.out: \
   LINKER_SCRIPT  := pca10040.ld
 
 SRC_FILES += $(wildcard $(PROJ_DIR)/src/*.c)
-SRC_FILES += $(wildcard $(CIOT_DIR)/src/ciot/proto/v2/*.c)
+SRC_FILES += $(wildcard $(CIOT_DIR)/src/protos/ciot/proto/v2/*.c)
 SRC_FILES += $(wildcard $(CIOT_DIR)/src/core/*.c)
 SRC_FILES += $(wildcard $(CIOT_DIR)/src/common/*.c)
 SRC_FILES += $(wildcard $(CIOT_DIR)/src/nrf/*.c)
@@ -19,6 +19,7 @@ SRC_FILES += $(HG_PCM_SRC_FILES)
 
 INC_FOLDERS += $(CIOT_DIR)/include
 INC_FOLDERS += $(CIOT_DIR)/src
+INC_FOLDERS += $(CIOT_DIR)/src/protos
 INC_FOLDERS += $(CIOT_DIR)/src/nanopb
 INC_FOLDERS += $(CIOT_DIR)/src/nanomodbus
 INC_FOLDERS += $(HG_PCM_INC_FOLDERS)
