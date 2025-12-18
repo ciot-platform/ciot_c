@@ -50,3 +50,14 @@ This can be achieved adding an proxy configuration to the message sent by ciot a
     }
 }
 ```
+
+### Fix
+
+**MQTT**
+
+* Fix esp32 MQTT_EVENT_DATA ciot event type
+
+**BLE Scanner**
+
+* Fix data tag type on ciot_ble_scn_get_data function at ciot_ble_scn_base
+
