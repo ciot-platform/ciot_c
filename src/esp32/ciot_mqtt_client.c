@@ -169,7 +169,7 @@ static void ciot_mqtt_event_handler(void *handler_args, esp_event_base_t event_b
         ESP_LOGI(TAG, "MQTT_EVENT_DATA");
         if(base->process_all_topics || strncmp(mqtt_event->topic, base->cfg.topics.sub, mqtt_event->topic_len) == 0)
         {
-            event.type = CIOT_EVENT_TYPE_REQUEST;
+            event.type = CIOT_EVENT_TYPE_MSG;
             event.raw.size = mqtt_event->data_len;
             memcpy(event.raw.bytes, (uint8_t*)mqtt_event->data, mqtt_event->data_len);
             ciot_iface_send_event(&base->iface, &event);
