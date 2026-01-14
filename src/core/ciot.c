@@ -417,7 +417,15 @@ static ciot_err_t ciot_busy_task(ciot_t self)
         {
             if(event->msg.type == CIOT_MSG_TYPE_REQUEST)
             {
-                if(event->msg.has_proxy == true && event->msg.proxy.state == CIOT_PROXY_STATE_PENDING)
+                if(event->msg.has_proxy == true && ciot_iface_is_equal(&self->iface.info, &event->msg.proxy.iface) && ciot_iface_is_equal(&self->ifaces.list[event->msg.iface.id]->info, &event->msg.iface) && event->msg.proxy.save) {
+                    char filename[16];
+                    sprintf(filename, CIOT_IFACE_CFG_FILENAME, (int)event->msg.iface.id);
+                    event->msg.error = ciot_storage_save_data(self->storage, filename, &event->msg.data);
+                    event->msg.proxy.state = CIOT_PROXY_STATE_PROXY_STATE_SENT;
+                    ciot_iface_send_rsp(sender, &event->msg);
+                    CIOT_LOGI(TAG, "%s config saved", ciot_iface_to_str(self->ifaces.list[event->msg.iface.id]));
+                }
+                else if(event->msg.has_proxy == true && event->msg.proxy.state == CIOT_PROXY_STATE_PENDING)
                 {
                     // Proxy request handling
                     CIOT_LOGI(TAG, "Processing proxy request from %s", ciot_iface_to_str(sender));
