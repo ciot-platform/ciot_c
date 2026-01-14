@@ -24,6 +24,13 @@
         return CIOT_ERR_NULL_ARG;                    \
     }
 
+#define CIOT_ERR_MEMORY_CHECK(x)                     \
+    if (x == NULL)                                   \
+    {                                                \
+        CIOT_ERR_LOG("ciot_err", CIOT_ERR_NO_MEMORY); \
+        return CIOT_ERR_NO_MEMORY;                   \
+    }
+
 #define CIOT_ERR_TYPE_CHECK(current, expected)                                 \
     if (current != expected)                                                   \
     {                                                                          \
