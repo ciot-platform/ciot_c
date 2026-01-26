@@ -2,10 +2,10 @@
 
 ### Changes
 
-**Error handling improvements:**
+**Proxy request handling improvements:**
 
-* Added a new macro `CIOT_ERR_MEMORY_CHECK` in `ciot_err.h` to standardize and simplify memory allocation error checking throughout the codebase.
+* Added a new condition in `ciot_busy_task` (in `ciot.c`) to save interface configuration data when a proxy request with `save` set to true is received. This involves generating a filename, saving the data to storage, updating the proxy state, sending a response, and logging the operation.
 
-**Memory management and function refactoring:**
+**Minor formatting fix:**
 
-* Refactored the `ciot_save_cfg` function in `ciot.c` to allocate the `ciot_msg_t` structure dynamically using `calloc`, apply the new memory check macro, and ensure the allocated memory is freed after use. This reduces stack usage and improves robustness against memory allocation failures.
+* Moved the `#endif // CONFIG_ESP_HTTPS_OTA_DECRYPT_CB` directive to after the function declaration in `ciot_ota.c` to correctly scope conditional compilation.
