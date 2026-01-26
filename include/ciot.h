@@ -108,5 +108,6 @@ ciot_err_t ciot_get_ifaces_info(ciot_t self, ciot_info_t *info);
 ciot_err_t ciot_delete_all(ciot_t self);
 bool ciot_cfg_exists(ciot_t self, uint8_t iface_id);
 const char *ciot_event_to_str(ciot_event_t *event);
+ciot_iface_state_t ciot_iface_get_state(ciot_t self, uint16_t iface_id);
 
 #endif  //!__CIOT__H__
