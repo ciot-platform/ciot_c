@@ -99,6 +99,7 @@ typedef struct ciot_dfu_nrf *ciot_dfu_nrf_t;
 ciot_dfu_nrf_t ciot_dfu_nrf_new(ciot_dfu_nrf_cfg_t *cfg);
 ciot_err_t ciot_dfu_nrf_start(ciot_dfu_nrf_t self, ciot_dfu_cfg_t *cfg);
 ciot_err_t ciot_dfu_nrf_stop(ciot_dfu_nrf_t self);
+ciot_err_t ciot_dfu_nrf_set_test_mode(ciot_dfu_nrf_t self, bool enable);
 ciot_err_t ciot_dfu_nrf_init(ciot_dfu_nrf_t self);
 ciot_err_t ciot_dfu_nrf_process_req(ciot_dfu_nrf_t self, ciot_dfu_req_t *req);
 ciot_err_t ciot_dfu_nrf_get_cfg(ciot_dfu_nrf_t self, ciot_dfu_cfg_t *cfg);
