@@ -95,6 +95,11 @@ ciot_err_t ciot_wifi_send_bytes(ciot_iface_t *iface, uint8_t *bytes, int size)
     return CIOT_ERR_NOT_SUPPORTED;
 }
 
+ciot_err_t ciot_wifi_get_rssi(ciot_wifi_t self, int32_t *rssi)
+{
+    return CIOT_ERR_NOT_SUPPORTED;
+}
+
 static ciot_err_t ciot_wifi_set_cfg(ciot_wifi_t self, ciot_wifi_cfg_t *cfg)
 {
     CIOT_LOGI(TAG, "Configuring");
