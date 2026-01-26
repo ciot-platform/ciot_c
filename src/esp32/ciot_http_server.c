@@ -33,9 +33,10 @@ struct ciot_http_server
 static const char *TAG = "ciot_http_server";
 
 static ciot_err_t ciot_https_register_routes(ciot_http_server_t self);
-static esp_err_t ciot_post_handler(httpd_req_t *req);
-static esp_err_t ciot_file_handler(httpd_req_t *req);
+static esp_err_t ciot_http_server_api_handler(httpd_req_t *req);
+static esp_err_t ciot_http_server_file_handler(httpd_req_t *req);
 static const char *get_mime_type(const char *filename);
+static esp_err_t ciot_http_server_custom_api_handler(httpd_req_t *req);
 
 ciot_http_server_t ciot_http_server_new(void *handle)
 {
@@ -56,7 +57,7 @@ ciot_err_t ciot_http_server_start(ciot_http_server_t self, ciot_http_server_cfg_
 
     httpd_config_t httpd_config = HTTPD_DEFAULT_CONFIG();
     httpd_config.server_port = cfg->port;
-    httpd_config.max_uri_handlers = 2;
+    httpd_config.max_uri_handlers = 3;
     httpd_config.uri_match_fn = httpd_uri_match_wildcard;
     httpd_config.stack_size = 8192;
 
@@ -93,7 +94,7 @@ static ciot_err_t ciot_https_register_routes(ciot_http_server_t self)
     CIOT_LOGI(TAG, "Registering route: %s", self->base.cfg.route);
     httpd_uri_t post_uri = {
         .uri = self->base.cfg.route,
-        .handler = ciot_post_handler,
+        .handler = ciot_http_server_api_handler,
         .method = HTTP_POST,
         .user_ctx = self,
     };
@@ -104,10 +105,28 @@ static ciot_err_t ciot_https_register_routes(ciot_http_server_t self)
         return CIOT_ERR_FAIL;
     }
 
+    if (self->base.custom_api.enabled && self->base.custom_api.handler != NULL)
+    {
+        CIOT_LOGI(TAG, "Registering route: %s", self->base.custom_api.uri);
+        httpd_uri_t post_uri = {
+            .uri = self->base.custom_api.uri,
+            .handler = ciot_http_server_custom_api_handler,
+            .method = HTTP_ANY,
+            .user_ctx = self,
+        };
+        esp_err_t err = httpd_register_uri_handler(self->handle, &post_uri);
+        if (err)
+        {
+            CIOT_LOGE(TAG, "Register uri error: %s", esp_err_to_name(err));
+            return CIOT_ERR_FAIL;
+        }
+    }
+
+    CIOT_LOGI(TAG, "Registering route: /*");
     httpd_uri_t file_uri = {
-        .uri = "/*", // Captura todas as URIs
+        .uri = "/*",
         .method = HTTP_GET,
-        .handler = ciot_file_handler,
+        .handler = ciot_http_server_file_handler,
         .user_ctx = self};
     err = httpd_register_uri_handler(self->handle, &file_uri);
     if (err)
@@ -118,7 +137,7 @@ static ciot_err_t ciot_https_register_routes(ciot_http_server_t self)
     return CIOT_ERR_OK;
 }
 
-static esp_err_t ciot_post_handler(httpd_req_t *req)
+static esp_err_t ciot_http_server_api_handler(httpd_req_t *req)
 {
     ciot_http_server_t self = (ciot_http_server_t)req->user_ctx;
     ciot_event_t event = {0};
@@ -166,7 +185,7 @@ static esp_err_t ciot_post_handler(httpd_req_t *req)
     return CIOT_ERR_OK;
 }
 
-static esp_err_t ciot_file_handler(httpd_req_t *req)
+static esp_err_t ciot_http_server_file_handler(httpd_req_t *req)
 {
     ciot_http_server_t self = (ciot_http_server_t)req->user_ctx;
 
@@ -176,7 +195,7 @@ static esp_err_t ciot_file_handler(httpd_req_t *req)
 
     if (((strcmp(req->uri, "/") == 0) || (strcmp(req->uri, "/index.html") == 0)) && self->base.homepage.size > 0)
     {
-        if(self->base.homepage.gz)
+        if (self->base.homepage.gz)
         {
             CIOT_LOGI(TAG, "Serving embed gzip");
             httpd_resp_set_hdr(req, "Content-Encoding", "gzip");
@@ -269,6 +288,75 @@ static const char *get_mime_type(const char *filename)
     if (strstr(filename, ".svg"))
         return "image/svg+xml";
     return "text/plain";
+}
+
+static esp_err_t ciot_http_server_custom_api_handler(httpd_req_t *req)
+{
+    ciot_http_server_t self = (ciot_http_server_t)req->user_ctx;
+    ciot_event_t event = {0};
+
+    if (self == NULL)
+    {
+        CIOT_LOGE(TAG, "Null context");
+        return ESP_FAIL;
+    }
+
+    httpd_req_recv(req, (char *)event.raw.bytes, req->content_len);
+
+    switch (req->method)
+    {
+    case HTTP_DELETE:
+        self->base.custom_api.handler(self, req->uri, strlen(req->uri), "DELETE", event.raw.bytes, req->content_len, self->base.custom_api.args);
+        break;
+    case HTTP_GET:
+        self->base.custom_api.handler(self, req->uri, strlen(req->uri), "GET", event.raw.bytes, req->content_len, self->base.custom_api.args);
+        break;
+    case HTTP_HEAD:
+        self->base.custom_api.handler(self, req->uri, strlen(req->uri), "HEAD", event.raw.bytes, req->content_len, self->base.custom_api.args);
+        break;
+    case HTTP_POST:
+        self->base.custom_api.handler(self, req->uri, strlen(req->uri), "POST", event.raw.bytes, req->content_len, self->base.custom_api.args);
+        break;
+    case HTTP_PUT:
+        self->base.custom_api.handler(self, req->uri, strlen(req->uri), "PUT", event.raw.bytes, req->content_len, self->base.custom_api.args);
+        break;
+    case HTTP_CONNECT:
+        self->base.custom_api.handler(self, req->uri, strlen(req->uri), "CONNECT", event.raw.bytes, req->content_len, self->base.custom_api.args);
+        break;
+    default:
+        self->base.custom_api.handler(self, req->uri, strlen(req->uri), "UNKNOWN", event.raw.bytes, req->content_len, self->base.custom_api.args);
+        break;
+    }
+
+    if (self->resp_size == 0)
+    {
+        xEventGroupClearBits(self->event_group, CIOT_HTTP_SERVER_RESP_READY_BIT);
+        xEventGroupWaitBits(
+            self->event_group,
+            CIOT_HTTP_SERVER_RESP_READY_BIT,
+            pdTRUE,
+            pdFALSE,
+            pdMS_TO_TICKS(CIOT_HTTP_SERVER_TIMEOUT_MS));
+    }
+
+    if (self->resp_size > 0)
+    {
+        CIOT_LOGI(TAG, "Resp OK");
+        httpd_resp_set_status(req, HTTPD_200);
+        httpd_resp_set_type(req, HTTPD_TYPE_OCTET);
+#ifdef CIOT_CONFIG_HTTP_SERVER_ALLOW_ORIGIN
+        httpd_resp_set_hdr(req, "Access-Control-Allow-Origin", CIOT_CONFIG_HTTP_SERVER_ALLOW_ORIGIN);
+#endif
+        httpd_resp_send(req, (const char *)self->resp, self->resp_size);
+        self->resp_size = 0;
+    }
+    else
+    {
+        CIOT_LOGW(TAG, "Timeout waiting for response");
+        httpd_resp_send_500(req);
+    }
+
+    return CIOT_ERR_OK;
 }
 
 #endif //! CIOT_CONFIG_FEATURE_HTTP_SERVER == 1

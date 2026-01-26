@@ -132,6 +132,7 @@ ciot_err_t ciot_wifi_get_status(ciot_wifi_t self, ciot_wifi_status_t *status)
     CIOT_ERR_NULL_CHECK(self);
     CIOT_ERR_NULL_CHECK(status);
     ciot_wifi_base_t *base = (ciot_wifi_base_t*)self;
+    ciot_wifi_get_rssi(self, &base->status.rssi);
     *status = base->status;
     return CIOT_ERR_OK;
 }
@@ -151,6 +152,15 @@ ciot_err_t ciot_wifi_get_mac(ciot_wifi_t self, uint8_t mac[6])
     CIOT_ERR_NULL_CHECK(mac);
     ciot_wifi_base_t *base = (ciot_wifi_base_t*)self;
     memcpy(mac, base->info.tcp.mac, 6);
+    return CIOT_ERR_OK;
+}
+
+ciot_err_t ciot_wifi_get_ip(ciot_wifi_t self, uint8_t ip[4])
+{
+    CIOT_ERR_NULL_CHECK(self);
+    CIOT_ERR_NULL_CHECK(ip);
+    ciot_wifi_base_t *base = (ciot_wifi_base_t*)self;
+    memcpy(ip, base->info.tcp.ip, 4);
     return CIOT_ERR_OK;
 }
 

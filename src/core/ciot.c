@@ -402,9 +402,11 @@ static ciot_err_t ciot_busy_task(ciot_t self)
             // else
             // {
                 CIOT_LOGI(TAG, "Response sended");
+                ciot_event_type_t prev_type = event->type;
                 event->msg.id = sender->req_status.id;
                 event->type = CIOT_EVENT_TYPE_DONE;
                 ciot_iface_send_rsp(self->ifaces.list[sender->req_status.iface.id], &event->msg);
+                event->type = prev_type;
             // }
             sender->req_status.state = CIOT_IFACE_REQ_STATE_IDLE;
         }
@@ -660,4 +662,11 @@ static ciot_err_t ciot_bytes_received(ciot_t self, ciot_iface_t *sender, uint8_t
         self->receiver.event.which_data = CIOT_EVENT_MSG_TAG;
         return CIOT_ERR_OK;
     }
+}
+
+ciot_iface_state_t ciot_iface_get_state(ciot_t self, uint16_t iface_id)
+{
+    CIOT_ERR_NULL_CHECK(self);
+    CIOT_ERR_ID_CHECK(iface_id, self->ifaces.count);
+    return self->status.ifaces[iface_id].state;
 }

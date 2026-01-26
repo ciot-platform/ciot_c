@@ -21,6 +21,8 @@ extern "C" {
 
 typedef struct ciot_http_server *ciot_http_server_t;
 
+typedef ciot_err_t (ciot_http_server_custom_api_handler_fn)(ciot_http_server_t self, const char *uri, size_t uri_len, char *method, uint8_t *data, size_t size, void *args);
+
 #ifndef CIOT_CONFIG_URL_SIZE
 #define CIOT_CONFIG_URL_SIZE 48
 #endif
@@ -38,12 +40,21 @@ typedef struct ciot_http_server_homepage_cfg
     size_t size;
 } ciot_http_server_homepage_cfg_t;
 
+typedef struct ciot_http_server_custom_api
+{
+    bool enabled;
+    const char *uri;
+    ciot_http_server_custom_api_handler_fn *handler;
+    void *args;
+} ciot_http_server_custom_api_t;
+
 typedef struct ciot_http_server_base
 {
     ciot_iface_t iface;
     ciot_http_server_cfg_t cfg;
     ciot_http_server_status_t status;
     ciot_http_server_homepage_cfg_t homepage;
+    ciot_http_server_custom_api_t custom_api;
 } ciot_http_server_base_t;
 
 ciot_http_server_t ciot_http_server_new(void *handle);
@@ -55,6 +66,7 @@ ciot_err_t ciot_http_server_get_cfg(ciot_http_server_t self, ciot_http_server_cf
 ciot_err_t ciot_http_server_get_status(ciot_http_server_t self, ciot_http_server_status_t *status);
 ciot_err_t ciot_http_server_send_bytes(ciot_http_server_t self, uint8_t *data, int size);
 ciot_err_t ciot_http_server_set_homepage(ciot_http_server_t self, ciot_http_server_homepage_cfg_t *homepage);
+ciot_err_t ciot_http_server_set_custom_api(ciot_http_server_t self, ciot_http_server_custom_api_t *custom_api);
 
 #ifdef __cplusplus
 }

@@ -168,6 +168,16 @@ ciot_err_t ciot_wifi_scan(ciot_wifi_t self)
     return esp_wifi_scan_start(NULL, false);
 }
 
+ciot_err_t ciot_wifi_get_rssi(ciot_wifi_t self, int32_t *rssi)
+{
+    CIOT_ERR_NULL_CHECK(self);
+    CIOT_ERR_NULL_CHECK(rssi);
+    wifi_ap_record_t ap_info = { 0 };
+    esp_wifi_sta_get_ap_info(&ap_info);
+    *rssi = ap_info.rssi;
+    return CIOT_ERR_OK;
+}
+
 static esp_err_t esp_wifi_init_mode(ciot_wifi_type_t type)
 {
     wifi_mode_t mode;

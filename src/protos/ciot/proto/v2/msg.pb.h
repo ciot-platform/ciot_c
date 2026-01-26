@@ -30,6 +30,7 @@ typedef struct ciot_proxy {
     bool has_iface;
     ciot_iface_info_t iface; /* Proxy interface information. */
     ciot_proxy_state_t state; /* Proxy state. */
+    bool save; /* Use ciot to save msg data */
 } ciot_proxy_t;
 
 /* Represents an CioT message */
@@ -72,14 +73,15 @@ extern "C" {
 
 
 /* Initializer values for message structs */
-#define CIOT_PROXY_INIT_DEFAULT                  {false, CIOT_IFACE_INFO_INIT_DEFAULT, _CIOT_PROXY_STATE_MIN}
+#define CIOT_PROXY_INIT_DEFAULT                  {false, CIOT_IFACE_INFO_INIT_DEFAULT, _CIOT_PROXY_STATE_MIN, 0}
 #define CIOT_MSG_INIT_DEFAULT                    {0, false, CIOT_IFACE_INFO_INIT_DEFAULT, _CIOT_ERR_MIN, false, CIOT_MSG_DATA_INIT_DEFAULT, _CIOT_MSG_TYPE_MIN, false, CIOT_PROXY_INIT_DEFAULT}
-#define CIOT_PROXY_INIT_ZERO                     {false, CIOT_IFACE_INFO_INIT_ZERO, _CIOT_PROXY_STATE_MIN}
+#define CIOT_PROXY_INIT_ZERO                     {false, CIOT_IFACE_INFO_INIT_ZERO, _CIOT_PROXY_STATE_MIN, 0}
 #define CIOT_MSG_INIT_ZERO                       {0, false, CIOT_IFACE_INFO_INIT_ZERO, _CIOT_ERR_MIN, false, CIOT_MSG_DATA_INIT_ZERO, _CIOT_MSG_TYPE_MIN, false, CIOT_PROXY_INIT_ZERO}
 
 /* Field tags (for use in manual encoding/decoding) */
 #define CIOT_PROXY_IFACE_TAG                     1
 #define CIOT_PROXY_STATE_TAG                     2
+#define CIOT_PROXY_SAVE_TAG                      3
 #define CIOT_MSG_ID_TAG                          1
 #define CIOT_MSG_IFACE_TAG                       2
 #define CIOT_MSG_ERROR_TAG                       3
@@ -90,7 +92,8 @@ extern "C" {
 /* Struct field encoding specification for nanopb */
 #define CIOT_PROXY_FIELDLIST(X, a) \
 X(a, STATIC,   OPTIONAL, MESSAGE,  iface,             1) \
-X(a, STATIC,   SINGULAR, UENUM,    state,             2)
+X(a, STATIC,   SINGULAR, UENUM,    state,             2) \
+X(a, STATIC,   SINGULAR, BOOL,     save,              3)
 #define CIOT_PROXY_CALLBACK NULL
 #define CIOT_PROXY_DEFAULT NULL
 #define ciot_proxy_t_iface_MSGTYPE ciot_iface_info_t
@@ -116,10 +119,10 @@ extern const pb_msgdesc_t ciot_msg_t_msg;
 #define CIOT_MSG_FIELDS &ciot_msg_t_msg
 
 /* Maximum encoded size of messages (where known) */
-#define CIOT_PROXY_SIZE                          12
+#define CIOT_PROXY_SIZE                          14
 #if defined(Ciot_MsgData_size)
 #define CIOT_CIOT_PROTO_V2_MSG_PB_H_MAX_SIZE     CIOT_MSG_SIZE
-#define CIOT_MSG_SIZE                            (40 + Ciot_MsgData_size)
+#define CIOT_MSG_SIZE                            (42 + Ciot_MsgData_size)
 #endif
 
 #ifdef __cplusplus

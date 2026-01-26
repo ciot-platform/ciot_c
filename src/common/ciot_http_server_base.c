@@ -23,12 +23,12 @@ static ciot_err_t ciot_http_server_send_data(ciot_iface_t *iface, uint8_t *data,
 ciot_err_t ciot_http_server_init(ciot_http_server_t self)
 {
     ciot_http_server_base_t *base = (ciot_http_server_base_t *)self;
-
     base->iface.ptr = self;
     base->iface.process_data = ciot_http_server_process_data;
     base->iface.get_data = ciot_http_server_get_data;
     base->iface.send_data = ciot_http_server_send_data;
     base->iface.info.type = CIOT_IFACE_TYPE_HTTP_SERVER;
+    base->custom_api.enabled = false;
     return CIOT_ERR_OK;
 }
 
@@ -43,6 +43,15 @@ ciot_err_t ciot_http_server_set_homepage(ciot_http_server_t self, ciot_http_serv
 {
     ciot_http_server_base_t *base = (ciot_http_server_base_t *)self;
     base->homepage = *homepage;
+    return CIOT_ERR_OK;
+}
+
+ciot_err_t ciot_http_server_set_custom_api(ciot_http_server_t self, ciot_http_server_custom_api_t *custom_api)
+{
+    CIOT_ERR_NULL_CHECK(self);
+    CIOT_ERR_NULL_CHECK(custom_api);
+    ciot_http_server_base_t *base = (ciot_http_server_base_t *)self;
+    base->custom_api = *custom_api;
     return CIOT_ERR_OK;
 }
 
