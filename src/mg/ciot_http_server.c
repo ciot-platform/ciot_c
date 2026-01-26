@@ -139,6 +139,10 @@ static void ciot_http_server_event_handler(struct mg_connection *c, int ev, void
             event.raw.size = hm->body.len;
             ciot_iface_send_event(&base->iface, &event);
         }
+        else if(self->base.custom_api.enabled && mg_match(hm->uri, mg_str(self->base.custom_api.uri), NULL))
+        {
+            self->base.custom_api.handler(self, hm->uri.buf, hm->uri.len, hm->method.buf, (uint8_t *)hm->body.buf, hm->body.len, self->base.custom_api.args);
+        }
         else if (mg_match(hm->uri, mg_str("/"), NULL) && check_method(hm, "GET") && base->homepage.size > 0)
         {
             mg_printf(self->conn_tx,
