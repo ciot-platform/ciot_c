@@ -71,7 +71,7 @@
      ciot_sys_base_t *base = &self->base;
      base->status.free_memory = esp_get_free_heap_size();
      base->status.lifetime = ciot_timer_now() - self->init_time;
-     xEventGroupWaitBits(self->event_group, CIOT_SYS_EVT_BIT_POOLING, pdTRUE, pdTRUE, pdMS_TO_TICKS(100));
+     xEventGroupWaitBits(self->event_group, CIOT_SYS_EVT_BIT_POOLING, pdTRUE, pdTRUE, pdMS_TO_TICKS(CIOT_SYS_DEFAULT_POOLING_INTERVAL_MS));
      return CIOT_ERR_OK;
  }
  

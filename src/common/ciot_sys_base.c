@@ -41,7 +41,6 @@ ciot_err_t ciot_sys_init(ciot_sys_t self)
     ciot_sys_get_features(&base->info.features);
 
     base->info.has_features = true;
-
     return CIOT_ERR_OK;
 }
 
