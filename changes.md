@@ -16,6 +16,16 @@
 * Added a "test mode" to the Nordic DFU implementation, including new struct members, API (`ciot_dfu_nrf_set_test_mode`), and logic to immediately complete ping responses and state transitions when in test mode. [[1]](diffhunk://#diff-74a286d93b9147cda2e796082ebafd561f5ffe864b6e7ef62c25a6043764bb84R102) [[2]](diffhunk://#diff-fbe65a7e710b59bf67db57d1d53ed72fe347e8ea6b9729c6ce64008109b8f793L63-R63) [[3]](diffhunk://#diff-fbe65a7e710b59bf67db57d1d53ed72fe347e8ea6b9729c6ce64008109b8f793R95-R96) [[4]](diffhunk://#diff-fbe65a7e710b59bf67db57d1d53ed72fe347e8ea6b9729c6ce64008109b8f793R134-R140) [[5]](diffhunk://#diff-fbe65a7e710b59bf67db57d1d53ed72fe347e8ea6b9729c6ce64008109b8f793R463-R468)
 * Improved logging for DFU events and start operations. [[1]](diffhunk://#diff-fbe65a7e710b59bf67db57d1d53ed72fe347e8ea6b9729c6ce64008109b8f793R95-R96) [[2]](diffhunk://#diff-fbe65a7e710b59bf67db57d1d53ed72fe347e8ea6b9729c6ce64008109b8f793L588-R603)
 
+**Storage auto-detection improvements:**
+
+* Refactored `ciot_storage_auto_new` in `src/esp32/ciot_storage_auto.c` to search for a data partition labeled `"storage"` instead of an app partition, return `NULL` if not found, and update the function signature to accept a `label` parameter. Also fixed the include from `.c` to `.h`.
+* Improved error handling and logging in `src/esp8266/ciot_storage_auto.c` by logging errors when no storage partition is found and indicating which storage type is being used.
+* Added new header file `include/ciot_storage_auto.h` for the storage auto-detection functionality, declaring the `ciot_storage_auto_new` function.
+
+**WiFi improvements:**
+
+* Updated `ciot_wifi_get_rssi` in `src/esp32/ciot_wifi.c` to only attempt to retrieve RSSI if the TCP state is connected, preventing invalid reads.
+
 **Core CIOT API Additions:**
 
 * Introduced a new function (`ciot_iface_get_state`) to query the state of a specific interface by ID, with corresponding header and implementation updates. [[1]](diffhunk://#diff-e3a87c483eaad2e3f831ea32fa5bb0c2538d10b268422ac8bf3e6da43110f554R111) [[2]](diffhunk://#diff-ac3505c8e7850d45dfcfdd990afb140a041683f93b640fc2b17a8e05bdd30c10R666-R672)
