@@ -101,7 +101,10 @@ ciot_err_t ciot_mqtt_client_set_subtopic(ciot_mqtt_client_t self, char *subtopic
 ciot_mqtt_client_state_t ciot_mqtt_client_get_state(ciot_mqtt_client_t self)
 {
     ciot_mqtt_client_base_t *base = (ciot_mqtt_client_base_t*)self;
-    CIOT_ERR_NULL_CHECK(self);
+    if(self == NULL)
+    {
+        return CIOT_MQTT_CLIENT_STATE_DISCONNECTED;
+    }
     return base->status.state;
 }
 

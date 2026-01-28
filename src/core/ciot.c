@@ -666,7 +666,9 @@ static ciot_err_t ciot_bytes_received(ciot_t self, ciot_iface_t *sender, uint8_t
 
 ciot_iface_state_t ciot_iface_get_state(ciot_t self, uint16_t iface_id)
 {
-    CIOT_ERR_NULL_CHECK(self);
-    CIOT_ERR_ID_CHECK(iface_id, self->ifaces.count);
+    if(self == NULL || iface_id >= self->ifaces.count)
+    {
+        return CIOT_IFACE_STATE_STOPPED;
+    }
     return self->status.ifaces[iface_id].state;
 }

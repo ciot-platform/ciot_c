@@ -15,6 +15,7 @@
 
 #include <stdlib.h>
 #include "ciot_ntp.h"
+#include "ciot_timer.h"
 
 // static const char *TAG = "ciot_ntp";
 
@@ -24,6 +25,7 @@ struct ciot_ntp
 };
 
 void *notif_args;
+static time_t first_sync_time = 0;
 
 ciot_ntp_t ciot_ntp_new(void *handle)
 {
@@ -36,7 +38,7 @@ ciot_err_t ciot_ntp_start(ciot_ntp_t self, ciot_ntp_cfg_t *cfg)
 {
     CIOT_ERR_NULL_CHECK(self);
     CIOT_ERR_NULL_CHECK(cfg);
-
+    first_sync_time = ciot_timer_now();
     return CIOT_ERR_NOT_SUPPORTED;
 }
 
@@ -44,6 +46,11 @@ ciot_err_t ciot_ntp_stop(ciot_ntp_t self)
 {
     CIOT_ERR_NULL_CHECK(self);
     return CIOT_ERR_NOT_SUPPORTED;
+}
+
+time_t ciot_ntp_first_sync_time(void)
+{
+    return first_sync_time;
 }
 
 #endif // CIOT_CONFIG_FEATURE_NTP == 1

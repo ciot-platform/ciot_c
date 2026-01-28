@@ -33,3 +33,23 @@
 **Miscellaneous:**
 
 * Minor improvements to event handling and logging, such as restoring event types after sending responses.
+
+**NTP First Sync Time Tracking and API:**
+
+* Added `ciot_ntp_first_sync_time()` API to all platforms (ESP32, ESP8266, Linux, Windows) to provide the timestamp of the first successful NTP sync. This replaces previous per-platform mechanisms for tracking system initialization time. (`include/ciot_ntp.h`, `src/esp32/ciot_ntp.c`, `src/esp8266/ciot_ntp.c`, `src/linux/ciot_ntp.c`, `src/win/ciot_ntp.c`) [[1]](diffhunk://#diff-b7d92361932850e67d4b55a7249b2a1b60e327bdf86e6a79b19d98b6fd1008d5L47-R48) [[2]](diffhunk://#diff-b90864bd7b441575f4f4a33e3593ab52c575a94f98a545eef63c8a773520c506R49-R53) [[3]](diffhunk://#diff-f0e18b87ec4938a8558c8ad97950821b858f176e2970e152a000c75cc365a046R98-R102) [[4]](diffhunk://#diff-df1b9dfb52d12a962128af748d2d5da7ad0caad3239d5e56a45053218167102dR102-R106) [[5]](diffhunk://#diff-e0c9f32b0a2806032f895989391bb01b0e200ed3e637544fcdfee67ce3bdb011R51-R55) [[6]](diffhunk://#diff-8a0b3683cceb8a7edfbf8b6fff6eb6ea1d58b683cd520c5998b92e350b9b561eR51-R55)
+
+* Modified NTP synchronization callbacks to set `first_sync_time` only on the first successful sync, ensuring the timestamp is accurate and stable. (`src/esp32/ciot_ntp.c`, `src/esp8266/ciot_ntp.c`) [[1]](diffhunk://#diff-f0e18b87ec4938a8558c8ad97950821b858f176e2970e152a000c75cc365a046R112-R115) [[2]](diffhunk://#diff-df1b9dfb52d12a962128af748d2d5da7ad0caad3239d5e56a45053218167102dR117-R120)
+
+**System Lifetime Calculation Improvements:**
+
+* System lifetime is now calculated based on the time since the first NTP sync, instead of the previous `init_time` field, on all platforms. This ensures a more accurate representation of uptime relative to synchronized time. (`src/esp32/ciot_sys.c`, `src/esp8266/ciot_sys.c`, `src/linux/ciot_sys.c`, `src/win/ciot_sys.c`) [[1]](diffhunk://#diff-89e41b8a6f089a8c5a3cd4d31a6b4b8298d3e8fa721e6dca06bc4ad5f29c6b05L73-R73) [[2]](diffhunk://#diff-e0ea8830e0f110f5ab5be0bbfd4a810f6746a667332d85a5340ac96e210bcadaL73-R73) [[3]](diffhunk://#diff-d089c49e84691467dccbd06b177d3c6119299cee5f10ff1ecb42b366757e6943L65-R64) [[4]](diffhunk://#diff-34fc73335d58756935a3d9f6bff9b322edf0f956c5b105679c84be819182432bL65-R64)
+
+* Removed the `init_time` field from the `ciot_sys` struct, as it is no longer needed. (`src/esp32/ciot_sys.c`, `src/esp8266/ciot_sys.c`, `src/linux/ciot_sys.c`, `src/win/ciot_sys.c`) [[1]](diffhunk://#diff-89e41b8a6f089a8c5a3cd4d31a6b4b8298d3e8fa721e6dca06bc4ad5f29c6b05L29) [[2]](diffhunk://#diff-e0ea8830e0f110f5ab5be0bbfd4a810f6746a667332d85a5340ac96e210bcadaL29) [[3]](diffhunk://#diff-d089c49e84691467dccbd06b177d3c6119299cee5f10ff1ecb42b366757e6943R25-L31) [[4]](diffhunk://#diff-34fc73335d58756935a3d9f6bff9b322edf0f956c5b105679c84be819182432bR24-L31)
+
+**Error Handling Improvements:**
+
+* Improved null pointer checks in `ciot_mqtt_client_get_state()` and `ciot_iface_get_state()`, returning default states instead of relying solely on macros. (`src/common/ciot_mqtt_client_base.c`, `src/core/ciot.c`) [[1]](diffhunk://#diff-3c29355ff0857480c7a57573c88ad3ec552a012ff62443b7bcc7fd8537b3efb9L104-R107) [[2]](diffhunk://#diff-ac3505c8e7850d45dfcfdd990afb140a041683f93b640fc2b17a8e05bdd30c10L669-R672)
+
+**Header and Dependency Updates:**
+
+* Included necessary headers for `ciot_ntp.h` and platform-specific files to support the new API and ensure consistency. (`include/ciot_ntp.h`, `src/esp32/ciot_sys.c`, `src/esp8266/ciot_sys.c`, `src/linux/ciot_ntp.c`, `src/win/ciot_ntp.c`, `src/linux/ciot_sys.c`, `src/win/ciot_sys.c`) [[1]](diffhunk://#diff-b7d92361932850e67d4b55a7249b2a1b60e327bdf86e6a79b19d98b6fd1008d5R21) [[2]](diffhunk://#diff-89e41b8a6f089a8c5a3cd4d31a6b4b8298d3e8fa721e6dca06bc4ad5f29c6b05R21) [[3]](diffhunk://#diff-e0ea8830e0f110f5ab5be0bbfd4a810f6746a667332d85a5340ac96e210bcadaR13) [[4]](diffhunk://#diff-e0c9f32b0a2806032f895989391bb01b0e200ed3e637544fcdfee67ce3bdb011R18) [[5]](diffhunk://#diff-8a0b3683cceb8a7edfbf8b6fff6eb6ea1d58b683cd520c5998b92e350b9b561eR18) [[6]](diffhunk://#diff-d089c49e84691467dccbd06b177d3c6119299cee5f10ff1ecb42b366757e6943R25-L31) [[7]](diffhunk://#diff-34fc73335d58756935a3d9f6bff9b322edf0f956c5b105679c84be819182432bR24-L31)
