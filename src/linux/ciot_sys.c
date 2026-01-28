@@ -22,6 +22,7 @@
 #include "ciot_err.h"
 #include "ciot_timer.h"
 #include "mongoose.h"
+#include "ciot_ntp.h"
 
 static const char *TAG = "ciot_sys";
 

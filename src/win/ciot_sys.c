@@ -21,6 +21,7 @@
 #include "ciot_sys.h"
 #include "ciot_err.h"
 #include "ciot_timer.h"
+#include "ciot_ntp.h"
 #include "mongoose.h"
 
 static const char *TAG = "ciot_sys";
@@ -60,7 +61,7 @@ ciot_err_t ciot_sys_task(ciot_sys_t self)
 {
     CIOT_ERR_NULL_CHECK(self);
     sys->base.status.free_memory = ciot_sys_get_free_ram();
-    sys->base.status.lifetime = ciot_timer_now();
+    sys->base.status.lifetime = ciot_timer_now() - ciot_ntp_first_sync_time();
     return CIOT_ERR_OK;
 }
 
