@@ -18,6 +18,7 @@ extern "C" {
 
 #include "ciot_types.h"
 #include "ciot_iface.h"
+#include <time.h>
 
 #ifndef CIOT_CONFIG_NTP_SERVER_URL_LEN
 #define CIOT_CONFIG_NTP_SERVER_URL_LEN 64
@@ -44,7 +45,7 @@ ciot_err_t ciot_ntp_process_req(ciot_ntp_t self, ciot_ntp_req_t *req);
 ciot_err_t ciot_ntp_get_cfg(ciot_ntp_t self, ciot_ntp_cfg_t *cfg);
 ciot_err_t ciot_ntp_set_cfg(ciot_ntp_t self, ciot_ntp_cfg_t *cfg);
 ciot_err_t ciot_ntp_get_status(ciot_ntp_t self, ciot_ntp_status_t *status);
-// ciot_err_t ciot_ntp_get_info(ciot_ntp_t self, ciot_ntp_info_t *info);
+time_t ciot_ntp_first_sync_time(void);
 
 #ifdef __cplusplus
 }

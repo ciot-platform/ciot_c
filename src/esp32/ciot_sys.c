@@ -18,6 +18,7 @@
 #include "ciot_sys.h"
 #include "ciot_timer.h"
 #include "ciot_err.h"
+#include "ciot_ntp.h"
 #include "freertos/FreeRTOS.h"
 #include "freertos/event_groups.h"
 
@@ -26,7 +27,6 @@
 struct ciot_sys
 {
     ciot_sys_base_t base;
-    uint64_t init_time;
     EventGroupHandle_t event_group;
 };
 
@@ -70,7 +70,7 @@ ciot_err_t ciot_sys_task(ciot_sys_t self)
 {
     ciot_sys_base_t *base = &self->base;
     base->status.free_memory = esp_get_free_heap_size();
-    base->status.lifetime = ciot_timer_now() - self->init_time;
+    base->status.lifetime = ciot_timer_now() - ciot_ntp_first_sync_time();
     xEventGroupWaitBits(self->event_group, CIOT_SYS_EVT_BIT_POOLING, pdTRUE, pdTRUE, pdMS_TO_TICKS(CIOT_SYS_DEFAULT_POOLING_INTERVAL_MS));
     return CIOT_ERR_OK;
 }

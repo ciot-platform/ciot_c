@@ -20,6 +20,8 @@
 
 static const char *TAG = "ciot_ntp";
 
+static time_t first_sync_time = 0;
+
 struct ciot_ntp
 {
     ciot_ntp_base_t base;
@@ -93,6 +95,11 @@ ciot_err_t ciot_ntp_stop(ciot_ntp_t self)
     return CIOT_ERR_OK;
 }
 
+time_t ciot_ntp_first_sync_time(void)
+{
+    return first_sync_time;
+}
+
 static void ciot_ntp_sync_notification_cb(struct timeval *tv)
 {
     CIOT_LOGI(TAG, "Started");
@@ -102,6 +109,10 @@ static void ciot_ntp_sync_notification_cb(struct timeval *tv)
     base->status.sync = 1;
     base->status.sync_count++;
     base->status.last_sync = ciot_timer_now();
+    if(first_sync_time == 0)
+    {
+        first_sync_time = ciot_timer_now();
+    }   
     ciot_iface_send_event_type(&base->iface, CIOT_EVENT_TYPE_STARTED);
 }
 

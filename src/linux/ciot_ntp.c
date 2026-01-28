@@ -46,4 +46,9 @@ ciot_err_t ciot_ntp_stop(ciot_ntp_t self)
     return CIOT_ERR_NOT_SUPPORTED;
 }
 
+time_t ciot_ntp_first_sync_time(void)
+{
+    return 0;
+}
+
 #endif // CIOT_CONFIG_FEATURE_NTP == 1

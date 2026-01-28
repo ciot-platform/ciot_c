@@ -28,7 +28,6 @@ static const char *TAG = "ciot_sys";
 struct ciot_sys
 {
     ciot_sys_base_t base;
-    time_t init_time;
 };
 
 static uint32_t ciot_sys_get_free_ram(void);
@@ -47,7 +46,6 @@ ciot_sys_t ciot_sys_new(void *handle)
 ciot_err_t ciot_sys_start(ciot_sys_t self, ciot_sys_cfg_t *cfg)
 {
     CIOT_ERR_NULL_CHECK(self);
-    self->init_time = ciot_timer_now();
     return ciot_iface_send_event_type(&self->base.iface, CIOT_EVENT_TYPE_STARTED);
 }
 
@@ -62,7 +60,7 @@ ciot_err_t ciot_sys_task(ciot_sys_t self)
 {
     CIOT_ERR_NULL_CHECK(self);
     sys->base.status.free_memory = ciot_sys_get_free_ram();
-    sys->base.status.lifetime = ciot_timer_now() - sys->init_time;
+    sys->base.status.lifetime = ciot_timer_now();
     return CIOT_ERR_OK;
 }
 
