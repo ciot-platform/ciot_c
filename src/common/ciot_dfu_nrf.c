@@ -96,6 +96,7 @@ ciot_err_t ciot_dfu_nrf_start(ciot_dfu_nrf_t self, ciot_dfu_cfg_t *cfg)
 
     if (cfg->type != self->cfg.dfu.type)
     {
+        CIOT_LOGE(TAG, "DFU type mismatch: expected %d, got %d", self->cfg.dfu.type, cfg->type);
         return CIOT_ERR_INVALID_TYPE;
     }
 
