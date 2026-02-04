@@ -55,6 +55,7 @@ typedef struct ciot_wifi_status {
     bool has_tcp;
     ciot_tcp_status_t tcp; /* Status of the TCP connection over Wi-Fi. */
     ciot_wifi_scan_state_t scan_state; /* Wi-Fi scan state */
+    int32_t rssi; /* Received Signal Strength Indicator (RSSI) */
 } ciot_wifi_status_t;
 
 typedef struct ciot_wifi_info {
@@ -139,7 +140,7 @@ extern "C" {
 #define CIOT_WIFI_AP_INFO_INIT_DEFAULT           {{0}, "", 0, 0}
 #define CIOT_WIFI_STOP_INIT_DEFAULT              {0}
 #define CIOT_WIFI_CFG_INIT_DEFAULT               {0, "", "", _CIOT_WIFI_TYPE_MIN, false, CIOT_TCP_CFG_INIT_DEFAULT}
-#define CIOT_WIFI_STATUS_INIT_DEFAULT            {0, false, CIOT_TCP_STATUS_INIT_DEFAULT, _CIOT_WIFI_SCAN_STATE_MIN}
+#define CIOT_WIFI_STATUS_INIT_DEFAULT            {0, false, CIOT_TCP_STATUS_INIT_DEFAULT, _CIOT_WIFI_SCAN_STATE_MIN, 0}
 #define CIOT_WIFI_INFO_INIT_DEFAULT              {false, CIOT_TCP_INFO_INIT_DEFAULT, false, CIOT_WIFI_AP_INFO_INIT_DEFAULT}
 #define CIOT_WIFI_REQ_SCAN_INIT_DEFAULT          {0}
 #define CIOT_WIFI_REQ_SCAN_RESULT_INIT_DEFAULT   {0}
@@ -149,7 +150,7 @@ extern "C" {
 #define CIOT_WIFI_AP_INFO_INIT_ZERO              {{0}, "", 0, 0}
 #define CIOT_WIFI_STOP_INIT_ZERO                 {0}
 #define CIOT_WIFI_CFG_INIT_ZERO                  {0, "", "", _CIOT_WIFI_TYPE_MIN, false, CIOT_TCP_CFG_INIT_ZERO}
-#define CIOT_WIFI_STATUS_INIT_ZERO               {0, false, CIOT_TCP_STATUS_INIT_ZERO, _CIOT_WIFI_SCAN_STATE_MIN}
+#define CIOT_WIFI_STATUS_INIT_ZERO               {0, false, CIOT_TCP_STATUS_INIT_ZERO, _CIOT_WIFI_SCAN_STATE_MIN, 0}
 #define CIOT_WIFI_INFO_INIT_ZERO                 {false, CIOT_TCP_INFO_INIT_ZERO, false, CIOT_WIFI_AP_INFO_INIT_ZERO}
 #define CIOT_WIFI_REQ_SCAN_INIT_ZERO             {0}
 #define CIOT_WIFI_REQ_SCAN_RESULT_INIT_ZERO      {0}
@@ -170,6 +171,7 @@ extern "C" {
 #define CIOT_WIFI_STATUS_DISCONNECT_REASON_TAG   1
 #define CIOT_WIFI_STATUS_TCP_TAG                 2
 #define CIOT_WIFI_STATUS_SCAN_STATE_TAG          3
+#define CIOT_WIFI_STATUS_RSSI_TAG                4
 #define CIOT_WIFI_INFO_TCP_TAG                   1
 #define CIOT_WIFI_INFO_AP_TAG                    2
 #define CIOT_WIFI_REQ_SCAN_RESULT_COUNT_TAG      1
@@ -211,7 +213,8 @@ X(a, STATIC,   OPTIONAL, MESSAGE,  tcp,               5)
 #define CIOT_WIFI_STATUS_FIELDLIST(X, a) \
 X(a, STATIC,   SINGULAR, UINT32,   disconnect_reason,   1) \
 X(a, STATIC,   OPTIONAL, MESSAGE,  tcp,               2) \
-X(a, STATIC,   SINGULAR, UENUM,    scan_state,        3)
+X(a, STATIC,   SINGULAR, UENUM,    scan_state,        3) \
+X(a, STATIC,   SINGULAR, INT32,    rssi,              4)
 #define CIOT_WIFI_STATUS_CALLBACK NULL
 #define CIOT_WIFI_STATUS_DEFAULT NULL
 #define ciot_wifi_status_t_tcp_MSGTYPE ciot_tcp_status_t
@@ -298,7 +301,7 @@ extern const pb_msgdesc_t ciot_wifi_data_t_msg;
 #define CIOT_WIFI_REQ_SCAN_RESULT_SIZE           6
 #define CIOT_WIFI_REQ_SCAN_SIZE                  0
 #define CIOT_WIFI_REQ_SIZE                       65
-#define CIOT_WIFI_STATUS_SIZE                    24
+#define CIOT_WIFI_STATUS_SIZE                    35
 #define CIOT_WIFI_STOP_SIZE                      0
 
 #ifdef __cplusplus

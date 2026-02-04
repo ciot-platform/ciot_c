@@ -26,17 +26,28 @@
 
 typedef struct ciot_storage_auto *ciot_storage_auto_t;
 
+static const char *TAG = "ciot_storage_auto";
+
 ciot_storage_t ciot_storage_auto_new(void)
 {
     const esp_partition_t* partition = esp_partition_find_first(ESP_PARTITION_TYPE_APP, ESP_PARTITION_SUBTYPE_ANY, FS_PARTITION_LABLE);
 
+    if(partition == NULL)
+    {
+        CIOT_LOGE(TAG, "No storage partition found");
+        return NULL;
+    }
+
     switch (partition->subtype)
     {
     case ESP_PARTITION_SUBTYPE_DATA_FAT:
+        CIOT_LOGI(TAG, "Using FAT storage");
         return ciot_storage_fat_new();
     case ESP_PARTITION_SUBTYPE_DATA_SPIFFS:
+        CIOT_LOGI(TAG, "Using SPIFFS storage");
         return ciot_storage_spiffs_new();
     default:
+        CIOT_LOGE(TAG, "No valid storage partition found");
         return NULL;
     }
 }

@@ -57,6 +57,8 @@ ciot_err_t ciot_wifi_toggle(ciot_wifi_t self);
 ciot_err_t ciot_wifi_scan(ciot_wifi_t self);
 ciot_err_t ciot_wifi_get_scanned_ap(ciot_wifi_t self, int id, ciot_wifi_ap_info_t *ap_info);
 ciot_err_t ciot_wifi_get_scanned_aps(ciot_wifi_t self, ciot_wifi_ap_list_t *ap_list);
+ciot_err_t ciot_wifi_get_ip(ciot_wifi_t self, uint8_t ip[4]);
+ciot_err_t ciot_wifi_get_rssi(ciot_wifi_t self, int32_t *rssi);
 
 #ifdef __cplusplus
 }

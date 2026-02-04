@@ -137,4 +137,14 @@ ciot_err_t ciot_eth_get_mac(ciot_eth_t self, uint8_t mac[6])
     return CIOT_ERR_OK;
 }
 
+ciot_err_t ciot_eth_get_ip(ciot_eth_t self, uint8_t ip[4])
+{
+    CIOT_ERR_NULL_CHECK(self);
+    CIOT_ERR_NULL_CHECK(ip);
+    ciot_eth_base_t *base = (ciot_eth_base_t*)self;
+    ciot_tcp_base_t *tcp = (ciot_tcp_base_t*)base->tcp;
+    memcpy(ip, tcp->info->ip, 4);
+    return CIOT_ERR_OK;
+}
+
 #endif // CIOT_CONFIG_FEATURE_ETH == 1

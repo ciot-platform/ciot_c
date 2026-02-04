@@ -168,6 +168,19 @@ ciot_err_t ciot_wifi_scan(ciot_wifi_t self)
     return esp_wifi_scan_start(NULL, false);
 }
 
+ciot_err_t ciot_wifi_get_rssi(ciot_wifi_t self, int32_t *rssi)
+{
+    CIOT_ERR_NULL_CHECK(self);
+    CIOT_ERR_NULL_CHECK(rssi);
+    if(self->base.status.tcp.state == CIOT_TCP_STATE_CONNECTED)
+    {
+        wifi_ap_record_t ap_info = { 0 };
+        esp_wifi_sta_get_ap_info(&ap_info);
+        *rssi = ap_info.rssi;
+    }
+    return CIOT_ERR_OK;
+}
+
 static esp_err_t esp_wifi_init_mode(ciot_wifi_type_t type)
 {
     wifi_mode_t mode;
@@ -395,10 +408,12 @@ static void ciot_wifi_sta_event_handler(void *handler_args, esp_event_base_t eve
         tcp->status->state = CIOT_TCP_STATE_CONNECTED;
         tcp->status->conn_count++;
         base->status.disconnect_reason = 0;
+        base->info.has_ap = true;
         base->info.ap.authmode = data->authmode;
         memcpy(base->info.ap.bssid, data->bssid, sizeof(data->bssid));
         memcpy(base->info.ap.ssid, data->ssid, sizeof(data->ssid));
         self->reconnecting = false;
+        ciot_wifi_get_rssi(self, &base->status.rssi);
         CIOT_ERR_PRINT(TAG, ciot_tcp_start(base->tcp));
         break;
     }

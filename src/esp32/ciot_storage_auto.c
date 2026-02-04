@@ -22,13 +22,17 @@
 #include "ciot_storage.h"
 #include "ciot_storage_fs.h"
 #include "ciot_storage_fat.h"
-#include "ciot_storage_spiffs.c"
+#include "ciot_storage_spiffs.h"
 
 typedef struct ciot_storage_auto *ciot_storage_auto_t;
 
-ciot_storage_t ciot_storage_auto_new(void)
+ciot_storage_t ciot_storage_auto_new(const char *label)
 {
-    const esp_partition_t* partition = esp_partition_find_first(ESP_PARTITION_TYPE_APP, ESP_PARTITION_SUBTYPE_ANY, FS_PARTITION_LABLE);
+    const esp_partition_t* partition = esp_partition_find_first(ESP_PARTITION_TYPE_DATA, ESP_PARTITION_SUBTYPE_ANY, "storage");
+
+    if(partition == NULL) {
+        return NULL;
+    }
 
     switch (partition->subtype)
     {

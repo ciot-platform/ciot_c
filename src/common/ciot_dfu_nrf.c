@@ -60,7 +60,7 @@ struct ciot_dfu_nrf
     uint32_t data_transferred;
     ciot_dfu_nrf_object_t object;
     bool ping_refused;
-
+    bool test_mode;
     uint64_t timer;
 };
 
@@ -91,6 +91,8 @@ ciot_err_t ciot_dfu_nrf_start(ciot_dfu_nrf_t self, ciot_dfu_cfg_t *cfg)
 {
     CIOT_ERR_NULL_CHECK(self);
     CIOT_ERR_STATE_CHECK(self->base.status.state, CIOT_DFU_STATE_IDLE);
+
+    CIOT_LOGI(TAG, "Starting DFU nrf...");
 
     if (cfg->type != self->cfg.dfu.type)
     {
@@ -126,6 +128,13 @@ ciot_err_t ciot_dfu_nrf_stop(ciot_dfu_nrf_t self)
         .common.stop = true,
     };
     self->cfg.iface->process_data(self->cfg.iface, &data);
+    return CIOT_ERR_OK;
+}
+
+ciot_err_t ciot_dfu_nrf_set_test_mode(ciot_dfu_nrf_t self, bool enable)
+{
+    CIOT_ERR_NULL_CHECK(self);
+    self->test_mode = enable;
     return CIOT_ERR_OK;
 }
 
@@ -451,6 +460,12 @@ static ciot_err_t ciot_dfu_nrf_process_response(ciot_dfu_nrf_t self, uint8_t *da
         data[2] == CIOT_DFU_NRF_RES_CODE_SUCCESS)
     {
         CIOT_LOGI(TAG, "Ping response sucess");
+        if (self->test_mode)
+        {
+            self->state = CIOT_DFU_NRF_STATE_COMPLETED;
+            ciot_dfu_nrf_set_state(self, CIOT_DFU_STATE_COMPLETED);
+            return CIOT_ERR_OK;
+        }
         self->state = CIOT_DFU_NRF_STATE_CREATE_OBJECT;
         ciot_dfu_nrf_set_state(self, CIOT_DFU_STATE_IN_PROGRESS);
         return CIOT_ERR_OK;
@@ -585,7 +600,7 @@ static ciot_err_t ciot_dfu_nrf_set_state(ciot_dfu_nrf_t self, ciot_dfu_state_t s
 
 static ciot_err_t ciot_dfu_nrf_event_handler(ciot_iface_t *sender, ciot_event_t *event, void *args)
 {
-    CIOT_LOGD(TAG, "Event received %s", ciot_event_to_str(event));
+    CIOT_LOGI(TAG, "Event received %s", ciot_event_to_str(event));
 
     ciot_dfu_nrf_t self = (ciot_dfu_nrf_t)args;
 

@@ -20,6 +20,7 @@ extern "C" {
 #include "ciot_iface.h"
 
 #define CIOT_SYS_EVT_BIT_POOLING 0x00000001
+#define CIOT_SYS_DEFAULT_POOLING_INTERVAL_MS 100
 
 typedef struct ciot_sys *ciot_sys_t;
 

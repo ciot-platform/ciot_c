@@ -33,7 +33,7 @@
 #warning "Target undefined."
 #endif
 
-#define CIOT_VER 0,15,0,0
+#define CIOT_VER 0,16,0,3
 #define CIOT_IFACE_CFG_FILENAME "cfg%d.dat"
 
 #if defined(CIOT_TARGET_WIN) || defined(CIOT_TARGET_LINUX)
@@ -108,5 +108,6 @@ ciot_err_t ciot_get_ifaces_info(ciot_t self, ciot_info_t *info);
 ciot_err_t ciot_delete_all(ciot_t self);
 bool ciot_cfg_exists(ciot_t self, uint8_t iface_id);
 const char *ciot_event_to_str(ciot_event_t *event);
+ciot_iface_state_t ciot_iface_get_state(ciot_t self, uint16_t iface_id);
 
 #endif  //!__CIOT__H__
