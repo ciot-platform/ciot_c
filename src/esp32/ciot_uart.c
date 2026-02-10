@@ -132,7 +132,17 @@ ciot_err_t ciot_uart_start(ciot_uart_t self, ciot_uart_cfg_t *cfg)
 ciot_err_t ciot_uart_stop(ciot_uart_t self)
 {
     CIOT_ERR_NULL_CHECK(self);
-    return CIOT_ERR_NOT_IMPLEMENTED;
+    CIOT_LOGI(TAG, "Stopping UART %d", (int)self->base.cfg.num);
+    if(self->base.status.state == CIOT_UART_STATE_CLOSED)
+    {
+        CIOT_LOGW(TAG, "UART %d already stopped", (int)self->base.cfg.num);
+        return CIOT_ERR_OK;
+    }
+    uart_driver_delete(self->base.cfg.num);
+    self->base.status.state = CIOT_UART_STATE_CLOSED;
+    ciot_iface_send_event_type(&self->base.iface, CIOT_EVENT_TYPE_STOPPED);
+    vTaskDelete(self->task);
+    return CIOT_ERR_OK;
 }
 
 ciot_err_t ciot_uart_task(ciot_uart_t self)

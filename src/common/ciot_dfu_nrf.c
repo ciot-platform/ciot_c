@@ -96,6 +96,7 @@ ciot_err_t ciot_dfu_nrf_start(ciot_dfu_nrf_t self, ciot_dfu_cfg_t *cfg)
 
     if (cfg->type != self->cfg.dfu.type)
     {
+        CIOT_LOGE(TAG, "DFU type mismatch: expected %d, got %d", self->cfg.dfu.type, cfg->type);
         return CIOT_ERR_INVALID_TYPE;
     }
 
@@ -378,9 +379,7 @@ static ciot_err_t ciot_dfu_nrf_write(ciot_dfu_nrf_t self)
             uint8_t write_opcode[] = {CIOT_DFU_NRF_OP_OBJECT_WRITE};
             // ciot_dfu_nrf_send_data(&base->iface, write_opcode, 1);
             self->cfg.iface->send_data(self->cfg.iface, write_opcode, 1);
-            self->base.status.image_size = self->object.packet->size,
-            self->base.status.image_written = self->data_transferred;
-            // CIOT_LOGI(TAG, "Item %d writing %d of object [%ld / %ld]", self->object.packet->type, bytes_to_write, self->data_transferred, self->object.packet->size);
+            self->base.status.image_size = self->object.packet->size;
         }
 
         ciot_err_t err = ciot_dfu_nrf_send_data(&base->iface, &self->object.packet->data[self->data_transferred], bytes_to_write);
@@ -395,6 +394,8 @@ static ciot_err_t ciot_dfu_nrf_write(ciot_dfu_nrf_t self)
         self->data_transferred += bytes_to_write;
         self->object.remaining -= bytes_to_write;
         self->object.packet->transferred = self->data_transferred == self->object.packet->size;
+        self->base.status.image_written = self->data_transferred;
+
         self->prn_counter++;
 
         if (self->prn_counter >= PKT_SET_PRN_PARAM_LEN || self->object.packet->transferred)
