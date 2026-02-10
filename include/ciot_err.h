@@ -67,6 +67,10 @@
     if (id >= size)                 \
     return CIOT_ERR_NO_MEMORY
 
+#define CIOT_ERR_UID_CHECK(id, size) \
+    if (id >= size)                 \
+    return CIOT_ERR_NO_MEMORY
+
 #define CIOT_ERR_CAPACITY_CHECK(index, size) \
     if (index < 0)                           \
         return CIOT_ERR_INVALID_INDEX;       \
@@ -76,6 +80,10 @@
 #define CIOT_ERR_EXISTENCE_CHECK(id, size) \
     if (id < 0)                            \
         return CIOT_ERR_INVALID_ID;        \
+    if (id >= size)                        \
+        return CIOT_ERR_NOT_FOUND;
+
+#define CIOT_ERR_UEXISTENCE_CHECK(id, size) \
     if (id >= size)                        \
         return CIOT_ERR_NOT_FOUND;
 
