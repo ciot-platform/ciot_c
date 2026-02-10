@@ -15,7 +15,7 @@
 #include <inttypes.h>
 
 #include "ciot_err.h"
-#include "nanomodbus/nanomodbus.h"
+#include "nanomodbus.h"
 
 #define CIOT_MBUS_COIL_WRITE(coils, addr, value) nmbs_bitfield_write(coils, addr, value)
 
