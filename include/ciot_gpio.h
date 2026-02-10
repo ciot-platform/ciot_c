@@ -46,6 +46,7 @@ ciot_err_t ciot_gpio_set_cfg(ciot_gpio_t self, ciot_gpio_cfg_t *cfg);
 ciot_err_t ciot_gpio_get_cfg(ciot_gpio_t self, ciot_gpio_cfg_t *cfg);
 ciot_err_t ciot_gpio_get_status(ciot_gpio_t self, ciot_gpio_status_t *status);
 ciot_err_t ciot_gpio_set_state(ciot_gpio_t self, uint16_t id, ciot_gpio_state_t state);
+ciot_err_t ciot_gpio_set_blink_interval(ciot_gpio_t self, uint32_t interval);
 void ciot_gpio_write_pin(ciot_gpio_t self, uint16_t pin_num, int value);
 int ciot_gpio_read_pin(ciot_gpio_t self, uint16_t pin_num);
 ciot_gpio_state_t ciot_gpio_get_state(ciot_gpio_t self, uint16_t id);

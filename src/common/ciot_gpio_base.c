@@ -223,9 +223,18 @@ ciot_gpio_state_t ciot_gpio_get_state(ciot_gpio_t self, uint16_t id)
 {
     if(self == NULL) return CIOT_GPIO_STATE_ERROR;
     ciot_gpio_base_t *base = (ciot_gpio_base_t*)self;
+    CIOT_ERR_UID_CHECK(id, base->cfg.pins_count);
     if(base->get_state == NULL) return CIOT_GPIO_STATE_ERROR;
     int num = base->cfg.pins[id].num;
     return base->get_state(num);
+}
+
+ciot_err_t ciot_gpio_set_blink_interval(ciot_gpio_t self, uint32_t interval)
+{
+    CIOT_ERR_NULL_CHECK(self);
+    ciot_gpio_base_t *base = (ciot_gpio_base_t*)self;
+    base->cfg.blink_interval = interval;
+    return CIOT_ERR_OK;
 }
 
 void ciot_gpio_write_pin(ciot_gpio_t self, uint16_t pin_num, int value)
