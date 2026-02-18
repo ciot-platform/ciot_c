@@ -92,10 +92,6 @@ ciot_err_t ciot_ble_scn_start(ciot_ble_scn_t self, ciot_ble_scn_cfg_t *cfg)
                                  ? CIOT_BLE_SCN_STATE_ACTIVE
                                  : CIOT_BLE_SCN_STATE_PASSIVE;
         ciot_iface_send_event_type(&base->iface, CIOT_EVENT_TYPE_STARTED);
-        // ciot_event_t event = {0};
-        // event.type = CIOT_EVENT_TYPE_STARTED;
-        // event.msg = ciot_msg_get(CIOT_MSG_TYPE_STATUS, &base->iface);
-        // ciot_iface_send_event(&base->iface, &event);
     }
 
     base->status.err_code = ciot_ble_scn_get_error(err);
@@ -112,10 +108,6 @@ ciot_err_t ciot_ble_scn_stop(ciot_ble_scn_t self)
     {
         base->status.state = CIOT_BLE_SCN_STATE_IDLE;
         ciot_iface_send_event_type(&base->iface, CIOT_EVENT_TYPE_STOPPED);
-        // ciot_event_t event = {0};
-        // event.type = CIOT_EVENT_TYPE_STOPPED;
-        // event.msg = ciot_msg_get(CIOT_MSG_TYPE_STATUS, &base->iface);
-        // ciot_iface_send_event(&base->iface, &event);
     }
     return CIOT_ERR_OK;
 }
