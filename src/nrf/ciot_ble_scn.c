@@ -99,6 +99,16 @@ ciot_err_t ciot_ble_scn_start(ciot_ble_scn_t self, ciot_ble_scn_cfg_t *cfg)
     return err;
 }
 
+ciot_err_t ciot_ble_scn_start_scan(ciot_ble_scn_t self)
+{
+    uint32_t err = sd_ble_gap_scan_start(NULL, &self->scan_buffer);
+    if (err)
+    {
+        self->base.status.err_code = ciot_ble_scn_get_error(err);
+    }
+    return self->base.status.err_code;
+}
+
 ciot_err_t ciot_ble_scn_stop(ciot_ble_scn_t self)
 {
     CIOT_ERR_NULL_CHECK(self);
