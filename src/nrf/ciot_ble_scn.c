@@ -125,31 +125,39 @@ ciot_err_t ciot_ble_scn_handle_event(ciot_ble_scn_t self, void *event, void *eve
 
     ciot_ble_scn_base_t *base = &self->base;
     const ble_evt_t *ev = event;
-    uint8_t mac[6];
 
     switch (ev->header.evt_id)
     {
     case BLE_GAP_EVT_ADV_REPORT:
-        ciot_ble_scn_copy_mac(mac, (uint8_t *)ev->evt.gap_evt.params.adv_report.peer_addr.addr, true);
-        memcpy(base->recv.info.mac, mac, 6);
-        base->recv.info.rssi = ev->evt.gap_evt.params.adv_report.rssi;
+    {
+        // ciot_ble_scn_copy_mac(base->recv.info.mac, (uint8_t *)ev->evt.gap_evt.params.adv_report.peer_addr.addr, true);
+        // base->recv.info.rssi = ev->evt.gap_evt.params.adv_report.rssi;
 #if NRF_SD_BLE_API_VERSION == 2 || NRF_SD_BLE_API_VERSION == 3
         base->recv.adv.data = (CIOT_EVENT_TYPE_data_u *)ev->evt.gap_evt.params.adv_report.data;
         base->recv.adv.len = ev->evt.gap_evt.params.adv_report.dlen;
 #else
-        memset(base->recv.payload.bytes, 0, sizeof(base->recv.payload.bytes));
-        memcpy(base->recv.payload.bytes, ev->evt.gap_evt.params.adv_report.data.p_data, ev->evt.gap_evt.params.adv_report.data.len);
-        base->recv.payload.size = ev->evt.gap_evt.params.adv_report.data.len;
+        // memset(base->recv.payload.bytes, 0, sizeof(base->recv.payload.bytes));
+        // memcpy(base->recv.payload.bytes, ev->evt.gap_evt.params.adv_report.data.p_data, ev->evt.gap_evt.params.adv_report.data.len);
+        // base->recv.payload.size = ev->evt.gap_evt.params.adv_report.data.len;
+
+        ciot_ble_scn_event_adv_report_t adv_report = {
+            .rssi = ev->evt.gap_evt.params.adv_report.rssi,
+            .payload = ev->evt.gap_evt.params.adv_report.data.p_data,
+            .payload_len = ev->evt.gap_evt.params.adv_report.data.len,
+        };
+        ciot_ble_scn_copy_mac(adv_report.mac, (uint8_t *)ev->evt.gap_evt.params.adv_report.peer_addr.addr, true);
         uint32_t error = sd_ble_gap_scan_start(NULL, &self->scan_buffer);
-        if(error) {
+        if (error)
+        {
             base->status.err_code = ciot_ble_scn_get_error(error);
         }
 #endif
-        if (base->filter.handler == NULL || base->filter.handler(self, &base->recv, base->filter.args))
+        if (base->filter.handler == NULL || base->filter.handler(self, &adv_report, base->filter.args))
         {
-            ciot_ble_scn_handle_adv_report(self, &base->recv);
+            ciot_iface_send_internal_event(&base->iface, &adv_report, CIOT_EVENT_TYPE_DATA);
         }
-        break;
+    }
+    break;
     default:
         break;
     }
