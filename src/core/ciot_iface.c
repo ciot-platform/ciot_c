@@ -91,9 +91,10 @@ ciot_err_t ciot_iface_send_event(ciot_iface_t *self, ciot_event_t *event)
     return self->event_handler(self, event, self->event_args);
 }
 
+static ciot_event_t event = { 0 };
+
 ciot_err_t ciot_iface_send_event_type(ciot_iface_t *self, ciot_event_type_t event_type)
 {
-    static ciot_event_t event = { 0 };
     event.type = event_type;
     event.which_data = CIOT_EVENT_MSG_TAG;
     event.msg.has_iface = true;
@@ -103,6 +104,15 @@ ciot_err_t ciot_iface_send_event_type(ciot_iface_t *self, ciot_event_type_t even
     event.msg.data.get_data.type = CIOT_DATA_TYPE_STATUS;
     CIOT_ERR_RETURN(self->get_data(self, &event.msg.data));
     CIOT_LOGD(TAG, "Sending event from iface: %s", ciot_iface_to_str(self));
+    return ciot_iface_send_event(self, &event);
+}
+
+ciot_err_t ciot_iface_send_internal_event(ciot_iface_t *self, void *event_data, int event_type)
+{
+    event.type = CIOT_EVENT_TYPE_INTERNAL;
+    event.which_data = CIOT_EVENT_INTERNAL_TAG;
+    event.internal.data = event_data;
+    event.internal.type = event_type;
     return ciot_iface_send_event(self, &event);
 }
 
