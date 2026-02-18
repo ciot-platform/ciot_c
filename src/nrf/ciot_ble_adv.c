@@ -142,22 +142,22 @@ ciot_err_t ciot_ble_adv_send_bytes(ciot_ble_adv_t self, uint8_t *data, int size)
     return CIOT_ERR_FAIL;
 }
 
-ciot_err_t ciot_ble_adv_handle_event(ciot_ble_adv_t self, void *event, void *event_args)
-{
-    CIOT_ERR_NULL_CHECK(self);
+// ciot_err_t ciot_ble_adv_handle_event(ciot_ble_adv_t self, void *event, void *event_args)
+// {
+//     CIOT_ERR_NULL_CHECK(self);
 
-    const ble_evt_t *ev = event;
+//     const ble_evt_t *ev = event;
 
-    switch (ev->header.evt_id)
-    {
-    case BLE_GAP_EVT_ADV_SET_TERMINATED:
-        self->base.status.state = CIOT_BLE_ADV_STATE_STARTED;
-        break;
-    default:
-        break;
-    }
+//     switch (ev->header.evt_id)
+//     {
+//     case BLE_GAP_EVT_ADV_SET_TERMINATED:
+//         self->base.status.state = CIOT_BLE_ADV_STATE_STARTED;
+//         break;
+//     default:
+//         break;
+//     }
 
-    return CIOT_ERR_OK;
-}
+//     return CIOT_ERR_OK;
+// }
 
 #endif // CIOT_CONFIG_FEATURE_BLE_ADV == 1

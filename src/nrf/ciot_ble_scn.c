@@ -128,6 +128,7 @@ ciot_err_t ciot_ble_scn_task(ciot_ble_scn_t self)
     return CIOT_ERR_OK;
 }
 
+/*
 ciot_err_t ciot_ble_scn_handle_event(ciot_ble_scn_t self, void *event, void *event_args)
 {
     CIOT_ERR_NULL_CHECK(self);
@@ -156,15 +157,15 @@ ciot_err_t ciot_ble_scn_handle_event(ciot_ble_scn_t self, void *event, void *eve
             .payload_len = ev->evt.gap_evt.params.adv_report.data.len,
         };
         ciot_ble_scn_copy_mac(adv_report.mac, (uint8_t *)ev->evt.gap_evt.params.adv_report.peer_addr.addr, true);
-        uint32_t error = sd_ble_gap_scan_start(NULL, &self->scan_buffer);
-        if (error)
-        {
-            base->status.err_code = ciot_ble_scn_get_error(error);
-        }
 #endif
         if (base->filter.handler == NULL || base->filter.handler(self, &adv_report, base->filter.args))
         {
             ciot_iface_send_internal_event(&base->iface, &adv_report, CIOT_EVENT_TYPE_DATA);
+        }
+        uint32_t error = sd_ble_gap_scan_start(NULL, &self->scan_buffer);
+        if (error)
+        {
+            base->status.err_code = ciot_ble_scn_get_error(error);
         }
     }
     break;
@@ -172,7 +173,7 @@ ciot_err_t ciot_ble_scn_handle_event(ciot_ble_scn_t self, void *event, void *eve
         break;
     }
     return CIOT_ERR_OK;
-}
+}*/
 
 static ciot_err_t ciot_ble_scn_get_error(uint32_t nrf_error)
 {
