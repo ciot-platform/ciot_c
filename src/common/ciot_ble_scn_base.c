@@ -214,6 +214,14 @@ ciot_err_t ciot_ble_scn_set_filter(ciot_ble_scn_t self, ciot_ble_scn_filter_fn *
     return CIOT_ERR_OK;
 }
 
+void ciot_ble_scn_copy_mac(uint8_t destiny[6], uint8_t source[6], bool reverse)
+{
+    for (size_t i = 0; i < 6; i++)
+    {
+        destiny[i] = reverse ? source[5 - i] : source[i];
+    }
+}
+
 #if CIOT_CONFIG_BLE_SCN_ADV_FIFO_SIZE
 static ciot_err_t ciot_ble_scn_base_init_fifo(ciot_ble_scn_adv_fifo_t *adv_fifo)
 {

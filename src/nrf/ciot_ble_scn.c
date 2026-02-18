@@ -39,7 +39,6 @@ struct ciot_ble_scn
 #endif
 };
 
-static void ciot_ble_scn_copy_mac(uint8_t destiny[6], uint8_t source[6], bool reverse);
 static ciot_err_t ciot_ble_scn_get_error(uint32_t nrf_error);
 
 // static const char *TAG = "hg_ble_scn";
@@ -183,14 +182,6 @@ static ciot_err_t ciot_ble_scn_get_error(uint32_t nrf_error)
         return CIOT_ERR_RESOURCES;
     default:
         return CIOT_ERR_UNKNOWN;
-    }
-}
-
-static void ciot_ble_scn_copy_mac(uint8_t destiny[6], uint8_t source[6], bool reverse)
-{
-    for (size_t i = 0; i < 6; i++)
-    {
-        destiny[i] = reverse ? source[5 - i] : source[i];
     }
 }
 
