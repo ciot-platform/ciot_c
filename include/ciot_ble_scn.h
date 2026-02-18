@@ -20,10 +20,23 @@ extern "C" {
 #include "ciot_iface.h"
 
 typedef struct ciot_ble_scn *ciot_ble_scn_t;
-typedef bool (ciot_ble_scn_filter_fn)(ciot_ble_scn_t self, ciot_ble_scn_adv_t *adv, void *args);
+
+enum ciot_ble_scn_event_type
+{
+    CIOT_BLE_SCN_EVENT_ADV_REPORT = 0,
+};
+
+typedef struct ciot_ble_scn_event_adv_report
+{
+    uint8_t rssi;
+    uint8_t mac[6];
+    uint8_t *payload;
+    uint8_t payload_len;
+} ciot_ble_scn_event_adv_report_t;
+
+typedef bool (ciot_ble_scn_filter_fn)(ciot_ble_scn_t self, ciot_ble_scn_event_adv_report_t *adv_report, void *args);
 
 #ifdef CIOT_CONFIG_BLE_SCN_ADV_FIFO_SIZE
-
 typedef struct ciot_ble_scn_adv_fifo
 {
     ciot_ble_scn_adv_t list[CIOT_CONFIG_BLE_SCN_ADV_FIFO_SIZE];
@@ -43,10 +56,7 @@ typedef struct ciot_ble_scn_base
     ciot_iface_t iface;
     ciot_ble_scn_cfg_t cfg;
     ciot_ble_scn_status_t status;
-    ciot_ble_scn_adv_t recv;
-    // ciot_ble_scn_req_t req;
-    // ciot_ble_scn_data_t data;
-    // ciot_ble_scn_adv_info_t recv_info;
+    // ciot_ble_scn_adv_t recv;
     ciot_ble_scn_filter_t filter;
 #ifdef CIOT_CONFIG_BLE_SCN_ADV_FIFO_SIZE
     ciot_ble_scn_adv_fifo_t adv_fifo;
@@ -65,6 +75,7 @@ ciot_err_t ciot_ble_scn_base_task(ciot_ble_scn_t self);
 void ciot_ble_scn_handle_adv_report(ciot_ble_scn_t self, ciot_ble_scn_adv_t *adv);
 ciot_err_t ciot_ble_scn_handle_event(ciot_ble_scn_t self, void *event, void *event_args);
 ciot_err_t ciot_ble_scn_set_filter(ciot_ble_scn_t self, ciot_ble_scn_filter_fn *filter, void *args);
+void ciot_ble_scn_copy_mac(uint8_t destiny[6], uint8_t source[6], bool reverse);
 
 #ifdef __cplusplus
 }
