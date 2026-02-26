@@ -338,7 +338,7 @@ static ciot_err_t ciot_starting_task(ciot_t self)
     if (starter->iface_id == self->ifaces.count)
     {
         self->status.state = CIOT_STATE_STARTED;
-        CIOT_LOGI(TAG, "CIOT_STATE_STARTED");
+        CIOT_LOGI(TAG, "CIoT started. ciot ver: %d.%d.%d.%d", CIOT_VER);
         ciot_iface_send_event_type(&self->iface, CIOT_EVENT_TYPE_STARTED);
     }
 
