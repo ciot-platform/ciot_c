@@ -61,16 +61,6 @@ ciot_err_t ciot_ble_scn_start(ciot_ble_scn_t self, ciot_ble_scn_cfg_t *cfg)
         base->cfg = *cfg;
     }
 
-    if (base->cfg.active && base->status.state == CIOT_BLE_SCN_STATE_ACTIVE)
-    {
-        return CIOT_ERR_OK;
-    }
-
-    if (!base->cfg.active && base->status.state == CIOT_BLE_SCN_STATE_PASSIVE)
-    {
-        return CIOT_ERR_OK;
-    }
-
     uint32_t err = sd_ble_gap_scan_stop();
 
     self->scan_params.interval = base->cfg.interval;
@@ -88,7 +78,7 @@ ciot_err_t ciot_ble_scn_start(ciot_ble_scn_t self, ciot_ble_scn_cfg_t *cfg)
 
     if (err == NRF_SUCCESS)
     {
-        base->status.state = cfg->active
+        base->status.state = base->cfg.active
                                  ? CIOT_BLE_SCN_STATE_ACTIVE
                                  : CIOT_BLE_SCN_STATE_PASSIVE;
         ciot_iface_send_event_type(&base->iface, CIOT_EVENT_TYPE_STARTED);
@@ -99,7 +89,7 @@ ciot_err_t ciot_ble_scn_start(ciot_ble_scn_t self, ciot_ble_scn_cfg_t *cfg)
     return err;
 }
 
-ciot_err_t ciot_ble_scn_start_scan(ciot_ble_scn_t self)
+ciot_err_t ciot_ble_scn_continue(ciot_ble_scn_t self)
 {
     uint32_t err = sd_ble_gap_scan_start(NULL, &self->scan_buffer);
     if (err)
