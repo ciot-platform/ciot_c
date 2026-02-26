@@ -45,6 +45,7 @@ ciot_err_t ciot_sys_set_event_bits(ciot_sys_t self, int event_bits);
 ciot_err_t ciot_sys_sleep(long ms);
 ciot_err_t ciot_sys_restart(void);
 ciot_err_t ciot_sys_init_dfu(void);
+uint32_t ciot_sys_get_lifetime(ciot_sys_t self);
 
 #ifdef __cplusplus
 }
