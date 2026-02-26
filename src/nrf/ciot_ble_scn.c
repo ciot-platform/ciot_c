@@ -128,53 +128,6 @@ ciot_err_t ciot_ble_scn_task(ciot_ble_scn_t self)
     return CIOT_ERR_OK;
 }
 
-/*
-ciot_err_t ciot_ble_scn_handle_event(ciot_ble_scn_t self, void *event, void *event_args)
-{
-    CIOT_ERR_NULL_CHECK(self);
-    CIOT_ERR_NULL_CHECK(event);
-
-    ciot_ble_scn_base_t *base = &self->base;
-    const ble_evt_t *ev = event;
-
-    switch (ev->header.evt_id)
-    {
-    case BLE_GAP_EVT_ADV_REPORT:
-    {
-        // ciot_ble_scn_copy_mac(base->recv.info.mac, (uint8_t *)ev->evt.gap_evt.params.adv_report.peer_addr.addr, true);
-        // base->recv.info.rssi = ev->evt.gap_evt.params.adv_report.rssi;
-#if NRF_SD_BLE_API_VERSION == 2 || NRF_SD_BLE_API_VERSION == 3
-        base->recv.adv.data = (CIOT_EVENT_TYPE_data_u *)ev->evt.gap_evt.params.adv_report.data;
-        base->recv.adv.len = ev->evt.gap_evt.params.adv_report.dlen;
-#else
-        // memset(base->recv.payload.bytes, 0, sizeof(base->recv.payload.bytes));
-        // memcpy(base->recv.payload.bytes, ev->evt.gap_evt.params.adv_report.data.p_data, ev->evt.gap_evt.params.adv_report.data.len);
-        // base->recv.payload.size = ev->evt.gap_evt.params.adv_report.data.len;
-
-        ciot_ble_scn_event_adv_report_t adv_report = {
-            .rssi = ev->evt.gap_evt.params.adv_report.rssi,
-            .payload = ev->evt.gap_evt.params.adv_report.data.p_data,
-            .payload_len = ev->evt.gap_evt.params.adv_report.data.len,
-        };
-        ciot_ble_scn_copy_mac(adv_report.mac, (uint8_t *)ev->evt.gap_evt.params.adv_report.peer_addr.addr, true);
-#endif
-        if (base->filter.handler == NULL || base->filter.handler(self, &adv_report, base->filter.args))
-        {
-            ciot_iface_send_internal_event(&base->iface, &adv_report, CIOT_EVENT_TYPE_DATA);
-        }
-        uint32_t error = sd_ble_gap_scan_start(NULL, &self->scan_buffer);
-        if (error)
-        {
-            base->status.err_code = ciot_ble_scn_get_error(error);
-        }
-    }
-    break;
-    default:
-        break;
-    }
-    return CIOT_ERR_OK;
-}*/
-
 static ciot_err_t ciot_ble_scn_get_error(uint32_t nrf_error)
 {
     switch (nrf_error)
