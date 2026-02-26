@@ -38,7 +38,6 @@ ciot_err_t ciot_ble_scn_init(ciot_ble_scn_t self)
     base->iface.get_data = ciot_ble_scn_get_data;
     base->iface.send_data = ciot_ble_scn_send_data;
     base->iface.info.type = CIOT_IFACE_TYPE_BLE_SCN;
-    base->recv.has_info = true;
 
 #if CIOT_CONFIG_BLE_SCN_ADV_FIFO_SIZE
     ciot_ble_scn_base_init_fifo(&base->adv_fifo);
@@ -200,7 +199,6 @@ void ciot_ble_scn_handle_adv_report(ciot_ble_scn_t self, ciot_ble_scn_adv_t *adv
     ciot_iface_send_event(&base->iface, &event);
 #endif
 }
-
 
 ciot_err_t ciot_ble_scn_set_filter(ciot_ble_scn_t self, ciot_ble_scn_filter_fn *filter, void *args)
 {
