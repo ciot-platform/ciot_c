@@ -28,7 +28,7 @@ enum ciot_ble_scn_event_type
 
 typedef struct ciot_ble_scn_event_adv_report
 {
-    uint8_t rssi;
+    int8_t rssi;
     uint8_t mac[6];
     uint8_t *payload;
     uint8_t payload_len;
@@ -66,7 +66,7 @@ typedef struct ciot_ble_scn_base
 ciot_ble_scn_t ciot_ble_scn_new(void *handle);
 ciot_err_t ciot_ble_scn_init(ciot_ble_scn_t self);
 ciot_err_t ciot_ble_scn_start(ciot_ble_scn_t self, ciot_ble_scn_cfg_t *cfg);
-ciot_err_t ciot_ble_scn_start_scan(ciot_ble_scn_t self);
+ciot_err_t ciot_ble_scn_continue(ciot_ble_scn_t self);
 ciot_err_t ciot_ble_scn_stop(ciot_ble_scn_t self);
 ciot_err_t ciot_ble_scn_process_req(ciot_ble_scn_t self, ciot_ble_scn_req_t *req);
 ciot_err_t ciot_ble_scn_get_cfg(ciot_ble_scn_t self, ciot_ble_scn_cfg_t *cfg);
