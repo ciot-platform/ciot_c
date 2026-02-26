@@ -49,6 +49,7 @@ static ble_gap_adv_data_t m_adv_str = {
 struct ciot_ble_adv
 {
     ciot_ble_adv_base_t base;
+    bool tx_power_set;
 };
 
 ciot_ble_adv_t ciot_ble_adv_new(void *handle)
@@ -75,10 +76,14 @@ ciot_err_t ciot_ble_adv_start(ciot_ble_adv_t self, ciot_ble_adv_cfg_t *cfg)
     m_adv_params.interval = cfg->interval;
     m_adv_params.timeout = cfg->duration;
 
-    uint32_t err_code = sd_ble_gap_tx_power_set(cfg->tx_power);
-    if (err_code)
+    if(!self->tx_power_set)
     {
-        return CIOT_ERR_FAIL;
+        self->tx_power_set = true;
+        uint32_t err_code = sd_ble_gap_tx_power_set(cfg->tx_power);
+        if (err_code)
+        {
+            return CIOT_ERR_FAIL;
+        }
     }
 #else
 
@@ -94,16 +99,20 @@ ciot_err_t ciot_ble_adv_start(ciot_ble_adv_t self, ciot_ble_adv_cfg_t *cfg)
         return CIOT_ERR_FAIL;
     }
 
-    err_code = sd_ble_gap_tx_power_set(BLE_GAP_TX_POWER_ROLE_ADV, m_adv_handle, cfg->tx_power);
-    if (err_code)
+    if(!self->tx_power_set)
     {
-        return CIOT_ERR_FAIL;
-    }
+        self->tx_power_set = true;
+        err_code = sd_ble_gap_tx_power_set(BLE_GAP_TX_POWER_ROLE_ADV, m_adv_handle, cfg->tx_power);
+        if (err_code)
+        {
+            return CIOT_ERR_FAIL;
+        }
 
-    err_code = sd_ble_gap_tx_power_set(BLE_GAP_TX_POWER_ROLE_SCAN_INIT, 0, cfg->tx_power);
-    if (err_code)
-    {
-        return CIOT_ERR_FAIL;
+        err_code = sd_ble_gap_tx_power_set(BLE_GAP_TX_POWER_ROLE_SCAN_INIT, 0, cfg->tx_power);
+        if (err_code)
+        {
+            return CIOT_ERR_FAIL;
+        }
     }
 #endif
 
