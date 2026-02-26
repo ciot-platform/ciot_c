@@ -31,13 +31,13 @@
 
 // static const char *TAG = "ciot_ble_adv";
 
-#define APP_BLE_CONN_CFG_TAG 1    /**< A tag identifying the SoftDevice BLE configuration. */
+#define APP_BLE_CONN_CFG_TAG 1 /**< A tag identifying the SoftDevice BLE configuration. */
 
 static uint8_t m_adv_handle = BLE_GAP_ADV_SET_HANDLE_NOT_SET;
 
-static uint8_t m_adv_data[BLE_GAP_ADV_SET_DATA_SIZE_MAX] = { 0 };
+static uint8_t m_adv_data[BLE_GAP_ADV_SET_DATA_SIZE_MAX] = {0};
 
-static ble_gap_adv_params_t m_adv_params = { 0 };
+static ble_gap_adv_params_t m_adv_params = {0};
 
 static ble_gap_adv_data_t m_adv_str = {
     .adv_data = {
@@ -145,7 +145,7 @@ ciot_err_t ciot_ble_adv_send_bytes(ciot_ble_adv_t self, uint8_t *data, int size)
 #else
     self->base.status.err_code = sd_ble_gap_adv_start(m_adv_handle, APP_BLE_CONN_CFG_TAG);
 #endif
-    
+
     if (self->base.status.err_code == NRF_SUCCESS)
     {
         self->base.status.state = CIOT_BLE_ADV_STATE_SENDING;
