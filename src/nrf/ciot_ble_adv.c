@@ -44,7 +44,11 @@ static ble_gap_adv_data_t m_adv_str = {
         .p_data = m_adv_data,
         .len = BLE_GAP_ADV_SET_DATA_SIZE_MAX,
     },
-    .scan_rsp_data = {.p_data = NULL, .len = 0}};
+    .scan_rsp_data = {
+        .p_data = NULL,
+        .len = 0,
+    },
+};
 
 struct ciot_ble_adv
 {
