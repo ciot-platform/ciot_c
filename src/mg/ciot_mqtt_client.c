@@ -48,25 +48,7 @@ ciot_err_t ciot_mqtt_client_start(ciot_mqtt_client_t self, ciot_mqtt_client_cfg_
     ciot_mqtt_client_base_t *base = &self->base;
     struct mg_mqtt_opts opts = { 0 };
 
-    if(cfg->has_last_will == false && base->cfg.has_last_will)
-    {
-        cfg->has_last_will = true;
-        cfg->last_will = base->cfg.last_will;
-    }
-
-    if(cfg->has_topics == false && base->cfg.has_topics)
-    {
-        cfg->has_topics = true;
-        cfg->topics = base->cfg.topics;
-    }
-
-    base->cfg = *cfg;
-    if(base->cfg.has_topics)
-    {
-        strcpy(base->topic_sub, base->cfg.topics.sub);
-        strcpy(base->topic_pub, base->cfg.topics.pub);
-        base->topic_len = strlen(base->cfg.topics.pub);
-    }
+    CIOT_ERR_RETURN(ciot_mqtt_client_base_start(base, cfg));
 
     if(base->cfg.has_last_will)
     {
@@ -133,6 +115,11 @@ ciot_err_t ciot_mqtt_client_sub(ciot_mqtt_client_t self, char *topic, int qos)
 
 ciot_err_t ciot_mqtt_client_pub(ciot_mqtt_client_t self, char *topic, uint8_t *data, int size, int qos)
 {
+    return ciot_mqtt_client_publish(self, topic, data, size, qos, false);
+}
+
+ciot_err_t ciot_mqtt_client_publish(ciot_mqtt_client_t self, char *topic, uint8_t *data, int size, int qos, bool retain)
+{
     CIOT_ERR_NULL_CHECK(self);
     CIOT_ERR_NULL_CHECK(topic);
     CIOT_ERR_NULL_CHECK(self->connection);
@@ -145,7 +132,7 @@ ciot_err_t ciot_mqtt_client_pub(ciot_mqtt_client_t self, char *topic, uint8_t *d
     opts.topic = mg_str(topic);
     opts.message = msg;
     opts.qos = qos;
-    opts.retain = false;
+    opts.retain = retain;
     mg_mqtt_pub(self->connection, &opts);
     ciot_mqtt_client_update_data_rate(self, size);
     return CIOT_ERR_OK;

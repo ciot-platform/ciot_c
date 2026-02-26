@@ -230,25 +230,44 @@ static void ciot_ble_stack_init(ciot_ble_t self)
 
 #if (NRF_SD_BLE_API_VERSION == 2 || NRF_SD_BLE_API_VERSION == 3)
 static void ciot_ble_evt_handler(ble_evt_t *p_ble_evt)
+{
+    void *p_context = NULL;
+    // TODO: implement event handler
+}
+
 #else
 static void ciot_ble_evt_handler(ble_evt_t const *p_ble_evt, void *p_context)
-#endif
 {
-#if (NRF_SD_BLE_API_VERSION == 2 || NRF_SD_BLE_API_VERSION == 3)
-    void *p_context = NULL;
-#endif
-
     ciot_ble_base_t *base = &ble->base;
 
-    if (base->ifaces.scn != NULL)
+    switch (p_ble_evt->header.evt_id)
     {
-        ciot_ble_scn_handle_event(base->ifaces.scn, (void *)p_ble_evt, p_context);
+    case BLE_GAP_EVT_ADV_REPORT:
+    {
+        ciot_ble_scn_base_t *ble_scn = (ciot_ble_scn_base_t *)base->ifaces.scn;
+        ciot_ble_scn_event_adv_report_t adv_report = {
+            .rssi = p_ble_evt->evt.gap_evt.params.adv_report.rssi,
+            .payload = p_ble_evt->evt.gap_evt.params.adv_report.data.p_data,
+            .payload_len = p_ble_evt->evt.gap_evt.params.adv_report.data.len};
+        ciot_ble_scn_copy_mac(adv_report.mac, (uint8_t*)p_ble_evt->evt.gap_evt.params.adv_report.peer_addr.addr, true);
+        if (ble_scn->filter.handler == NULL || ble_scn->filter.handler((ciot_ble_scn_t)ble_scn, &adv_report, ble_scn->filter.args))
+        {
+            // TODO: verificar tempo de execução (intervalo entre recebimento do adv e reinício do scan)
+            ciot_iface_send_internal_event(&ble_scn->iface, &adv_report, CIOT_BLE_SCN_EVENT_ADV_REPORT);
+        }
+        ciot_ble_scn_continue((ciot_ble_scn_t)ble_scn);
     }
-
-    if (base->ifaces.adv != NULL)
+    break;
+    case BLE_GAP_EVT_ADV_SET_TERMINATED:
     {
-        ciot_ble_adv_handle_event(base->ifaces.adv, (void *)p_ble_evt, p_context);
+        ciot_ble_adv_base_t *ble_adv = (ciot_ble_adv_base_t *)base->ifaces.adv;
+        ble_adv->status.state = CIOT_BLE_ADV_STATE_STARTED;
+    }
+    break;
+    default:
+        break;
     }
 }
+#endif
 
 #endif // CIOT_CONFIG_FEATURE_BLE == 1

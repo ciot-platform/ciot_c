@@ -38,7 +38,6 @@ ciot_err_t ciot_ble_scn_init(ciot_ble_scn_t self)
     base->iface.get_data = ciot_ble_scn_get_data;
     base->iface.send_data = ciot_ble_scn_send_data;
     base->iface.info.type = CIOT_IFACE_TYPE_BLE_SCN;
-    base->recv.has_info = true;
 
 #if CIOT_CONFIG_BLE_SCN_ADV_FIFO_SIZE
     ciot_ble_scn_base_init_fifo(&base->adv_fifo);
@@ -201,7 +200,6 @@ void ciot_ble_scn_handle_adv_report(ciot_ble_scn_t self, ciot_ble_scn_adv_t *adv
 #endif
 }
 
-
 ciot_err_t ciot_ble_scn_set_filter(ciot_ble_scn_t self, ciot_ble_scn_filter_fn *filter, void *args)
 {
     CIOT_ERR_NULL_CHECK(self);
@@ -212,6 +210,14 @@ ciot_err_t ciot_ble_scn_set_filter(ciot_ble_scn_t self, ciot_ble_scn_filter_fn *
     // base->filter.handler = filter;
     // base->filter.args = args;
     return CIOT_ERR_OK;
+}
+
+void ciot_ble_scn_copy_mac(uint8_t destiny[6], uint8_t source[6], bool reverse)
+{
+    for (size_t i = 0; i < 6; i++)
+    {
+        destiny[i] = reverse ? source[5 - i] : source[i];
+    }
 }
 
 #if CIOT_CONFIG_BLE_SCN_ADV_FIFO_SIZE

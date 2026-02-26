@@ -39,7 +39,6 @@ struct ciot_ble_scn
 #endif
 };
 
-static void ciot_ble_scn_copy_mac(uint8_t destiny[6], uint8_t source[6], bool reverse);
 static ciot_err_t ciot_ble_scn_get_error(uint32_t nrf_error);
 
 // static const char *TAG = "hg_ble_scn";
@@ -62,16 +61,6 @@ ciot_err_t ciot_ble_scn_start(ciot_ble_scn_t self, ciot_ble_scn_cfg_t *cfg)
         base->cfg = *cfg;
     }
 
-    if (base->cfg.active && base->status.state == CIOT_BLE_SCN_STATE_ACTIVE)
-    {
-        return CIOT_ERR_OK;
-    }
-
-    if (!base->cfg.active && base->status.state == CIOT_BLE_SCN_STATE_PASSIVE)
-    {
-        return CIOT_ERR_OK;
-    }
-
     uint32_t err = sd_ble_gap_scan_stop();
 
     self->scan_params.interval = base->cfg.interval;
@@ -89,19 +78,25 @@ ciot_err_t ciot_ble_scn_start(ciot_ble_scn_t self, ciot_ble_scn_cfg_t *cfg)
 
     if (err == NRF_SUCCESS)
     {
-        base->status.state = cfg->active
+        base->status.state = base->cfg.active
                                  ? CIOT_BLE_SCN_STATE_ACTIVE
                                  : CIOT_BLE_SCN_STATE_PASSIVE;
         ciot_iface_send_event_type(&base->iface, CIOT_EVENT_TYPE_STARTED);
-        // ciot_event_t event = {0};
-        // event.type = CIOT_EVENT_TYPE_STARTED;
-        // event.msg = ciot_msg_get(CIOT_MSG_TYPE_STATUS, &base->iface);
-        // ciot_iface_send_event(&base->iface, &event);
     }
 
     base->status.err_code = ciot_ble_scn_get_error(err);
 
     return err;
+}
+
+ciot_err_t ciot_ble_scn_continue(ciot_ble_scn_t self)
+{
+    uint32_t err = sd_ble_gap_scan_start(NULL, &self->scan_buffer);
+    if (err)
+    {
+        self->base.status.err_code = ciot_ble_scn_get_error(err);
+    }
+    return self->base.status.err_code;
 }
 
 ciot_err_t ciot_ble_scn_stop(ciot_ble_scn_t self)
@@ -113,10 +108,6 @@ ciot_err_t ciot_ble_scn_stop(ciot_ble_scn_t self)
     {
         base->status.state = CIOT_BLE_SCN_STATE_IDLE;
         ciot_iface_send_event_type(&base->iface, CIOT_EVENT_TYPE_STOPPED);
-        // ciot_event_t event = {0};
-        // event.type = CIOT_EVENT_TYPE_STOPPED;
-        // event.msg = ciot_msg_get(CIOT_MSG_TYPE_STATUS, &base->iface);
-        // ciot_iface_send_event(&base->iface, &event);
     }
     return CIOT_ERR_OK;
 }
@@ -124,44 +115,6 @@ ciot_err_t ciot_ble_scn_stop(ciot_ble_scn_t self)
 ciot_err_t ciot_ble_scn_task(ciot_ble_scn_t self)
 {
     ciot_ble_scn_base_task(self);
-    return CIOT_ERR_OK;
-}
-
-ciot_err_t ciot_ble_scn_handle_event(ciot_ble_scn_t self, void *event, void *event_args)
-{
-    CIOT_ERR_NULL_CHECK(self);
-    CIOT_ERR_NULL_CHECK(event);
-
-    ciot_ble_scn_base_t *base = &self->base;
-    const ble_evt_t *ev = event;
-    uint8_t mac[6];
-
-    switch (ev->header.evt_id)
-    {
-    case BLE_GAP_EVT_ADV_REPORT:
-        ciot_ble_scn_copy_mac(mac, (uint8_t *)ev->evt.gap_evt.params.adv_report.peer_addr.addr, true);
-        memcpy(base->recv.info.mac, mac, 6);
-        base->recv.info.rssi = ev->evt.gap_evt.params.adv_report.rssi;
-#if NRF_SD_BLE_API_VERSION == 2 || NRF_SD_BLE_API_VERSION == 3
-        base->recv.adv.data = (CIOT_EVENT_TYPE_data_u *)ev->evt.gap_evt.params.adv_report.data;
-        base->recv.adv.len = ev->evt.gap_evt.params.adv_report.dlen;
-#else
-        memset(base->recv.payload.bytes, 0, sizeof(base->recv.payload.bytes));
-        memcpy(base->recv.payload.bytes, ev->evt.gap_evt.params.adv_report.data.p_data, ev->evt.gap_evt.params.adv_report.data.len);
-        base->recv.payload.size = ev->evt.gap_evt.params.adv_report.data.len;
-        uint32_t error = sd_ble_gap_scan_start(NULL, &self->scan_buffer);
-        if(error) {
-            base->status.err_code = ciot_ble_scn_get_error(error);
-        }
-#endif
-        if (base->filter.handler == NULL || base->filter.handler(self, &base->recv, base->filter.args))
-        {
-            ciot_ble_scn_handle_adv_report(self, &base->recv);
-        }
-        break;
-    default:
-        break;
-    }
     return CIOT_ERR_OK;
 }
 
@@ -183,14 +136,6 @@ static ciot_err_t ciot_ble_scn_get_error(uint32_t nrf_error)
         return CIOT_ERR_RESOURCES;
     default:
         return CIOT_ERR_UNKNOWN;
-    }
-}
-
-static void ciot_ble_scn_copy_mac(uint8_t destiny[6], uint8_t source[6], bool reverse)
-{
-    for (size_t i = 0; i < 6; i++)
-    {
-        destiny[i] = reverse ? source[5 - i] : source[i];
     }
 }
 

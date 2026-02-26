@@ -8,6 +8,8 @@ Ciot.Status.ifaces max_count:10
 
 Ciot.Msg.raw max_size:128
 Ciot.Event.raw max_size:128
+Ciot.EventInternal.data max_size:128
+Ciot.EventInternal.data type:FT_POINTER
 
 Ciot.SysInfo.app_ver fixed_length:true
 Ciot.SysInfo.app_ver max_size:4

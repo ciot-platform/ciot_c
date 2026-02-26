@@ -31,24 +31,29 @@
 
 // static const char *TAG = "ciot_ble_adv";
 
-#define APP_BLE_CONN_CFG_TAG 1    /**< A tag identifying the SoftDevice BLE configuration. */
+#define APP_BLE_CONN_CFG_TAG 1 /**< A tag identifying the SoftDevice BLE configuration. */
 
 static uint8_t m_adv_handle = BLE_GAP_ADV_SET_HANDLE_NOT_SET;
 
-static uint8_t m_adv_data[BLE_GAP_ADV_SET_DATA_SIZE_MAX] = { 0 };
+static uint8_t m_adv_data[BLE_GAP_ADV_SET_DATA_SIZE_MAX] = {0};
 
-static ble_gap_adv_params_t m_adv_params = { 0 };
+static ble_gap_adv_params_t m_adv_params = {0};
 
 static ble_gap_adv_data_t m_adv_str = {
     .adv_data = {
         .p_data = m_adv_data,
         .len = BLE_GAP_ADV_SET_DATA_SIZE_MAX,
     },
-    .scan_rsp_data = {.p_data = NULL, .len = 0}};
+    .scan_rsp_data = {
+        .p_data = NULL,
+        .len = 0,
+    },
+};
 
 struct ciot_ble_adv
 {
     ciot_ble_adv_base_t base;
+    bool tx_power_set;
 };
 
 ciot_ble_adv_t ciot_ble_adv_new(void *handle)
@@ -75,10 +80,14 @@ ciot_err_t ciot_ble_adv_start(ciot_ble_adv_t self, ciot_ble_adv_cfg_t *cfg)
     m_adv_params.interval = cfg->interval;
     m_adv_params.timeout = cfg->duration;
 
-    uint32_t err_code = sd_ble_gap_tx_power_set(cfg->tx_power);
-    if (err_code)
+    if(!self->tx_power_set)
     {
-        return CIOT_ERR_FAIL;
+        self->tx_power_set = true;
+        uint32_t err_code = sd_ble_gap_tx_power_set(cfg->tx_power);
+        if (err_code)
+        {
+            return CIOT_ERR_FAIL;
+        }
     }
 #else
 
@@ -94,16 +103,20 @@ ciot_err_t ciot_ble_adv_start(ciot_ble_adv_t self, ciot_ble_adv_cfg_t *cfg)
         return CIOT_ERR_FAIL;
     }
 
-    err_code = sd_ble_gap_tx_power_set(BLE_GAP_TX_POWER_ROLE_ADV, m_adv_handle, cfg->tx_power);
-    if (err_code)
+    if(!self->tx_power_set)
     {
-        return CIOT_ERR_FAIL;
-    }
+        self->tx_power_set = true;
+        err_code = sd_ble_gap_tx_power_set(BLE_GAP_TX_POWER_ROLE_ADV, m_adv_handle, cfg->tx_power);
+        if (err_code)
+        {
+            return CIOT_ERR_FAIL;
+        }
 
-    err_code = sd_ble_gap_tx_power_set(BLE_GAP_TX_POWER_ROLE_SCAN_INIT, 0, cfg->tx_power);
-    if (err_code)
-    {
-        return CIOT_ERR_FAIL;
+        err_code = sd_ble_gap_tx_power_set(BLE_GAP_TX_POWER_ROLE_SCAN_INIT, 0, cfg->tx_power);
+        if (err_code)
+        {
+            return CIOT_ERR_FAIL;
+        }
     }
 #endif
 
@@ -132,7 +145,7 @@ ciot_err_t ciot_ble_adv_send_bytes(ciot_ble_adv_t self, uint8_t *data, int size)
 #else
     self->base.status.err_code = sd_ble_gap_adv_start(m_adv_handle, APP_BLE_CONN_CFG_TAG);
 #endif
-    
+
     if (self->base.status.err_code == NRF_SUCCESS)
     {
         self->base.status.state = CIOT_BLE_ADV_STATE_SENDING;
@@ -140,24 +153,6 @@ ciot_err_t ciot_ble_adv_send_bytes(ciot_ble_adv_t self, uint8_t *data, int size)
     }
 
     return CIOT_ERR_FAIL;
-}
-
-ciot_err_t ciot_ble_adv_handle_event(ciot_ble_adv_t self, void *event, void *event_args)
-{
-    CIOT_ERR_NULL_CHECK(self);
-
-    const ble_evt_t *ev = event;
-
-    switch (ev->header.evt_id)
-    {
-    case BLE_GAP_EVT_ADV_SET_TERMINATED:
-        self->base.status.state = CIOT_BLE_ADV_STATE_STARTED;
-        break;
-    default:
-        break;
-    }
-
-    return CIOT_ERR_OK;
 }
 
 #endif // CIOT_CONFIG_FEATURE_BLE_ADV == 1

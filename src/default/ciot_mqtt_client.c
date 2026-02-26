@@ -61,4 +61,11 @@ ciot_err_t ciot_mqtt_client_pub(ciot_mqtt_client_t self, char *topic, uint8_t *d
     return CIOT_ERR_NOT_IMPLEMENTED;
 }
 
+ciot_err_t ciot_mqtt_client_publish(ciot_mqtt_client_t self, char *topic, uint8_t *data, int size, int qos, bool retain)
+{
+    CIOT_ERR_NULL_CHECK(self);
+    CIOT_ERR_NULL_CHECK(topic);
+    return CIOT_ERR_NOT_IMPLEMENTED;
+}
+
 #endif // CIOT_CONFIG_FEATURE_MQTT_CLIENT == 1
