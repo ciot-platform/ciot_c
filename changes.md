@@ -24,4 +24,15 @@
 
 * Updated the project version to 0.19.0.0 and improved the startup log message to include the version. Also refactored the SDK path handling and include paths in `.vscode/c_cpp_properties.json` for better portability and maintainability. [[1]](diffhunk://#diff-e3a87c483eaad2e3f831ea32fa5bb0c2538d10b268422ac8bf3e6da43110f554L36-R36) [[2]](diffhunk://#diff-ac3505c8e7850d45dfcfdd990afb140a041683f93b640fc2b17a8e05bdd30c10L341-R341) [[3]](diffhunk://#diff-8f4e8cf66ff6479868eeeb084ef19fbb8bea6102cf86f8adec2180dcf38dc47dL5-R8) [[4]](diffhunk://#diff-8f4e8cf66ff6479868eeeb084ef19fbb8bea6102cf86f8adec2180dcf38dc47dL102-R122)
 
-These changes collectively improve the modularity, clarity, and robustness of the codebase, especially around BLE scanning and MQTT client usage.
+Configuration improvements:
+
+* Added `CIOT_CONFIG_HTTP_SERVER_TIMEOUT_MS` and `CIOT_CONFIG_HTTP_SERVER_MAX_RESP_SIZE` macros to allow customization of HTTP server timeout and maximum response size, replacing hardcoded values in `src/esp32/ciot_http_server.c`.
+* Updated usage of timeout macros in `ciot_http_server_api_handler` and `ciot_http_server_custom_api_handler` to use the new configurable macro. [[1]](diffhunk://#diff-fa8c3f4021f791ed328fcccd28ee915b3f4373dabba5ef1756aca492c007b692L165-R177) [[2]](diffhunk://#diff-fa8c3f4021f791ed328fcccd28ee915b3f4373dabba5ef1756aca492c007b692L339-R351)
+
+### Buffer safety:
+
+* Updated the response buffer in the `ciot_http_server` struct to use the configurable maximum response size, and added logic in `ciot_http_server_send_bytes` to truncate responses that exceed the buffer size, logging a warning when truncation occurs. [[1]](diffhunk://#diff-fa8c3f4021f791ed328fcccd28ee915b3f4373dabba5ef1756aca492c007b692L20-R35) [[2]](diffhunk://#diff-fa8c3f4021f791ed328fcccd28ee915b3f4373dabba5ef1756aca492c007b692R93-R97)
+
+### Version update:
+
+* Bumped the version macro `CIOT_VER` in `include/ciot.h` to `0,19,0,1` to reflect these changes.
