@@ -348,7 +348,7 @@ static esp_err_t ciot_http_server_custom_api_handler(httpd_req_t *req)
             CIOT_HTTP_SERVER_RESP_READY_BIT,
             pdTRUE,
             pdFALSE,
-            pdMS_TO_TICKS(CIOT_HTTP_SERVER_TIMEOUT_MS));
+            pdMS_TO_TICKS(CIOT_CONFIG_HTTP_SERVER_TIMEOUT_MS));
     }
 
     if (self->resp_size > 0)
