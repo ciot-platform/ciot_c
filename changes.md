@@ -33,6 +33,11 @@ Configuration improvements:
 
 * Updated the response buffer in the `ciot_http_server` struct to use the configurable maximum response size, and added logic in `ciot_http_server_send_bytes` to truncate responses that exceed the buffer size, logging a warning when truncation occurs. [[1]](diffhunk://#diff-fa8c3f4021f791ed328fcccd28ee915b3f4373dabba5ef1756aca492c007b692L20-R35) [[2]](diffhunk://#diff-fa8c3f4021f791ed328fcccd28ee915b3f4373dabba5ef1756aca492c007b692R93-R97)
 
+### TCP configuration fixes:
+
+* In `ciot_tcp_set_ip_cfg` for ESP32 (`ciot_tcp.c`), corrected the assignment so that the DNS address (`dns`) is used instead of the netmask (`mask`) when configuring `dns_info`.
+* In `ciot_tcp_set_ip_cfg` for ESP8266 (`ciot_tcp.c`), fixed the DNS configuration to use the DNS address (`dns`) rather than the netmask (`mask`).
+
 ### Version update:
 
-* Bumped the version macro `CIOT_VER` in `include/ciot.h` to `0,19,0,1` to reflect these changes.
+* Bumped the version macro `CIOT_VER` in `include/ciot.h` to `0,19,1,0` to reflect these changes.
