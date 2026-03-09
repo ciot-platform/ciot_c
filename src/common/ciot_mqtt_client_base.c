@@ -68,6 +68,7 @@ ciot_err_t ciot_mqtt_client_subtopic_publish(ciot_mqtt_client_t self, char *subt
     CIOT_ERR_NULL_CHECK(data);
     CIOT_ERR_RETURN(ciot_mqtt_client_set_subtopic(self, subtopic, subtopic_len));
     ciot_mqtt_client_base_t *base = (ciot_mqtt_client_base_t*)self;
+    base->status.last_msg_time = ciot_timer_now();
     return ciot_mqtt_client_publish(self, base->topic_pub, data, size, qos, retain);
 }
 
