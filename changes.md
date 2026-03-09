@@ -38,6 +38,16 @@ Configuration improvements:
 * In `ciot_tcp_set_ip_cfg` for ESP32 (`ciot_tcp.c`), corrected the assignment so that the DNS address (`dns`) is used instead of the netmask (`mask`) when configuring `dns_info`.
 * In `ciot_tcp_set_ip_cfg` for ESP8266 (`ciot_tcp.c`), fixed the DNS configuration to use the DNS address (`dns`) rather than the netmask (`mask`).
 
+### MQTT client bugfix:
+
+* Updated `ciot_mqtt_client_subtopic_publish` in `ciot_mqtt_client_base.c` to set `base->status.last_msg_time` using `ciot_timer_now()`, ensuring the timestamp is refreshed on each publish.
+
+### WiFi reconnection and event management:
+
+* Added `skip_disconnect_event` flag to the `ciot_wifi` struct to control whether disconnect events are sent during reconnections, preventing redundant events when switching APs (`src/esp32/ciot_wifi.c`).
+* Updated the WiFi station start and stop logic to set TCP state to `DISCONNECTING` and manage the `skip_disconnect_event` flag, ensuring proper event flow and state consistency (`src/esp32/ciot_wifi.c`). [[1]](diffhunk://#diff-1e5fcda8059ac0f18c5557188647b0a89a590410665a42881e045675369a6279R121-R122) [[2]](diffhunk://#diff-1e5fcda8059ac0f18c5557188647b0a89a590410665a42881e045675369a6279R132) [[3]](diffhunk://#diff-1e5fcda8059ac0f18c5557188647b0a89a590410665a42881e045675369a6279R226-R227)
+* Modified the WiFi station event handler to conditionally send the `STOPPED` event based on the `skip_disconnect_event` flag, resetting the flag after use (`src/esp32/ciot_wifi.c`).
+
 ### Version update:
 
-* Bumped the version macro `CIOT_VER` in `include/ciot.h` to `0,19,1,0` to reflect these changes.
+* Changed the `CIOT_VER` macro in `ciot.h` from `0,19,1,0` to `0,19,0,2` to reflect the new version.
