@@ -26,7 +26,6 @@
 struct ciot_wifi
 {
     ciot_wifi_base_t base;
-    bool skip_disconnect_event;     // Skip disconnect event when disconnecting to connect to another AP
     bool reconnecting;
 };
 
@@ -118,8 +117,6 @@ ciot_err_t ciot_wifi_stop(ciot_wifi_t self)
 {
     CIOT_LOGI(TAG, "Stopping WiFi %d", self->base.status.tcp.state);
 
-    ciot_tcp_base_t *tcp = (ciot_tcp_base_t *)self->base.tcp;
-
     self->base.cfg.disabled = true;
 
     wifi_mode_t mode;
@@ -129,7 +126,6 @@ ciot_err_t ciot_wifi_stop(ciot_wifi_t self)
     {
     case CIOT_WIFI_TYPE_STA:
         CIOT_LOGI(TAG, "Stopping station");
-        tcp->status->state = CIOT_TCP_STATE_DISCONNECTING;
         ESP_ERROR_CHECK(esp_wifi_disconnect());
         return CIOT_ERR_OK;
     case CIOT_WIFI_TYPE_AP:
@@ -223,8 +219,6 @@ static ciot_err_t ciot_wifi_start_sta(ciot_wifi_t self, ciot_wifi_cfg_t *cfg)
     if (tcp->status->state == CIOT_TCP_STATE_CONNECTED)
     {
         self->reconnecting = false;
-        self->skip_disconnect_event = true;
-        tcp->status->state = CIOT_TCP_STATE_DISCONNECTING;
         ESP_ERROR_CHECK(esp_wifi_disconnect());
     }
 
@@ -431,12 +425,7 @@ static void ciot_wifi_sta_event_handler(void *handler_args, esp_event_base_t eve
         base->info.ap.authmode = 0;
         memset(base->info.ap.bssid, 0, sizeof(base->info.ap.bssid));
         memset(base->info.ap.ssid, 0, sizeof(base->info.ap.ssid));
-        if(self->skip_disconnect_event == false) {
-            ciot_iface_send_event_type(&base->iface, CIOT_EVENT_TYPE_STOPPED);
-        }
-        else {
-            self->skip_disconnect_event = false;
-        }
+        ciot_iface_send_event_type(&self->base.iface, CIOT_EVENT_TYPE_STOPPED);
         CIOT_LOGI(TAG, "reason: %u", (unsigned int)base->status.disconnect_reason);
         if (base->status.tcp.state == CIOT_TCP_STATE_CONNECTED || self->reconnecting)
         {
