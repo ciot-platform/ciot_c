@@ -23,10 +23,14 @@
 #include "esp_wifi.h"
 #include "esp_wifi_types.h"
 
+#define CIOT_WIFI_CONNECTION_ATTEMPTS 5
+
 struct ciot_wifi
 {
     ciot_wifi_base_t base;
     bool reconnecting;
+    uint8_t connect_attempts;
+    bool switching_network;
 };
 
 static esp_err_t esp_wifi_init_mode(ciot_wifi_type_t type);
@@ -172,9 +176,12 @@ ciot_err_t ciot_wifi_get_rssi(ciot_wifi_t self, int32_t *rssi)
 {
     CIOT_ERR_NULL_CHECK(self);
     CIOT_ERR_NULL_CHECK(rssi);
-    wifi_ap_record_t ap_info = { 0 };
-    esp_wifi_sta_get_ap_info(&ap_info);
-    *rssi = ap_info.rssi;
+    if(self->base.status.tcp.state == CIOT_TCP_STATE_CONNECTED)
+    {
+        wifi_ap_record_t ap_info = { 0 };
+        esp_wifi_sta_get_ap_info(&ap_info);
+        *rssi = ap_info.rssi;
+    }
     return CIOT_ERR_OK;
 }
 
@@ -212,10 +219,14 @@ static ciot_err_t ciot_wifi_start_sta(ciot_wifi_t self, ciot_wifi_cfg_t *cfg)
     wifi_config_t conf = { 0 };
     strncpy((char *)conf.sta.ssid, cfg->ssid, sizeof(conf.sta.ssid));
     strncpy((char *)conf.sta.password, cfg->password, sizeof(conf.sta.password));
+    conf.sta.scan_method = WIFI_ALL_CHANNEL_SCAN;
+    conf.sta.sort_method = WIFI_CONNECT_AP_BY_SIGNAL;
 
     if (tcp->status->state == CIOT_TCP_STATE_CONNECTED)
     {
+        self->switching_network = true;
         self->reconnecting = false;
+        self->connect_attempts = 0;
         ESP_ERROR_CHECK(esp_wifi_disconnect());
     }
 
@@ -227,6 +238,9 @@ static ciot_err_t ciot_wifi_start_sta(ciot_wifi_t self, ciot_wifi_cfg_t *cfg)
         tcp->status->state == CIOT_TCP_STATE_STARTED)
     {
         CIOT_LOGI(TAG, "Wifi sta connecting...");
+        self->connect_attempts = 1;
+        self->reconnecting = true;
+        self->switching_network = false;
         tcp->status->state = CIOT_TCP_STATE_CONNECTING;
         CIOT_ERR_PRINT(TAG, esp_wifi_connect());
     }
@@ -289,16 +303,30 @@ static ciot_err_t ciot_wifi_update_ap_list(ciot_wifi_t self)
     if(base->ap_list.items == NULL) {
         return CIOT_ERR_NO_MEMORY;
     }
-    uint16_t wifi_ap_count = base->ap_list.count;
-    for (size_t i = 0; i < base->ap_list.count; i++)
+
+    wifi_ap_record_t *wifi_aps = calloc(base->ap_list.count, sizeof(wifi_ap_record_t));
+    if (wifi_aps == NULL)
     {
-        wifi_ap_record_t wifi_ap = { 0 };
-        esp_wifi_scan_get_ap_records(&wifi_ap_count, &wifi_ap);
+        free(base->ap_list.items);
+        base->ap_list.items = NULL;
+        base->ap_list.count = 0;
+        return CIOT_ERR_NO_MEMORY;
+    }
+
+    uint16_t wifi_ap_count = (uint16_t)base->ap_list.count;
+    esp_wifi_scan_get_ap_records(&wifi_ap_count, wifi_aps);
+    base->ap_list.count = wifi_ap_count;
+
+    for (size_t i = 0; i < wifi_ap_count; i++)
+    {
+        wifi_ap_record_t wifi_ap = wifi_aps[i];
         base->ap_list.items[i].authmode = wifi_ap.authmode;
         base->ap_list.items[i].rssi = wifi_ap.rssi;
         memcpy(base->ap_list.items[i].ssid, wifi_ap.ssid, 32);
         memcpy(base->ap_list.items[i].bssid, wifi_ap.bssid, 3);
     }
+
+    free(wifi_aps);
     return CIOT_ERR_OK;
 }
 
@@ -379,9 +407,12 @@ static void ciot_wifi_sta_event_handler(void *handler_args, esp_event_base_t eve
     case WIFI_EVENT_STA_START:
     {
         CIOT_LOGI(TAG, "WIFI_EVENT_STA_START");
+        self->switching_network = false;
         if (base->cfg.ssid[0] != '\0')
         {
             CIOT_LOGI(TAG, "Wifi sta connecting...");
+            self->connect_attempts = 1;
+            self->reconnecting = true;
             tcp->status->state = CIOT_TCP_STATE_CONNECTING;
             CIOT_ERR_PRINT(TAG, esp_wifi_connect());
         }
@@ -404,10 +435,13 @@ static void ciot_wifi_sta_event_handler(void *handler_args, esp_event_base_t eve
         tcp->status->state = CIOT_TCP_STATE_CONNECTED;
         tcp->status->conn_count++;
         base->status.disconnect_reason = 0;
+        base->info.has_ap = true;
         base->info.ap.authmode = data->authmode;
         memcpy(base->info.ap.bssid, data->bssid, sizeof(data->bssid));
         memcpy(base->info.ap.ssid, data->ssid, sizeof(data->ssid));
         self->reconnecting = false;
+        self->connect_attempts = 0;
+        ciot_wifi_get_rssi(self, &base->status.rssi);
         CIOT_ERR_PRINT(TAG, ciot_tcp_start(base->tcp));
         break;
     }
@@ -419,15 +453,36 @@ static void ciot_wifi_sta_event_handler(void *handler_args, esp_event_base_t eve
         base->info.ap.authmode = 0;
         memset(base->info.ap.bssid, 0, sizeof(base->info.ap.bssid));
         memset(base->info.ap.ssid, 0, sizeof(base->info.ap.ssid));
-        ciot_iface_send_event_type(&self->base.iface, CIOT_EVENT_TYPE_STOPPED);
         CIOT_LOGI(TAG, "reason: %u", (unsigned int)base->status.disconnect_reason);
-        if (base->status.tcp.state == CIOT_TCP_STATE_CONNECTED || self->reconnecting)
+
+        if (self->switching_network)
         {
-            CIOT_LOGI(TAG, "Connection losted. Connecting again...");
-            esp_wifi_connect();
-            self->reconnecting = true;
+            CIOT_LOGI(TAG, "Network switch in progress. Skipping reconnect retry.");
+            self->switching_network = false;
+            self->reconnecting = false;
+            self->connect_attempts = 0;
+            tcp->status->state = CIOT_TCP_STATE_DISCONNECTED;
+            break;
         }
+
+        if (!base->cfg.disabled
+            && base->cfg.ssid[0] != '\0'
+            && self->connect_attempts < CIOT_WIFI_CONNECTION_ATTEMPTS)
+        {
+            self->connect_attempts++;
+            self->reconnecting = true;
+            tcp->status->state = CIOT_TCP_STATE_CONNECTING;
+            CIOT_LOGI(TAG, "Connection lost. Retrying (%u/%u)...",
+                      (unsigned int)self->connect_attempts,
+                      (unsigned int)CIOT_WIFI_CONNECTION_ATTEMPTS);
+            CIOT_ERR_PRINT(TAG, esp_wifi_connect());
+            break;
+        }
+
+        self->reconnecting = false;
+        self->connect_attempts = 0;
         tcp->status->state = CIOT_TCP_STATE_DISCONNECTED;
+        ciot_iface_send_event_type(&self->base.iface, CIOT_EVENT_TYPE_STOPPED);
         break;
     }
     default:
