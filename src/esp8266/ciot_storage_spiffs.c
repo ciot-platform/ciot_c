@@ -19,9 +19,6 @@
 #include "esp_spiffs.h"
 #include "ciot_err.h"
 
-#define FS_BASE_PATH "/fs"
-#define FS_PARTITION_LABLE "storage"
-
 #ifndef CONFIG_WL_SECTOR_SIZE
 #define CONFIG_WL_SECTOR_SIZE 512
 #endif //! CONFIG_WL_SECTOR_SIZE
