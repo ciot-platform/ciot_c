@@ -105,7 +105,7 @@ static ciot_err_t ciot_tcp_get_addr(ciot_tcp_t self)
             while (pUnicast)
             {
                 SOCKADDR *sa = pUnicast->Address.lpSockaddr;
-                if (sa->sa_family == AF_INET)
+                if (sa->sa_family == AF_INET && pUnicast->DadState == NldsPreferred)
                 { // IPv4
                     struct sockaddr_in *sa_in = (struct sockaddr_in *)sa;
                     memcpy(self->base.info->ip, &(sa_in->sin_addr), 4);

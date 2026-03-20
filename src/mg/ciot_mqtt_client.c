@@ -24,7 +24,6 @@ struct ciot_mqtt_client
     struct mg_mgr *mgr;
     struct mg_connection *connection;
     time_t last_ping;
-    bool reconnecting;
 };
 
 static const char *TAG = "ciot_mqtt_client";
@@ -78,7 +77,6 @@ ciot_err_t ciot_mqtt_client_start(ciot_mqtt_client_t self, ciot_mqtt_client_cfg_
     if(self->connection != NULL && self->connection->is_closing == false)
     {
         mg_mqtt_disconnect(self->connection, &opts);
-        self->reconnecting = true;
     }
 
     base->status.state = CIOT_MQTT_CLIENT_STATE_CONNECTING;
@@ -227,12 +225,8 @@ static void ciot_mqtt_client_event_handler(struct mg_connection *c, int ev, void
     case MG_EV_CLOSE:
     {
         CIOT_LOGI(TAG, "MG_EV_CLOSE");
-        if(!self->reconnecting)
-        {
-            base->status.state = CIOT_MQTT_CLIENT_STATE_DISCONNECTED;
-            ciot_iface_send_event_type(&base->iface, CIOT_EVENT_TYPE_STOPPED);
-        }
-        self->reconnecting = false;
+        base->status.state = CIOT_MQTT_CLIENT_STATE_DISCONNECTED;
+        ciot_iface_send_event_type(&base->iface, CIOT_EVENT_TYPE_STOPPED);
         break;
     }
     default:
