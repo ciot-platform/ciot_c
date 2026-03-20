@@ -159,7 +159,7 @@ static esp_err_t ciot_post_handler(httpd_req_t *req)
     else
     {
         CIOT_LOGW(TAG, "Timeout waiting for response");
-        httpd_resp_send_500(req);
+        httpd_resp_send_408(req);
     }
 
     return CIOT_ERR_OK;
