@@ -26,6 +26,11 @@ typedef enum ciot_event_type {
 } ciot_event_type_t;
 
 /* Struct definitions */
+typedef struct ciot_event_internal {
+    int32_t type; /* Internal event type */
+    pb_bytes_array_t *data; /* Internal event data */
+} ciot_event_internal_t;
+
 typedef PB_BYTES_ARRAY_T(128) ciot_event_raw_t;
 /* Message representing an CIoT event */
 typedef struct ciot_event {
@@ -34,6 +39,7 @@ typedef struct ciot_event {
     union {
         ciot_msg_t msg; /* Event message */
         ciot_event_raw_t raw; /* Event raw data */
+        ciot_event_internal_t internal; /* Event internal */
     };
 } ciot_event_t;
 
@@ -57,40 +63,51 @@ extern "C" {
 #define CIOT_EVENT_TYPE_EVENT_TYPE_INTERNAL CIOT_EVENT_TYPE_INTERNAL
 #define CIOT_EVENT_TYPE_EVENT_TYPE_CUSTOM CIOT_EVENT_TYPE_CUSTOM
 
+
 #define ciot_event_t_type_ENUMTYPE ciot_event_type_t
 
 
 /* Initializer values for message structs */
+#define CIOT_EVENT_INTERNAL_INIT_DEFAULT         {0, NULL}
 #define CIOT_EVENT_INIT_DEFAULT                  {_CIOT_EVENT_TYPE_MIN, 0, {CIOT_MSG_INIT_DEFAULT}}
+#define CIOT_EVENT_INTERNAL_INIT_ZERO            {0, NULL}
 #define CIOT_EVENT_INIT_ZERO                     {_CIOT_EVENT_TYPE_MIN, 0, {CIOT_MSG_INIT_ZERO}}
 
 /* Field tags (for use in manual encoding/decoding) */
+#define CIOT_EVENT_INTERNAL_TYPE_TAG             1
+#define CIOT_EVENT_INTERNAL_DATA_TAG             2
 #define CIOT_EVENT_TYPE_TAG                      1
 #define CIOT_EVENT_MSG_TAG                       2
 #define CIOT_EVENT_RAW_TAG                       3
+#define CIOT_EVENT_INTERNAL_TAG                  4
 
 /* Struct field encoding specification for nanopb */
+#define CIOT_EVENT_INTERNAL_FIELDLIST(X, a) \
+X(a, STATIC,   SINGULAR, INT32,    type,              1) \
+X(a, POINTER,  SINGULAR, BYTES,    data,              2)
+#define CIOT_EVENT_INTERNAL_CALLBACK NULL
+#define CIOT_EVENT_INTERNAL_DEFAULT NULL
+
 #define CIOT_EVENT_FIELDLIST(X, a) \
 X(a, STATIC,   SINGULAR, UENUM,    type,              1) \
 X(a, STATIC,   ONEOF,    MESSAGE,  (data,msg,msg),    2) \
-X(a, STATIC,   ONEOF,    BYTES,    (data,raw,raw),    3)
+X(a, STATIC,   ONEOF,    BYTES,    (data,raw,raw),    3) \
+X(a, STATIC,   ONEOF,    MESSAGE,  (data,internal,internal),   4)
 #define CIOT_EVENT_CALLBACK NULL
 #define CIOT_EVENT_DEFAULT NULL
 #define ciot_event_t_data_msg_MSGTYPE ciot_msg_t
+#define ciot_event_t_data_internal_MSGTYPE ciot_event_internal_t
 
+extern const pb_msgdesc_t ciot_event_internal_t_msg;
 extern const pb_msgdesc_t ciot_event_t_msg;
 
 /* Defines for backwards compatibility with code written before nanopb-0.4.0 */
+#define CIOT_EVENT_INTERNAL_FIELDS &ciot_event_internal_t_msg
 #define CIOT_EVENT_FIELDS &ciot_event_t_msg
 
 /* Maximum encoded size of messages (where known) */
-#if defined(Ciot_Msg_size)
-union Ciot_Event_data_size_union {char f2[(6 + Ciot_Msg_size)]; char f0[131];};
-#endif
-#if defined(Ciot_Msg_size)
-#define CIOT_CIOT_PROTO_V2_EVENT_PB_H_MAX_SIZE   CIOT_EVENT_SIZE
-#define CIOT_EVENT_SIZE                          (2 + sizeof(union Ciot_Event_data_size_union))
-#endif
+/* Ciot_EventInternal_size depends on runtime parameters */
+/* Ciot_Event_size depends on runtime parameters */
 
 #ifdef __cplusplus
 } /* extern "C" */

@@ -196,4 +196,11 @@ ciot_err_t ciot_wifi_get_scanned_aps(ciot_wifi_t self, ciot_wifi_ap_list_t *ap_l
     return CIOT_ERR_OK;
 }
 
+bool ciot_wifi_is_connected(ciot_wifi_t self)
+{
+    CIOT_ERR_NULL_CHECK(self);
+    ciot_wifi_base_t *base = (ciot_wifi_base_t*)self;
+    return base->status.tcp.state == CIOT_TCP_STATE_CONNECTED;
+}
+
 #endif // CIOT_CONFIG_FEATURE_WIFI == 1

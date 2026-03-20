@@ -17,15 +17,22 @@
 #include "esp_http_server.h"
 #include "freertos/event_groups.h"
 
-#define CIOT_HTTP_SERVER_TIMEOUT_MS 15000
 #define CIOT_HTTP_SERVER_RESP_READY_BIT BIT0
+
+#ifndef CIOT_CONFIG_HTTP_SERVER_TIMEOUT_MS
+#define CIOT_CONFIG_HTTP_SERVER_TIMEOUT_MS 15000
+#endif
+
+#ifndef CIOT_CONFIG_HTTP_SERVER_MAX_RESP_SIZE
+#define CIOT_CONFIG_HTTP_SERVER_MAX_RESP_SIZE 512
+#endif
 
 struct ciot_http_server
 {
     ciot_http_server_base_t base;
     httpd_handle_t handle;
     httpd_req_t *req;
-    uint8_t resp[512];
+    uint8_t resp[CIOT_CONFIG_HTTP_SERVER_MAX_RESP_SIZE];
     uint16_t resp_size;
     EventGroupHandle_t event_group;
 };
@@ -83,6 +90,11 @@ ciot_err_t ciot_http_server_send_bytes(ciot_http_server_t self, uint8_t *data, i
 {
     CIOT_ERR_NULL_CHECK(self);
     CIOT_ERR_NULL_CHECK(data);
+    if(size > sizeof(self->resp))
+    {
+        CIOT_LOGW(TAG, "Response size %d exceeds buffer size %d, truncating", size, (int)sizeof(self->resp));
+        size = sizeof(self->resp);
+    }
     memcpy(self->resp, data, size);
     self->resp_size = size;
     xEventGroupSetBits(self->event_group, CIOT_HTTP_SERVER_RESP_READY_BIT);
@@ -162,7 +174,7 @@ static esp_err_t ciot_http_server_api_handler(httpd_req_t *req)
             CIOT_HTTP_SERVER_RESP_READY_BIT,
             pdTRUE,
             pdFALSE,
-            pdMS_TO_TICKS(CIOT_HTTP_SERVER_TIMEOUT_MS));
+            pdMS_TO_TICKS(CIOT_CONFIG_HTTP_SERVER_TIMEOUT_MS));
     }
 
     if (self->resp_size > 0)
@@ -336,7 +348,7 @@ static esp_err_t ciot_http_server_custom_api_handler(httpd_req_t *req)
             CIOT_HTTP_SERVER_RESP_READY_BIT,
             pdTRUE,
             pdFALSE,
-            pdMS_TO_TICKS(CIOT_HTTP_SERVER_TIMEOUT_MS));
+            pdMS_TO_TICKS(CIOT_CONFIG_HTTP_SERVER_TIMEOUT_MS));
     }
 
     if (self->resp_size > 0)

@@ -234,7 +234,7 @@ static ciot_err_t ciot_tcp_set_ip_cfg(ciot_tcp_t self, ciot_tcp_cfg_t *cfg)
         ip_info.ip.addr = ipaddr_addr(ip);
         ip_info.gw.addr = ipaddr_addr(gateway);
         ip_info.netmask.addr = ipaddr_addr(mask);
-        dns_info.ip.u_addr.ip4.addr = ipaddr_addr(mask);
+        dns_info.ip.u_addr.ip4.addr = ipaddr_addr(dns);
         dns_info.ip.type = IPADDR_TYPE_V4;
 
         CIOT_ERR_RETURN(esp_netif_set_ip_info(netif, &ip_info));

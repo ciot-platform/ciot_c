@@ -200,4 +200,14 @@ ciot_err_t ciot_sys_get_info(ciot_sys_t self, ciot_sys_info_t *info)
     return CIOT_ERR_OK;
 }
 
+uint32_t ciot_sys_get_lifetime(ciot_sys_t self)
+{
+    if(self == NULL)
+    {
+        return 0;
+    }
+    ciot_sys_base_t *base = (ciot_sys_base_t*)self;
+    return base->status.lifetime;
+}
+
 #endif // CIOT_CONFIG_FEATURE_SYS == 1

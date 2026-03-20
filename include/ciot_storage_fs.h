@@ -14,6 +14,9 @@
 
 #include "ciot_storage.h"
 
+#define FS_BASE_PATH "/fs"
+#define FS_PARTITION_LABLE "storage"
+
 ciot_storage_t ciot_storage_fs_new(void);
 ciot_err_t ciot_storage_fs_delete(ciot_storage_t self, char *path);
 ciot_err_t ciot_storage_fs_write_bytes(ciot_storage_t self, char *path, uint8_t *bytes, int size);

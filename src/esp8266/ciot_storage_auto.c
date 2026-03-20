@@ -19,10 +19,11 @@
 #include "esp_spiffs.h"
 #include "esp_partition.h"
 
+#include "ciot_log.h"
 #include "ciot_storage.h"
 #include "ciot_storage_fs.h"
 #include "ciot_storage_fat.h"
-#include "ciot_storage_spiffs.c"
+#include "ciot_storage_spiffs.h"
 
 typedef struct ciot_storage_auto *ciot_storage_auto_t;
 

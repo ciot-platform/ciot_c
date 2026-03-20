@@ -47,6 +47,9 @@ ciot_wifi_t ciot_wifi_new(ciot_wifi_type_t type)
 
     ciot_wifi_init(self);
     base->cfg.type = type;
+    
+    uint8_t mocked_mac[] = {0xE8, 0x31, 0xCD, 0x80, 0xA1, 0x6C};
+    memcpy(base->info.tcp.mac, mocked_mac, 6);
 
     return self;
 }
