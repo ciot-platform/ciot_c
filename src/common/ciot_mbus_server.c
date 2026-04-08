@@ -14,6 +14,7 @@
 #if CIOT_CONFIG_FEATURE_MBUS_SERVER == 1
 
 #include "ciot_mbus_server.h"
+#include "ciot_timer.h"
 #include "ciot_uart.h"
 #include <stdlib.h>
 
@@ -113,7 +114,9 @@ ciot_err_t ciot_mbus_server_task(ciot_mbus_server_t self)
     if (self->base.status.state == CIOT_MBUS_SERVER_STATE_STARTED && self->base.conn->state == CIOT_IFACE_STATE_STARTED)
     {
         nmbs_error err = nmbs_server_poll(&self->nmbs);
-        return err != NMBS_ERROR_NONE ? ciot_mbus_get_error(err) : CIOT_ERR_OK;
+        self->base.status.error = ciot_mbus_get_error(err);
+        self->base.status.last_poll = ciot_timer_now();
+        return self->base.status.error;
     }
     return CIOT_ERR_OK;
 }
@@ -127,6 +130,7 @@ ciot_err_t ciot_mbus_server_set_reg(ciot_mbus_server_t self, uint16_t addr, void
 {
     CIOT_ERR_NULL_CHECK(self);
     CIOT_ERR_UINDEX_CHECK(addr, self->base.data.regs.count - size);
+    self->base.status.last_update = ciot_timer_now();
     memcpy(&self->base.data.regs.values[addr], data, size);
     return CIOT_ERR_OK;
 }
@@ -157,7 +161,7 @@ static nmbs_error ciot_mbus_server_read_coils(uint16_t address, uint16_t quantit
 
     if (address + quantity > self->base.data.coils.count)
     {
-        return (nmbs_error)CIOT_ERR_MBUS_EXCEPTION_ILLEGAL_DATA_ADDR;
+        return NMBS_EXCEPTION_ILLEGAL_DATA_ADDRESS;
     }
 
     for (size_t i = 0; i < quantity; i++)
@@ -166,7 +170,10 @@ static nmbs_error ciot_mbus_server_read_coils(uint16_t address, uint16_t quantit
         nmbs_bitfield_write(coils_out, i, value);
     }
 
-    return (nmbs_error)CIOT_ERR_OK;
+    self->base.status.last_request = ciot_timer_now();
+    self->base.status.request_count++;
+
+    return NMBS_ERROR_NONE;
 }
 
 static nmbs_error ciot_mbus_server_write_multiple_coils(uint16_t address, uint16_t quantity, const nmbs_bitfield coils, uint8_t unit_id, void *arg)
@@ -175,7 +182,7 @@ static nmbs_error ciot_mbus_server_write_multiple_coils(uint16_t address, uint16
 
     if (address + quantity > self->base.data.coils.count)
     {
-        return (nmbs_error)CIOT_ERR_MBUS_EXCEPTION_ILLEGAL_DATA_ADDR;
+        return NMBS_EXCEPTION_ILLEGAL_DATA_ADDRESS;
     }
 
     for (int i = 0; i < quantity; i++)
@@ -183,7 +190,10 @@ static nmbs_error ciot_mbus_server_write_multiple_coils(uint16_t address, uint16
         nmbs_bitfield_write(self->base.data.coils.values, address + i, nmbs_bitfield_read(coils, i));
     }
 
-    return (nmbs_error)CIOT_ERR_OK;
+    self->base.status.last_request = ciot_timer_now();
+    self->base.status.request_count++;
+
+    return NMBS_ERROR_NONE;
 }
 
 static nmbs_error ciot_mbus_server_read_holding_registers(uint16_t address, uint16_t quantity, uint16_t *registers_out, uint8_t unit_id, void *arg)
@@ -192,7 +202,7 @@ static nmbs_error ciot_mbus_server_read_holding_registers(uint16_t address, uint
 
     if (address + quantity > self->base.data.regs.count)
     {
-        return (nmbs_error)CIOT_ERR_MBUS_EXCEPTION_ILLEGAL_DATA_ADDR;
+        return NMBS_EXCEPTION_ILLEGAL_DATA_ADDRESS;
     }
 
     for (size_t i = 0; i < quantity; i++)
@@ -200,7 +210,10 @@ static nmbs_error ciot_mbus_server_read_holding_registers(uint16_t address, uint
         registers_out[i] = self->base.data.regs.values[address + i];
     }
 
-    return (nmbs_error)CIOT_ERR_OK;
+    self->base.status.last_request = ciot_timer_now();
+    self->base.status.request_count++;
+
+    return NMBS_ERROR_NONE;
 }
 
 static nmbs_error ciot_mbus_server_write_multiple_registers(uint16_t address, uint16_t quantity, const uint16_t *registers, uint8_t unit_id, void *arg)
@@ -209,7 +222,7 @@ static nmbs_error ciot_mbus_server_write_multiple_registers(uint16_t address, ui
 
     if (address + quantity > self->base.data.regs.count)
     {
-        return (nmbs_error)CIOT_ERR_MBUS_EXCEPTION_ILLEGAL_DATA_ADDR;
+        return NMBS_EXCEPTION_ILLEGAL_DATA_ADDRESS;
     }
 
     for (size_t i = 0; i < quantity; i++)
@@ -217,7 +230,10 @@ static nmbs_error ciot_mbus_server_write_multiple_registers(uint16_t address, ui
         self->base.data.regs.values[address + i] = registers[i];
     }
 
-    return (nmbs_error)CIOT_ERR_OK;
+    self->base.status.last_request = ciot_timer_now();
+    self->base.status.request_count++;
+
+    return NMBS_ERROR_NONE;
 }
 
 #endif // CIOT_CONFIG_FEATURE_MBUS_SERVER == 1

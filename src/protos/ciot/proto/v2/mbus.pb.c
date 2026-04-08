@@ -12,5 +12,3 @@ PB_BIND(CIOT_MBUS_FUNCTION_REQ, ciot_mbus_function_req_t, AUTO)
 
 
 
-
-

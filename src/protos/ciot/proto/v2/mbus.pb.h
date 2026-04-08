@@ -10,18 +10,6 @@
 #endif
 
 /* Enum definitions */
-/* Enum representing Modbus client error codes. */
-typedef enum ciot_mbus_error {
-    CIOT_MBUS_ERROR_NONE = 0, /* No error */
-    CIOT_MBUS_ERROR_REG_ADDR = 1, /* Invalid register address */
-    CIOT_MBUS_ERROR_ARG = 2, /* Invalid argument */
-    CIOT_MBUS_ERROR_PORT_LAYER = 3, /* Port layer error */
-    CIOT_MBUS_ERROR_NO_RESOURCE = 4, /* No resource error */
-    CIOT_MBUS_ERROR_IO = 5, /* I/O error */
-    CIOT_MBUS_ERROR_STATE = 6, /* Protocol stack invalid state error */
-    CIOT_MBUS_ERROR_TIMEOUT = 7 /* Timeout error */
-} ciot_mbus_error_t;
-
 /* Enum representing Modbus function codes */
 typedef enum ciot_mbus_func_code {
     CIOT_MBUS_FUNC_CODE_NONE = 0, /* No function */
@@ -41,7 +29,7 @@ typedef struct ciot_mbus_function_req {
     ciot_mbus_func_code_t code; /* Modbus function code */
     uint32_t address; /* Register/coil start address */
     pb_size_t data_count;
-    uint32_t data[32]; /* Optional written values. */
+    uint32_t data[32]; /* Optional written/read values. */
     uint32_t read_count; /* Optional values count to read */
     uint32_t max_attempts; /* Max attempts */
     uint32_t error; /* Error code */
@@ -53,18 +41,6 @@ extern "C" {
 #endif
 
 /* Helper constants for enums */
-#define _CIOT_MBUS_ERROR_MIN CIOT_MBUS_ERROR_NONE
-#define _CIOT_MBUS_ERROR_MAX CIOT_MBUS_ERROR_TIMEOUT
-#define _CIOT_MBUS_ERROR_ARRAYSIZE ((ciot_mbus_error_t)(CIOT_MBUS_ERROR_TIMEOUT+1))
-#define CIOT_MBUS_ERROR_MBUS_ERROR_NONE CIOT_MBUS_ERROR_NONE
-#define CIOT_MBUS_ERROR_MBUS_ERROR_REG_ADDR CIOT_MBUS_ERROR_REG_ADDR
-#define CIOT_MBUS_ERROR_MBUS_ERROR_ARG CIOT_MBUS_ERROR_ARG
-#define CIOT_MBUS_ERROR_MBUS_ERROR_PORT_LAYER CIOT_MBUS_ERROR_PORT_LAYER
-#define CIOT_MBUS_ERROR_MBUS_ERROR_NO_RESOURCE CIOT_MBUS_ERROR_NO_RESOURCE
-#define CIOT_MBUS_ERROR_MBUS_ERROR_IO CIOT_MBUS_ERROR_IO
-#define CIOT_MBUS_ERROR_MBUS_ERROR_STATE CIOT_MBUS_ERROR_STATE
-#define CIOT_MBUS_ERROR_MBUS_ERROR_TIMEOUT CIOT_MBUS_ERROR_TIMEOUT
-
 #define _CIOT_MBUS_FUNC_CODE_MIN CIOT_MBUS_FUNC_CODE_NONE
 #define _CIOT_MBUS_FUNC_CODE_MAX CIOT_MBUS_FUNC_CODE_WRITE_MULTIPLE_HR
 #define _CIOT_MBUS_FUNC_CODE_ARRAYSIZE ((ciot_mbus_func_code_t)(CIOT_MBUS_FUNC_CODE_WRITE_MULTIPLE_HR+1))
