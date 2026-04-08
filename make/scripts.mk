@@ -1,5 +1,5 @@
 CIOT_PATH := $(subst \,/,$(CIOT_PATH))
 
 mqtt-translator:
-	@echo "Running MQTT translator with host=$(host), port=$(port), topic=$(topic), username=$(username), password=$(password)"
-	@python $(CIOT_PATH)/scripts/mqtt_translator.py --host $(host) --port $(port) --topic $(topic) --username $(username) --password $(password) --topic $(topic)
+	@echo "Running MQTT translator with host=$(MQTT_HOST), port=$(MQTT_PORT), topic=$(MQTT_TOPIC), username=$(MQTT_USERNAME), password=$(MQTT_PASSWORD)"
+	@python $(CIOT_PATH)/ciot_c/scripts/mqtt_translator.py --host $(MQTT_HOST) --port $(MQTT_PORT) --topic $(MQTT_TOPIC) --username $(MQTT_USERNAME) --password $(MQTT_PASSWORD)
