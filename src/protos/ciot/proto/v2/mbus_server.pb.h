@@ -52,9 +52,9 @@ typedef struct ciot_mbus_server_cfg {
 typedef struct ciot_mbus_server_status {
     ciot_mbus_server_state_t state; /* State of the Modbus server. */
     ciot_err_t error; /* Last error code of the Modbus server. */
-    uint64_t last_pool; /* Timestamp of the last pool in milliseconds since epoch. */
-    uint64_t last_update; /* Timestamp of the last update in milliseconds since epoch. */
-    uint64_t last_request; /* Timestamp of the last request in milliseconds since epoch. */
+    uint64_t last_pool; /* Timestamp of the last pool in seconds since epoch. */
+    uint64_t last_update; /* Timestamp of the last update in seconds since epoch. */
+    uint64_t last_request; /* Timestamp of the last request in seconds since epoch. */
     uint32_t request_count; /* Total number of requests handled by the Modbus server. */
 } ciot_mbus_server_status_t;
 
