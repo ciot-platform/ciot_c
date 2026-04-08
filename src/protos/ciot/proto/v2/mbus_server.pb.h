@@ -52,7 +52,7 @@ typedef struct ciot_mbus_server_cfg {
 typedef struct ciot_mbus_server_status {
     ciot_mbus_server_state_t state; /* State of the Modbus server. */
     ciot_err_t error; /* Last error code of the Modbus server. */
-    uint64_t last_pool; /* Timestamp of the last pool in seconds since epoch. */
+    uint64_t last_poll; /* Timestamp of the last poll in seconds since epoch. */
     uint64_t last_update; /* Timestamp of the last update in seconds since epoch. */
     uint64_t last_request; /* Timestamp of the last request in seconds since epoch. */
     uint32_t request_count; /* Total number of requests handled by the Modbus server. */
@@ -125,7 +125,7 @@ extern "C" {
 #define CIOT_MBUS_SERVER_CFG_TCP_TAG             2
 #define CIOT_MBUS_SERVER_STATUS_STATE_TAG        1
 #define CIOT_MBUS_SERVER_STATUS_ERROR_TAG        2
-#define CIOT_MBUS_SERVER_STATUS_LAST_POOL_TAG    3
+#define CIOT_MBUS_SERVER_STATUS_LAST_POLL_TAG    3
 #define CIOT_MBUS_SERVER_STATUS_LAST_UPDATE_TAG  4
 #define CIOT_MBUS_SERVER_STATUS_LAST_REQUEST_TAG 5
 #define CIOT_MBUS_SERVER_STATUS_REQUEST_COUNT_TAG 6
@@ -165,7 +165,7 @@ X(a, STATIC,   ONEOF,    MESSAGE,  (type,tcp,tcp),    2)
 #define CIOT_MBUS_SERVER_STATUS_FIELDLIST(X, a) \
 X(a, STATIC,   SINGULAR, UENUM,    state,             1) \
 X(a, STATIC,   SINGULAR, UENUM,    error,             2) \
-X(a, STATIC,   SINGULAR, UINT64,   last_pool,         3) \
+X(a, STATIC,   SINGULAR, UINT64,   last_poll,         3) \
 X(a, STATIC,   SINGULAR, UINT64,   last_update,       4) \
 X(a, STATIC,   SINGULAR, UINT64,   last_request,      5) \
 X(a, STATIC,   SINGULAR, UINT32,   request_count,     6)
