@@ -4,6 +4,7 @@
 #ifndef PB_CIOT_CIOT_PROTO_V2_MBUS_SERVER_PB_H_INCLUDED
 #define PB_CIOT_CIOT_PROTO_V2_MBUS_SERVER_PB_H_INCLUDED
 #include <pb.h>
+#include "ciot/proto/v2/errors.pb.h"
 #include "ciot/proto/v2/mbus.pb.h"
 #include "ciot/proto/v2/uart.pb.h"
 
@@ -50,6 +51,11 @@ typedef struct ciot_mbus_server_cfg {
 /* Message representing Modbus server status. */
 typedef struct ciot_mbus_server_status {
     ciot_mbus_server_state_t state; /* State of the Modbus server. */
+    ciot_err_t error; /* Last error code of the Modbus server. */
+    uint64_t last_pool; /* Timestamp of the last pool in milliseconds since epoch. */
+    uint64_t last_update; /* Timestamp of the last update in milliseconds since epoch. */
+    uint64_t last_request; /* Timestamp of the last request in milliseconds since epoch. */
+    uint32_t request_count; /* Total number of requests handled by the Modbus server. */
 } ciot_mbus_server_status_t;
 
 /* Message representing an Modbus server request. */
@@ -89,6 +95,7 @@ extern "C" {
 
 
 #define ciot_mbus_server_status_t_state_ENUMTYPE ciot_mbus_server_state_t
+#define ciot_mbus_server_status_t_error_ENUMTYPE ciot_err_t
 
 
 
@@ -98,14 +105,14 @@ extern "C" {
 #define CIOT_MBUS_SERVER_RTU_CFG_INIT_DEFAULT    {0, false, CIOT_UART_CFG_INIT_DEFAULT}
 #define CIOT_MBUS_SERVER_TCP_CFG_INIT_DEFAULT    {0, 0}
 #define CIOT_MBUS_SERVER_CFG_INIT_DEFAULT        {0, {CIOT_MBUS_SERVER_RTU_CFG_INIT_DEFAULT}}
-#define CIOT_MBUS_SERVER_STATUS_INIT_DEFAULT     {_CIOT_MBUS_SERVER_STATE_MIN}
+#define CIOT_MBUS_SERVER_STATUS_INIT_DEFAULT     {_CIOT_MBUS_SERVER_STATE_MIN, _CIOT_ERR_MIN, 0, 0, 0, 0}
 #define CIOT_MBUS_SERVER_REQ_INIT_DEFAULT        {0, {CIOT_MBUS_FUNCTION_REQ_INIT_DEFAULT}}
 #define CIOT_MBUS_SERVER_DATA_INIT_DEFAULT       {0, {CIOT_MBUS_SERVER_STOP_INIT_DEFAULT}}
 #define CIOT_MBUS_SERVER_STOP_INIT_ZERO          {0}
 #define CIOT_MBUS_SERVER_RTU_CFG_INIT_ZERO       {0, false, CIOT_UART_CFG_INIT_ZERO}
 #define CIOT_MBUS_SERVER_TCP_CFG_INIT_ZERO       {0, 0}
 #define CIOT_MBUS_SERVER_CFG_INIT_ZERO           {0, {CIOT_MBUS_SERVER_RTU_CFG_INIT_ZERO}}
-#define CIOT_MBUS_SERVER_STATUS_INIT_ZERO        {_CIOT_MBUS_SERVER_STATE_MIN}
+#define CIOT_MBUS_SERVER_STATUS_INIT_ZERO        {_CIOT_MBUS_SERVER_STATE_MIN, _CIOT_ERR_MIN, 0, 0, 0, 0}
 #define CIOT_MBUS_SERVER_REQ_INIT_ZERO           {0, {CIOT_MBUS_FUNCTION_REQ_INIT_ZERO}}
 #define CIOT_MBUS_SERVER_DATA_INIT_ZERO          {0, {CIOT_MBUS_SERVER_STOP_INIT_ZERO}}
 
@@ -117,6 +124,11 @@ extern "C" {
 #define CIOT_MBUS_SERVER_CFG_RTU_TAG             1
 #define CIOT_MBUS_SERVER_CFG_TCP_TAG             2
 #define CIOT_MBUS_SERVER_STATUS_STATE_TAG        1
+#define CIOT_MBUS_SERVER_STATUS_ERROR_TAG        2
+#define CIOT_MBUS_SERVER_STATUS_LAST_POOL_TAG    3
+#define CIOT_MBUS_SERVER_STATUS_LAST_UPDATE_TAG  4
+#define CIOT_MBUS_SERVER_STATUS_LAST_REQUEST_TAG 5
+#define CIOT_MBUS_SERVER_STATUS_REQUEST_COUNT_TAG 6
 #define CIOT_MBUS_SERVER_REQ_FUNCTION_TAG        1
 #define CIOT_MBUS_SERVER_DATA_STOP_TAG           1
 #define CIOT_MBUS_SERVER_DATA_CONFIG_TAG         2
@@ -151,7 +163,12 @@ X(a, STATIC,   ONEOF,    MESSAGE,  (type,tcp,tcp),    2)
 #define ciot_mbus_server_cfg_t_type_tcp_MSGTYPE ciot_mbus_server_tcp_cfg_t
 
 #define CIOT_MBUS_SERVER_STATUS_FIELDLIST(X, a) \
-X(a, STATIC,   SINGULAR, UENUM,    state,             1)
+X(a, STATIC,   SINGULAR, UENUM,    state,             1) \
+X(a, STATIC,   SINGULAR, UENUM,    error,             2) \
+X(a, STATIC,   SINGULAR, UINT64,   last_pool,         3) \
+X(a, STATIC,   SINGULAR, UINT64,   last_update,       4) \
+X(a, STATIC,   SINGULAR, UINT64,   last_request,      5) \
+X(a, STATIC,   SINGULAR, UINT32,   request_count,     6)
 #define CIOT_MBUS_SERVER_STATUS_CALLBACK NULL
 #define CIOT_MBUS_SERVER_STATUS_DEFAULT NULL
 
@@ -196,7 +213,7 @@ extern const pb_msgdesc_t ciot_mbus_server_data_t_msg;
 #define CIOT_MBUS_SERVER_DATA_SIZE               224
 #define CIOT_MBUS_SERVER_REQ_SIZE                221
 #define CIOT_MBUS_SERVER_RTU_CFG_SIZE            74
-#define CIOT_MBUS_SERVER_STATUS_SIZE             2
+#define CIOT_MBUS_SERVER_STATUS_SIZE             43
 #define CIOT_MBUS_SERVER_STOP_SIZE               0
 #define CIOT_MBUS_SERVER_TCP_CFG_SIZE            12
 
