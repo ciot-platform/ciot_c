@@ -29,7 +29,7 @@ typedef struct ciot_mbus_function_req {
     ciot_mbus_func_code_t code; /* Modbus function code */
     uint32_t address; /* Register/coil start address */
     pb_size_t data_count;
-    uint32_t data[32]; /* Optional written values. */
+    uint32_t data[32]; /* Optional written/read values. */
     uint32_t read_count; /* Optional values count to read */
     uint32_t max_attempts; /* Max attempts */
     uint32_t error; /* Error code */
