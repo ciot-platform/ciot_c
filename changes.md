@@ -18,6 +18,10 @@
 
 * Refined the UART start logic in `ciot_uart_start` to prevent changing the UART number without stopping the interface first, and improved logging and error returns for invalid state transitions. [[1]](diffhunk://#diff-c8a5a36ea012ff34598ad0ee6f74aaf1c434a0083acbc5a0c877c116db5bcceaL79-L100) [[2]](diffhunk://#diff-c8a5a36ea012ff34598ad0ee6f74aaf1c434a0083acbc5a0c877c116db5bcceaL113-R113) [[3]](diffhunk://#diff-c8a5a36ea012ff34598ad0ee6f74aaf1c434a0083acbc5a0c877c116db5bcceaR123-R125)
 
+**HTTP Server changes:**
+
+* Increased the default value of `CIOT_CONFIG_HTTP_SERVER_TIMEOUT_MS` from 15000 ms to 30000 ms in `ciot_http_server.c` to allow more time for HTTP server responses. New extended timeout is needed to support wifi reconnection attempts.
+
 **Build Script Update:**
 
 * Updated the `make/scripts.mk` script to use new environment variable names and the correct path for the MQTT translator script.
