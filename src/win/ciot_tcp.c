@@ -94,29 +94,36 @@ static ciot_err_t ciot_tcp_get_addr(ciot_tcp_t self)
     }
 
     IP_ADAPTER_ADDRESSES *pCurr = pAddresses;
-    while (pCurr)
+    if(self->base.type == CIOT_TCP_TYPE_ETHERNET || self->base.type == CIOT_TCP_TYPE_WIFI_STA)
     {
-        // Confere o tipo da interface conforme seu interesse
-        if ((self->base.type == CIOT_TCP_TYPE_ETHERNET && pCurr->IfType == IF_TYPE_ETHERNET_CSMACD) ||
-            (self->base.type == CIOT_TCP_TYPE_WIFI_STA && pCurr->IfType == IF_TYPE_IEEE80211))
+        while (pCurr)
         {
-            // Verifica se existe endereço unicast
-            IP_ADAPTER_UNICAST_ADDRESS *pUnicast = pCurr->FirstUnicastAddress;
-            while (pUnicast)
+            // Confere o tipo da interface conforme seu interesse
+            if (pCurr->IfType == IF_TYPE_ETHERNET_CSMACD || pCurr->IfType == IF_TYPE_IEEE80211)
             {
-                SOCKADDR *sa = pUnicast->Address.lpSockaddr;
-                if (sa->sa_family == AF_INET && pUnicast->DadState == NldsPreferred)
-                { // IPv4
-                    struct sockaddr_in *sa_in = (struct sockaddr_in *)sa;
-                    memcpy(self->base.info->ip, &(sa_in->sin_addr), 4);
-                    self->base.status->state = CIOT_TCP_STATE_CONNECTED;
-                    self->base.status->conn_count++;
-                    ciot_iface_send_event_type(self->base.iface, CIOT_EVENT_TYPE_STARTED);
+                // Verifica se existe endereço unicast
+                IP_ADAPTER_UNICAST_ADDRESS *pUnicast = pCurr->FirstUnicastAddress;
+                while (pUnicast)
+                {
+                    SOCKADDR *sa = pUnicast->Address.lpSockaddr;
+                    if (sa->sa_family == AF_INET && pUnicast->DadState == NldsPreferred)
+                    { // IPv4
+                        struct sockaddr_in *sa_in = (struct sockaddr_in *)sa;
+                        memcpy(self->base.info->ip, &(sa_in->sin_addr), 4);
+                        self->base.status->state = CIOT_TCP_STATE_CONNECTED;
+                        self->base.status->conn_count++;
+                        ciot_iface_send_event_type(self->base.iface, CIOT_EVENT_TYPE_STARTED);
+                        break;
+                    }
+                    pUnicast = pUnicast->Next;
                 }
-                pUnicast = pUnicast->Next;
+                if(self->base.status->state == CIOT_TCP_STATE_CONNECTED)
+                {
+                    break;
+                }
             }
+            pCurr = pCurr->Next;
         }
-        pCurr = pCurr->Next;
     }
 
     if(self->base.status->state != CIOT_TCP_STATE_CONNECTED)
