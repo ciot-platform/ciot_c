@@ -23,6 +23,12 @@
 #define CIOT_CRYPT_DATA_DECRYPTED "Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat"
 #define CIOT_CRYPT_DATA_ENCRYPTED "YFGMkV1Cyz4ipXOXE6jw27qv4BCWYnJdwNnRIFVpJKe+k9CMC/j1KLPb801/eo9Hieb5D8Y6Npng08DbEU7wpYRYpB6wBn2NTql3qIkhYYvQzsPi9rY3gZtMBpe+5MV83d71wUEgGVnsu224gvCmOG0ATRhTu5ltNq6AICqw+fyScYexCTVP2aEDNIp+13WcD1LSkNOO6xWyOlSH4xhbsJGDLMq379g3IEoDS9CltUrO+vDlJ4EcNy72j6frD4KElPVgk9SgAbtqvyZ7vcwV3K5qK8GdpEVi7hpCQ9pQXskUL2oAnyR6U/A64xgu9G87"
 
+#define CIOT_CRYPT_VALID_KEY_2 (uint8_t*) "AABBCCDDEEFF4548"
+#define CIOT_CRYPT_VALID_KEY_2_SIZE 16
+
+#define CIOT_CRYPT_DATA_DECRYPTED_2 "testpassword"
+#define CIOT_CRYPT_DATA_ENCRYPTED_2 "UbcXb6GJEasJw9MQEnp8bw=="
+
 void test_ciot_crypt_enc_null_crypt(void)
 {
     char *data = CIOT_CRYPT_DATA_DECRYPTED;
@@ -145,6 +151,19 @@ void test_ciot_crypt_dec_ok(void)
     TEST_ASSERT(strcmp(out, CIOT_CRYPT_DATA_DECRYPTED) == 0);
 }
 
+void test_ciot_crypt_dec_ok_2(void)
+{
+    char out[sizeof(CIOT_CRYPT_DATA_ENCRYPTED_2)];
+    char *data = CIOT_CRYPT_DATA_ENCRYPTED_2;
+    ciot_crypt_t crypt = {
+        .key.data = CIOT_CRYPT_VALID_KEY_2,
+        .key.size = CIOT_CRYPT_VALID_KEY_2_SIZE,
+    };
+    ciot_err_t err = ciot_crypt_dec(&crypt, data, out, sizeof(out));
+    TEST_ASSERT(err == CIOT_ERR_OK);
+    TEST_ASSERT(strcmp(out, CIOT_CRYPT_DATA_DECRYPTED_2) == 0);
+}
+
 void test_ciot_crypt_pkcs7_padding(void)
 {
     const char *input = "1234567890abcdef";
@@ -179,5 +198,6 @@ void test_ciot_crypt(void)
     RUN_TEST(test_ciot_crypt_dec_invalid_key_size);
     RUN_TEST(test_ciot_crypt_dec_invalid_size);
     RUN_TEST(test_ciot_crypt_dec_ok);
+    RUN_TEST(test_ciot_crypt_dec_ok_2);
     RUN_TEST(test_ciot_crypt_pkcs7_padding);
 }
