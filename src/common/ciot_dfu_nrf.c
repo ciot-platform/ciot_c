@@ -612,7 +612,7 @@ static ciot_err_t ciot_dfu_nrf_event_handler(ciot_iface_t *sender, ciot_event_t 
         self->state = CIOT_DFU_NRF_STATE_SEND_PING;
     }
 
-    if (event->type == CIOT_EVENT_TYPE_DATA && event->which_data == CIOT_EVENT_RAW_TAG)
+    if (event->type == CIOT_EVENT_TYPE_MSG)
     {
         ciot_err_t err = ciot_dfu_nrf_process_response(self, event->raw.bytes, event->raw.size);
         if (err != CIOT_ERR_OK)
