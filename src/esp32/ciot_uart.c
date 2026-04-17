@@ -102,14 +102,14 @@ ciot_err_t ciot_uart_start(ciot_uart_t self, ciot_uart_cfg_t *cfg)
     };
 
     ESP_ERROR_CHECK(uart_param_config(num, &uart_cfg));
-    ESP_ERROR_CHECK(uart_set_pin(num, base->cfg.gpio.tx, base->cfg.gpio.rx, base->cfg.gpio.rts, base->cfg.gpio.cts));
-
+    
     if (base->status.state == CIOT_UART_STATE_STARTED)
     {
         CIOT_LOGI(TAG, "UART already started");
     }
     else
     {
+        ESP_ERROR_CHECK(uart_set_pin(num, base->cfg.gpio.tx, base->cfg.gpio.rx, base->cfg.gpio.rts, base->cfg.gpio.cts));
         ESP_ERROR_CHECK(uart_driver_install(num, CIOT_CONFIG_UART_RX_BUF_SIZE, CIOT_CONFIG_UART_TX_BUF_SIZE, CIOT_CONFIG_UART_QUEUE_SIZE, &self->queue, 0));
         if (base->iface.decoder)
         {
