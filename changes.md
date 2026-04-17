@@ -25,3 +25,17 @@
 **Build Script Update:**
 
 * Updated the `make/scripts.mk` script to use new environment variable names and the correct path for the MQTT translator script.
+
+**Test coverage improvements**
+
+* Added new test data and a test case (`test_ciot_crypt_dec_ok_2`) to `ciot_crypt_test.c` for verifying decryption with a different key and input, increasing cryptographic test coverage. [[1]](diffhunk://#diff-4715a2e7f2ac8777d2b274311ac2cfb1e4459dc0144dba852cfb67e75ca3cfa6R26-R31) [[2]](diffhunk://#diff-4715a2e7f2ac8777d2b274311ac2cfb1e4459dc0144dba852cfb67e75ca3cfa6R154-R166) [[3]](diffhunk://#diff-4715a2e7f2ac8777d2b274311ac2cfb1e4459dc0144dba852cfb67e75ca3cfa6R201)
+
+**Bug fixes and functional improvements**
+
+* Moved the `uart_set_pin` call in `ciot_uart_start` so that UART pins are only set after checking if the UART is already started, preventing unnecessary hardware reconfiguration.
+* In `ciot_dfu_nrf_event_handler`, changed the event type check from `CIOT_EVENT_TYPE_MSG` to `CIOT_EVENT_TYPE_DATA` to correctly process incoming data events.
+* Improved the interface selection logic in `ciot_tcp_get_addr` (Windows): now only iterates network adapters if the TCP type is Ethernet or WiFi, and breaks out of the loop as soon as a connection is established, optimizing connection setup. [[1]](diffhunk://#diff-fd3885fdf60ec1ccd9aef56ede22dc496c00a524e4c0131e794d7aca2a5f1e8aR97-R102) [[2]](diffhunk://#diff-fd3885fdf60ec1ccd9aef56ede22dc496c00a524e4c0131e794d7aca2a5f1e8aR116-R127)
+
+**Version update**
+
+* Incremented the `CIOT_VER` macro to `0,21,0,2` to reflect these changes.
