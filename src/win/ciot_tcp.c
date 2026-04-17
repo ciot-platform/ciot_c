@@ -99,7 +99,8 @@ static ciot_err_t ciot_tcp_get_addr(ciot_tcp_t self)
         while (pCurr)
         {
             // Confere o tipo da interface conforme seu interesse
-            if (pCurr->IfType == IF_TYPE_ETHERNET_CSMACD || pCurr->IfType == IF_TYPE_IEEE80211)
+            if ((self->base.type == CIOT_TCP_TYPE_ETHERNET && pCurr->IfType == IF_TYPE_ETHERNET_CSMACD) ||
+                (self->base.type == CIOT_TCP_TYPE_WIFI_STA && pCurr->IfType == IF_TYPE_IEEE80211))
             {
                 // Verifica se existe endereço unicast
                 IP_ADAPTER_UNICAST_ADDRESS *pUnicast = pCurr->FirstUnicastAddress;
