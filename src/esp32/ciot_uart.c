@@ -84,8 +84,12 @@ ciot_err_t ciot_uart_start(ciot_uart_t self, ciot_uart_cfg_t *cfg)
 
     CIOT_LOGI(TAG, "num: %d", (int)cfg->num);
 
-    if (cfg->has_gpio == false)
+    if (cfg->has_gpio == false || base->status.state == CIOT_UART_STATE_STARTED)
     {
+        if(base->status.state == CIOT_UART_STATE_STARTED)
+        {
+            CIOT_LOGW(TAG, "UART already started. GPIO settings will be ignored");
+        }
         cfg->has_gpio = base->cfg.has_gpio;
         cfg->gpio = base->cfg.gpio;
     }
