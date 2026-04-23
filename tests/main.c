@@ -17,19 +17,67 @@ void test_ciot_decoder_s();
 void test_ciot_decoder_slip();
 void test_ciot_crypt();
 
-void setUp(void) {
-    // set stuff up here
-}
-
-void tearDown(void) {
-    // clean stuff up here
-}
+// WiFi Multi tests
+void test_ciot_wifi_multi_new_with_injected_wifi(void);
+void test_ciot_wifi_multi_new_creates_internal_wifi(void);
+void test_ciot_wifi_multi_init_null_check(void);
+void test_ciot_wifi_multi_start_null_check(void);
+void test_ciot_wifi_multi_stop_null_check(void);
+void test_ciot_wifi_multi_start_with_single_network(void);
+void test_ciot_wifi_multi_start_with_two_networks(void);
+void test_ciot_wifi_multi_start_with_invalid_initial_index(void);
+void test_ciot_wifi_multi_stop(void);
+void test_ciot_wifi_multi_next_rotates_to_next_network(void);
+void test_ciot_wifi_multi_next_wraps_around(void);
+void test_ciot_wifi_multi_next_skips_invalid_networks(void);
+void test_ciot_wifi_multi_mark_invalid_by_index(void);
+void test_ciot_wifi_multi_mark_active_invalid_triggers_failover(void);
+void test_ciot_wifi_multi_mark_invalid_no_valid_networks_left(void);
+void test_ciot_wifi_multi_reset_invalid_recovers_networks(void);
+void test_ciot_wifi_multi_reset_invalid_when_no_active_network(void);
+void test_ciot_wifi_multi_process_req_next(void);
+void test_ciot_wifi_multi_process_req_set_invalid(void);
+void test_ciot_wifi_multi_process_req_reset_invalid(void);
+void test_ciot_wifi_multi_get_cfg(void);
+void test_ciot_wifi_multi_get_info(void);
+void test_ciot_wifi_multi_start_with_no_networks(void);
+void test_ciot_wifi_multi_next_with_no_networks(void);
 
 int main(void)
 {
     UNITY_BEGIN();
+    
+    // Original tests
     test_ciot_decoder_s();
     test_ciot_decoder_slip();
     test_ciot_crypt();
+    
+    // WiFi Multi tests
+    RUN_TEST(test_ciot_wifi_multi_new_with_injected_wifi);
+    RUN_TEST(test_ciot_wifi_multi_new_creates_internal_wifi);
+    RUN_TEST(test_ciot_wifi_multi_init_null_check);
+    RUN_TEST(test_ciot_wifi_multi_start_null_check);
+    RUN_TEST(test_ciot_wifi_multi_stop_null_check);
+    RUN_TEST(test_ciot_wifi_multi_start_with_single_network);
+    RUN_TEST(test_ciot_wifi_multi_start_with_two_networks);
+    RUN_TEST(test_ciot_wifi_multi_start_with_invalid_initial_index);
+    RUN_TEST(test_ciot_wifi_multi_stop);
+    RUN_TEST(test_ciot_wifi_multi_next_rotates_to_next_network);
+    RUN_TEST(test_ciot_wifi_multi_next_wraps_around);
+    RUN_TEST(test_ciot_wifi_multi_next_skips_invalid_networks);
+    RUN_TEST(test_ciot_wifi_multi_mark_invalid_by_index);
+    RUN_TEST(test_ciot_wifi_multi_mark_active_invalid_triggers_failover);
+    RUN_TEST(test_ciot_wifi_multi_mark_invalid_no_valid_networks_left);
+    RUN_TEST(test_ciot_wifi_multi_reset_invalid_recovers_networks);
+    RUN_TEST(test_ciot_wifi_multi_reset_invalid_when_no_active_network);
+    RUN_TEST(test_ciot_wifi_multi_process_req_next);
+    RUN_TEST(test_ciot_wifi_multi_process_req_set_invalid);
+    RUN_TEST(test_ciot_wifi_multi_process_req_reset_invalid);
+    RUN_TEST(test_ciot_wifi_multi_get_cfg);
+    RUN_TEST(test_ciot_wifi_multi_get_info);
+    RUN_TEST(test_ciot_wifi_multi_start_with_no_networks);
+    RUN_TEST(test_ciot_wifi_multi_next_with_no_networks);
+    
     return UNITY_END();
 }
+
