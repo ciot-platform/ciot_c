@@ -293,6 +293,8 @@ const char* ciot_iface_type_to_str(ciot_iface_type_t iface_type)
             return "MBUS_CLIENT";
         case CIOT_IFACE_TYPE_MBUS_SERVER:
             return "MBUS_SERVER";
+        case CIOT_IFACE_TYPE_WIFI_MULTI:
+            return "WIFI_MULTI";
         default:
             return "UNKNOWN";
         break;
