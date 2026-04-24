@@ -11,7 +11,7 @@
 
 #include "ciot_config.h"
 
-#if CIOT_CONFIG_FEATURE_WIFI == 1
+#if CIOT_CONFIG_FEATURE_WIFI_MULTI == 1
 
 #include <stdlib.h>
 #include <string.h>
@@ -36,6 +36,9 @@ static ciot_err_t ciot_wifi_multi_switch_to(ciot_wifi_multi_t self, uint32_t ind
 static ciot_err_t ciot_wifi_multi_refresh_status(ciot_wifi_multi_t self);
 static ciot_err_t ciot_wifi_multi_refresh_info(ciot_wifi_multi_t self);
 static void ciot_wifi_multi_update_valid_count(ciot_wifi_multi_t self);
+static void ciot_wifi_multi_schedule_next_switch(ciot_wifi_multi_t self);
+static void ciot_wifi_multi_clear_next_switch(ciot_wifi_multi_t self);
+static uint64_t ciot_wifi_multi_now_ms(void);
 
 ciot_wifi_multi_t ciot_wifi_multi_new(ciot_wifi_t wifi_sta)
 {
@@ -82,6 +85,7 @@ ciot_err_t ciot_wifi_multi_init(ciot_wifi_multi_t self)
     base->status.has_tcp = true;
     base->info.has_tcp = true;
     base->info.has_active_wifi_info = true;
+    base->status.next_switch_ms = 0;
 
     return CIOT_ERR_OK;
 }
@@ -160,9 +164,42 @@ ciot_err_t ciot_wifi_multi_stop(ciot_wifi_multi_t self)
 
     base->status.active_index = CIOT_WIFI_MULTI_ACTIVE_INDEX_NONE;
     base->info.active_index = CIOT_WIFI_MULTI_ACTIVE_INDEX_NONE;
+    ciot_wifi_multi_clear_next_switch(self);
     memset(base->info.active_ssid, 0, sizeof(base->info.active_ssid));
 
     return ciot_wifi_stop(base->wifi);
+}
+
+ciot_err_t ciot_wifi_multi_task(ciot_wifi_multi_t self)
+{
+    CIOT_ERR_NULL_CHECK(self);
+    ciot_wifi_multi_base_t *base = &self->base;
+
+    if (base->status.items_count == 0 || base->cfg.switch_interval_ms == 0)
+    {
+        ciot_wifi_multi_clear_next_switch(self);
+        return CIOT_ERR_OK;
+    }
+
+    if (base->status.next_switch_ms == 0)
+    {
+        ciot_wifi_multi_schedule_next_switch(self);
+        return CIOT_ERR_OK;
+    }
+
+    if (ciot_wifi_multi_now_ms() < base->status.next_switch_ms)
+    {
+        return CIOT_ERR_OK;
+    }
+
+    ciot_err_t err = ciot_wifi_multi_next(self);
+    if (err != CIOT_ERR_OK)
+    {
+        ciot_wifi_multi_schedule_next_switch(self);
+        return err;
+    }
+
+    return CIOT_ERR_OK;
 }
 
 ciot_err_t ciot_wifi_multi_next(ciot_wifi_multi_t self)
@@ -182,7 +219,7 @@ ciot_err_t ciot_wifi_multi_next(ciot_wifi_multi_t self)
     }
 
     uint32_t next_index = 0;
-    ciot_err_t err = ciot_wifi_multi_select_next_valid(self, start, false, &next_index);
+    ciot_err_t err = ciot_wifi_multi_select_next_valid(self, start, true, &next_index);
     if (err != CIOT_ERR_OK)
     {
         base->status.last_error = err;
@@ -219,7 +256,7 @@ ciot_err_t ciot_wifi_multi_mark_invalid(ciot_wifi_multi_t self, uint32_t index, 
     }
 
     uint32_t next_index = 0;
-    ciot_err_t err = ciot_wifi_multi_select_next_valid(self, index + 1, false, &next_index);
+    ciot_err_t err = ciot_wifi_multi_select_next_valid(self, index + 1, true, &next_index);
     if (err != CIOT_ERR_OK)
     {
         base->status.active_index = CIOT_WIFI_MULTI_ACTIVE_INDEX_NONE;
@@ -481,9 +518,10 @@ static ciot_err_t ciot_wifi_multi_switch_to(ciot_wifi_multi_t self, uint32_t ind
 
     base->status.active_index = index;
     base->status.items[index].selected = true;
-    base->status.items[index].last_attempt_ms = ciot_timer_now();
+    base->status.items[index].last_attempt_ms = (uint32_t)ciot_wifi_multi_now_ms();
     base->info.active_index = index;
     strncpy(base->info.active_ssid, base->cfg.items[index].ssid, sizeof(base->info.active_ssid) - 1);
+    ciot_wifi_multi_schedule_next_switch(self);
 
     CIOT_ERR_PRINT(TAG, ciot_wifi_multi_refresh_status(self));
     CIOT_ERR_PRINT(TAG, ciot_wifi_multi_refresh_info(self));
@@ -533,6 +571,31 @@ static void ciot_wifi_multi_update_valid_count(ciot_wifi_multi_t self)
             base->status.valid_count++;
         }
     }
+}
+
+static void ciot_wifi_multi_schedule_next_switch(ciot_wifi_multi_t self)
+{
+    ciot_wifi_multi_base_t *base = &self->base;
+
+    if (base->cfg.switch_interval_ms == 0 ||
+        base->status.items_count == 0 ||
+        base->status.active_index == CIOT_WIFI_MULTI_ACTIVE_INDEX_NONE)
+    {
+        base->status.next_switch_ms = 0;
+        return;
+    }
+
+    base->status.next_switch_ms = ciot_wifi_multi_now_ms() + base->cfg.switch_interval_ms;
+}
+
+static void ciot_wifi_multi_clear_next_switch(ciot_wifi_multi_t self)
+{
+    self->base.status.next_switch_ms = 0;
+}
+
+static uint64_t ciot_wifi_multi_now_ms(void)
+{
+    return ciot_timer_now() * 1000ULL;
 }
 
 #endif // CIOT_CONFIG_FEATURE_WIFI == 1

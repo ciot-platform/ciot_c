@@ -20,6 +20,8 @@ extern "C" {
 #include "ciot_iface.h"
 #include "ciot_wifi.h"
 
+#if CIOT_CONFIG_FEATURE_WIFI_MULTI == 1
+
 #define CIOT_WIFI_MULTI_ACTIVE_INDEX_NONE UINT32_MAX
 
 typedef enum ciot_wifi_multi_event
@@ -47,6 +49,7 @@ ciot_wifi_multi_t ciot_wifi_multi_new(ciot_wifi_t wifi_sta);
 ciot_err_t ciot_wifi_multi_init(ciot_wifi_multi_t self);
 ciot_err_t ciot_wifi_multi_start(ciot_wifi_multi_t self, ciot_wifi_multi_cfg_t *cfg);
 ciot_err_t ciot_wifi_multi_stop(ciot_wifi_multi_t self);
+ciot_err_t ciot_wifi_multi_task(ciot_wifi_multi_t self);
 ciot_err_t ciot_wifi_multi_next(ciot_wifi_multi_t self);
 ciot_err_t ciot_wifi_multi_mark_invalid(ciot_wifi_multi_t self, uint32_t index, ciot_err_t reason);
 ciot_err_t ciot_wifi_multi_mark_active_invalid(ciot_wifi_multi_t self, ciot_err_t reason);
@@ -55,6 +58,8 @@ ciot_err_t ciot_wifi_multi_process_req(ciot_wifi_multi_t self, ciot_wifi_multi_r
 ciot_err_t ciot_wifi_multi_get_cfg(ciot_wifi_multi_t self, ciot_wifi_multi_cfg_t *cfg);
 ciot_err_t ciot_wifi_multi_get_status(ciot_wifi_multi_t self, ciot_wifi_multi_status_t *status);
 ciot_err_t ciot_wifi_multi_get_info(ciot_wifi_multi_t self, ciot_wifi_multi_info_t *info);
+
+#endif // CIOT_CONFIG_FEATURE_WIFI_MULTI
 
 #ifdef __cplusplus
 }
