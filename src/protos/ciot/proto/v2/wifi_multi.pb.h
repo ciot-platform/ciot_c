@@ -42,6 +42,7 @@ typedef struct ciot_wifi_multi_status {
     uint32_t active_index; /* Index of currently active network (-1 if none) */
     uint32_t valid_count; /* Number of valid networks available */
     uint32_t last_error; /* Last global error code */
+    uint64_t next_switch_ms; /* Timestamp for next scheduled switch attempt */
     pb_size_t items_count;
     ciot_wifi_multi_item_status_t items[2]; /* Status of each network item */
     bool has_tcp;
@@ -122,7 +123,7 @@ extern "C" {
 #define CIOT_WIFI_MULTI_ITEM_CFG_INIT_DEFAULT    {"", "", 0}
 #define CIOT_WIFI_MULTI_CFG_INIT_DEFAULT         {0, {CIOT_WIFI_MULTI_ITEM_CFG_INIT_DEFAULT, CIOT_WIFI_MULTI_ITEM_CFG_INIT_DEFAULT}, 0, 0, 0}
 #define CIOT_WIFI_MULTI_ITEM_STATUS_INIT_DEFAULT {0, 0, 0, 0, 0}
-#define CIOT_WIFI_MULTI_STATUS_INIT_DEFAULT      {0, 0, 0, 0, {CIOT_WIFI_MULTI_ITEM_STATUS_INIT_DEFAULT, CIOT_WIFI_MULTI_ITEM_STATUS_INIT_DEFAULT}, false, CIOT_TCP_STATUS_INIT_DEFAULT}
+#define CIOT_WIFI_MULTI_STATUS_INIT_DEFAULT      {0, 0, 0, 0, 0, {CIOT_WIFI_MULTI_ITEM_STATUS_INIT_DEFAULT, CIOT_WIFI_MULTI_ITEM_STATUS_INIT_DEFAULT}, false, CIOT_TCP_STATUS_INIT_DEFAULT}
 #define CIOT_WIFI_MULTI_INFO_INIT_DEFAULT        {0, "", false, CIOT_WIFI_INFO_INIT_DEFAULT, false, CIOT_TCP_INFO_INIT_DEFAULT}
 #define CIOT_WIFI_MULTI_REQ_NEXT_INIT_DEFAULT    {0}
 #define CIOT_WIFI_MULTI_REQ_SET_INVALID_INIT_DEFAULT {0, 0}
@@ -135,7 +136,7 @@ extern "C" {
 #define CIOT_WIFI_MULTI_ITEM_CFG_INIT_ZERO       {"", "", 0}
 #define CIOT_WIFI_MULTI_CFG_INIT_ZERO            {0, {CIOT_WIFI_MULTI_ITEM_CFG_INIT_ZERO, CIOT_WIFI_MULTI_ITEM_CFG_INIT_ZERO}, 0, 0, 0}
 #define CIOT_WIFI_MULTI_ITEM_STATUS_INIT_ZERO    {0, 0, 0, 0, 0}
-#define CIOT_WIFI_MULTI_STATUS_INIT_ZERO         {0, 0, 0, 0, {CIOT_WIFI_MULTI_ITEM_STATUS_INIT_ZERO, CIOT_WIFI_MULTI_ITEM_STATUS_INIT_ZERO}, false, CIOT_TCP_STATUS_INIT_ZERO}
+#define CIOT_WIFI_MULTI_STATUS_INIT_ZERO         {0, 0, 0, 0, 0, {CIOT_WIFI_MULTI_ITEM_STATUS_INIT_ZERO, CIOT_WIFI_MULTI_ITEM_STATUS_INIT_ZERO}, false, CIOT_TCP_STATUS_INIT_ZERO}
 #define CIOT_WIFI_MULTI_INFO_INIT_ZERO           {0, "", false, CIOT_WIFI_INFO_INIT_ZERO, false, CIOT_TCP_INFO_INIT_ZERO}
 #define CIOT_WIFI_MULTI_REQ_NEXT_INIT_ZERO       {0}
 #define CIOT_WIFI_MULTI_REQ_SET_INVALID_INIT_ZERO {0, 0}
@@ -162,8 +163,9 @@ extern "C" {
 #define CIOT_WIFI_MULTI_STATUS_ACTIVE_INDEX_TAG  1
 #define CIOT_WIFI_MULTI_STATUS_VALID_COUNT_TAG   2
 #define CIOT_WIFI_MULTI_STATUS_LAST_ERROR_TAG    3
-#define CIOT_WIFI_MULTI_STATUS_ITEMS_TAG         4
-#define CIOT_WIFI_MULTI_STATUS_TCP_TAG           5
+#define CIOT_WIFI_MULTI_STATUS_NEXT_SWITCH_MS_TAG 4
+#define CIOT_WIFI_MULTI_STATUS_ITEMS_TAG         5
+#define CIOT_WIFI_MULTI_STATUS_TCP_TAG           6
 #define CIOT_WIFI_MULTI_INFO_ACTIVE_INDEX_TAG    1
 #define CIOT_WIFI_MULTI_INFO_ACTIVE_SSID_TAG     2
 #define CIOT_WIFI_MULTI_INFO_ACTIVE_WIFI_INFO_TAG 3
@@ -213,8 +215,9 @@ X(a, STATIC,   SINGULAR, UINT32,   last_attempt_ms,   5)
 X(a, STATIC,   SINGULAR, UINT32,   active_index,      1) \
 X(a, STATIC,   SINGULAR, UINT32,   valid_count,       2) \
 X(a, STATIC,   SINGULAR, UINT32,   last_error,        3) \
-X(a, STATIC,   REPEATED, MESSAGE,  items,             4) \
-X(a, STATIC,   OPTIONAL, MESSAGE,  tcp,               5)
+X(a, STATIC,   SINGULAR, UINT64,   next_switch_ms,    4) \
+X(a, STATIC,   REPEATED, MESSAGE,  items,             5) \
+X(a, STATIC,   OPTIONAL, MESSAGE,  tcp,               6)
 #define CIOT_WIFI_MULTI_STATUS_CALLBACK NULL
 #define CIOT_WIFI_MULTI_STATUS_DEFAULT NULL
 #define ciot_wifi_multi_status_t_items_MSGTYPE ciot_wifi_multi_item_status_t
@@ -331,7 +334,7 @@ extern const pb_msgdesc_t ciot_wifi_multi_data_t_msg;
 #define CIOT_WIFI_MULTI_REQ_RESET_INVALID_SIZE   0
 #define CIOT_WIFI_MULTI_REQ_SET_INVALID_SIZE     12
 #define CIOT_WIFI_MULTI_REQ_SIZE                 14
-#define CIOT_WIFI_MULTI_STATUS_SIZE              82
+#define CIOT_WIFI_MULTI_STATUS_SIZE              93
 #define CIOT_WIFI_MULTI_STOP_SIZE                0
 
 #ifdef __cplusplus
