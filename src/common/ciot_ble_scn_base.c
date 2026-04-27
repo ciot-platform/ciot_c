@@ -159,7 +159,7 @@ ciot_err_t ciot_ble_scn_base_task(ciot_ble_scn_t self)
     return CIOT_ERR_OK;
 }
 
-void ciot_ble_scn_handle_adv_report(ciot_ble_scn_t self, ciot_ble_scn_adv_t *adv)
+void ciot_ble_scn_handle_adv_report(ciot_ble_scn_t self, ciot_ble_scn_event_adv_report_t *adv)
 {
     ciot_ble_scn_base_t *base = (ciot_ble_scn_base_t*)self;
 #ifdef CIOT_CONFIG_BLE_SCN_ADV_FIFO_SIZE
