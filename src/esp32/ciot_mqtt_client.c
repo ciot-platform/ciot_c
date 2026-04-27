@@ -122,7 +122,6 @@ static void ciot_mqtt_event_handler(void *handler_args, esp_event_base_t event_b
     ciot_mqtt_client_t self = (ciot_mqtt_client_t)handler_args;
     ciot_mqtt_client_base_t *base = &self->base;
     esp_mqtt_event_t *mqtt_event = (esp_mqtt_event_t *)event_data;
-    ciot_event_t event = { 0 };
 
     switch (event_id)
     {
@@ -156,19 +155,14 @@ static void ciot_mqtt_event_handler(void *handler_args, esp_event_base_t event_b
         ESP_LOGI(TAG, "MQTT_EVENT_DATA");
         if(base->process_all_topics || strncmp(mqtt_event->topic, base->cfg.topics.sub, mqtt_event->topic_len) == 0)
         {
-            event.type = CIOT_EVENT_TYPE_MSG;
-            event.raw.size = mqtt_event->data_len;
-            memcpy(event.raw.bytes, (uint8_t*)mqtt_event->data, mqtt_event->data_len);
-            ciot_iface_send_event(&base->iface, &event);
+            ciot_iface_send_event_data(&base->iface, CIOT_EVENT_TYPE_MSG, (uint8_t*)mqtt_event->data, mqtt_event->data_len);
         }
         else
         {
-            ciot_mqtt_client_event_data_t *event_data = (ciot_mqtt_client_event_data_t*)&event.raw.bytes[0];
-            event.type = CIOT_EVENT_TYPE_DATA;
-            event.raw.size = mqtt_event->data_len;
-            memcpy(event_data->topic, mqtt_event->topic, mqtt_event->topic_len);
-            memcpy(event_data->data, mqtt_event->data, mqtt_event->data_len);
-            ciot_iface_send_event(&base->iface, &event);
+            ciot_mqtt_client_event_data_t evt_data = { 0 };
+            memcpy(evt_data.topic, mqtt_event->topic, mqtt_event->topic_len);
+            memcpy(evt_data.data, mqtt_event->data, mqtt_event->data_len);
+            ciot_iface_send_event_data(&base->iface, CIOT_EVENT_TYPE_DATA, (uint8_t*)&evt_data, sizeof(evt_data));
         }
         break;
     default:
