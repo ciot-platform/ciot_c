@@ -45,6 +45,9 @@ void test_ciot_wifi_multi_get_cfg(void);
 void test_ciot_wifi_multi_get_info(void);
 void test_ciot_wifi_multi_start_with_no_networks(void);
 void test_ciot_wifi_multi_next_with_no_networks(void);
+void test_ciot_wifi_multi_start_failover_when_first_network_sends_stopped_event(void);
+void test_ciot_wifi_multi_failover_succeeds_when_second_network_connects(void);
+void test_ciot_wifi_multi_mark_active_invalid_triggers_failover_via_event(void);
 
 int main(void)
 {
@@ -83,6 +86,9 @@ int main(void)
     RUN_TEST(test_ciot_wifi_multi_get_info);
     RUN_TEST(test_ciot_wifi_multi_start_with_no_networks);
     RUN_TEST(test_ciot_wifi_multi_next_with_no_networks);
+    RUN_TEST(test_ciot_wifi_multi_start_failover_when_first_network_sends_stopped_event);
+    RUN_TEST(test_ciot_wifi_multi_failover_succeeds_when_second_network_connects);
+    RUN_TEST(test_ciot_wifi_multi_mark_active_invalid_triggers_failover_via_event);
     
     return UNITY_END();
 }
