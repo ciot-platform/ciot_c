@@ -47,6 +47,8 @@ ciot_err_t ciot_sys_restart(void);
 ciot_err_t ciot_sys_init_dfu(void);
 uint32_t ciot_sys_get_lifetime(ciot_sys_t self);
 
+void ciot_sys_log_run_time_stats(void);
+
 #ifdef __cplusplus
 }
 #endif
