@@ -23,6 +23,64 @@
 static ciot_wifi_multi_t test_multi_wifi = NULL;
 static ciot_wifi_base_t mock_wifi_base = {0};
 static ciot_iface_t *mock_wifi_iface = (ciot_iface_t*)&mock_wifi_base;
+static bool mock_wifi_fail_on_start = false;
+
+static ciot_err_t mock_wifi_start(ciot_wifi_t wifi, ciot_wifi_cfg_t *cfg, void *args)
+{
+    (void)args;
+    CIOT_ERR_NULL_CHECK(wifi);
+    CIOT_ERR_NULL_CHECK(cfg);
+
+    ciot_wifi_base_t *base = (ciot_wifi_base_t *)wifi;
+    base->cfg = *cfg;
+
+    if (mock_wifi_fail_on_start || cfg->disabled)
+    {
+        base->status.tcp.state = CIOT_TCP_STATE_STOPPED;
+        base->status.disconnect_reason = CIOT_ERR_DISCONNECTION;
+        ciot_iface_send_event_type(&base->iface, CIOT_EVENT_TYPE_STOPPED);
+    }
+    else
+    {
+        base->status.tcp.state = CIOT_TCP_STATE_CONNECTED;
+        base->status.disconnect_reason = CIOT_ERR_OK;
+        ciot_iface_send_event_type(&base->iface, CIOT_EVENT_TYPE_STARTED);
+    }
+    return CIOT_ERR_OK;
+}
+
+static ciot_err_t mock_wifi_stop(ciot_wifi_t wifi, void *args)
+{
+    (void)args;
+    CIOT_ERR_NULL_CHECK(wifi);
+
+    ciot_wifi_base_t *base = (ciot_wifi_base_t *)wifi;
+    base->status.tcp.state = CIOT_TCP_STATE_STOPPED;
+    ciot_iface_send_event_type(&base->iface, CIOT_EVENT_TYPE_STOPPED);
+    return CIOT_ERR_OK;
+}
+
+static ciot_err_t mock_wifi_get_status(ciot_wifi_t wifi, ciot_wifi_status_t *status, void *args)
+{
+    (void)args;
+    CIOT_ERR_NULL_CHECK(wifi);
+    CIOT_ERR_NULL_CHECK(status);
+
+    ciot_wifi_base_t *base = (ciot_wifi_base_t *)wifi;
+    *status = base->status;
+    return CIOT_ERR_OK;
+}
+
+static ciot_err_t mock_wifi_get_info(ciot_wifi_t wifi, ciot_wifi_info_t *info, void *args)
+{
+    (void)args;
+    CIOT_ERR_NULL_CHECK(wifi);
+    CIOT_ERR_NULL_CHECK(info);
+
+    ciot_wifi_base_t *base = (ciot_wifi_base_t *)wifi;
+    *info = base->info;
+    return CIOT_ERR_OK;
+}
 
 // Mock iface functions for wifi_multi
 static ciot_err_t mock_wifi_multi_process_data(ciot_iface_t *iface, ciot_msg_data_t *data)
@@ -42,6 +100,7 @@ static ciot_err_t mock_wifi_multi_send_data(ciot_iface_t *iface, uint8_t *data, 
 
 void setUp(void)
 {
+    mock_wifi_fail_on_start = false;
     memset(&mock_wifi_base, 0, sizeof(ciot_wifi_base_t));
     mock_wifi_base.tcp = ciot_tcp_new((ciot_iface_t*)&mock_wifi_base, CIOT_TCP_TYPE_WIFI_STA);
     ciot_wifi_init((ciot_wifi_t)&mock_wifi_base);
@@ -56,6 +115,15 @@ void setUp(void)
     // Create wifi_multi with injected mock wifi
     test_multi_wifi = ciot_wifi_multi_new((ciot_wifi_t)&mock_wifi_base);
     TEST_ASSERT_NOT_NULL(test_multi_wifi);
+
+    ciot_wifi_multi_wifi_ops_t wifi_ops = {
+        .start = mock_wifi_start,
+        .stop = mock_wifi_stop,
+        .get_status = mock_wifi_get_status,
+        .get_info = mock_wifi_get_info,
+        .args = NULL,
+    };
+    TEST_ASSERT_EQUAL(CIOT_ERR_OK, ciot_wifi_multi_set_wifi_ops(test_multi_wifi, &wifi_ops));
 }
 
 void tearDown(void)
@@ -646,4 +714,89 @@ void test_ciot_wifi_multi_next_with_no_networks(void)
 {
     ciot_err_t err = ciot_wifi_multi_next(test_multi_wifi);
     TEST_ASSERT_EQUAL(CIOT_ERR_INVALID_STATE, err);
+}
+
+// ============================================================================
+// Test: Connection failure - start sends STOPPED event (failover via event)
+// ============================================================================
+
+void test_ciot_wifi_multi_start_failover_when_first_network_sends_stopped_event(void)
+{
+    ciot_wifi_multi_cfg_t cfg = {0};
+    cfg.items_count = 2;
+    strncpy((char*)cfg.items[0].ssid, "SSID1", sizeof(cfg.items[0].ssid) - 1);
+    strncpy((char*)cfg.items[0].password, "Pass1", sizeof(cfg.items[0].password) - 1);
+    cfg.items[0].valid = true;
+    strncpy((char*)cfg.items[1].ssid, "SSID2", sizeof(cfg.items[1].ssid) - 1);
+    strncpy((char*)cfg.items[1].password, "Pass2", sizeof(cfg.items[1].password) - 1);
+    cfg.items[1].valid = true;
+    cfg.initial_index = 0;
+
+    // Simulate connection failure: start sends STOPPED event
+    mock_wifi_fail_on_start = true;
+
+    ciot_err_t err = ciot_wifi_multi_start(test_multi_wifi, &cfg);
+    TEST_ASSERT_EQUAL(CIOT_ERR_OK, err);
+
+    // Network 0 should have been invalidated and failover to network 1 triggered,
+    // but network 1 also fails, so no valid network remains
+    ciot_wifi_multi_status_t status = {0};
+    ciot_wifi_multi_get_status(test_multi_wifi, &status);
+    TEST_ASSERT_FALSE(status.items[0].valid);
+    TEST_ASSERT_EQUAL(CIOT_WIFI_MULTI_ACTIVE_INDEX_NONE, status.active_index);
+}
+
+void test_ciot_wifi_multi_failover_succeeds_when_second_network_connects(void)
+{
+    ciot_wifi_multi_cfg_t cfg = {0};
+    cfg.items_count = 2;
+    strncpy((char*)cfg.items[0].ssid, "SSID1", sizeof(cfg.items[0].ssid) - 1);
+    strncpy((char*)cfg.items[0].password, "Pass1", sizeof(cfg.items[0].password) - 1);
+    cfg.items[0].valid = true;
+    strncpy((char*)cfg.items[1].ssid, "SSID2", sizeof(cfg.items[1].ssid) - 1);
+    strncpy((char*)cfg.items[1].password, "Pass2", sizeof(cfg.items[1].password) - 1);
+    cfg.items[1].valid = true;
+    cfg.initial_index = 0;
+
+    // First start fails, then recovery succeeds
+    mock_wifi_fail_on_start = true;
+    ciot_err_t err = ciot_wifi_multi_start(test_multi_wifi, &cfg);
+    TEST_ASSERT_EQUAL(CIOT_ERR_OK, err);
+
+    // Reset invalid networks and allow connection
+    mock_wifi_fail_on_start = false;
+    err = ciot_wifi_multi_reset_invalid(test_multi_wifi);
+    TEST_ASSERT_EQUAL(CIOT_ERR_OK, err);
+
+    ciot_wifi_multi_status_t status = {0};
+    ciot_wifi_multi_get_status(test_multi_wifi, &status);
+    TEST_ASSERT_EQUAL(2, status.valid_count);
+    TEST_ASSERT_NOT_EQUAL(CIOT_WIFI_MULTI_ACTIVE_INDEX_NONE, status.active_index);
+}
+
+void test_ciot_wifi_multi_mark_active_invalid_triggers_failover_via_event(void)
+{
+    ciot_wifi_multi_cfg_t cfg = {0};
+    cfg.items_count = 2;
+    strncpy((char*)cfg.items[0].ssid, "SSID1", sizeof(cfg.items[0].ssid) - 1);
+    strncpy((char*)cfg.items[0].password, "Pass1", sizeof(cfg.items[0].password) - 1);
+    cfg.items[0].valid = true;
+    strncpy((char*)cfg.items[1].ssid, "SSID2", sizeof(cfg.items[1].ssid) - 1);
+    strncpy((char*)cfg.items[1].password, "Pass2", sizeof(cfg.items[1].password) - 1);
+    cfg.items[1].valid = true;
+    cfg.initial_index = 0;
+
+    ciot_err_t err = ciot_wifi_multi_start(test_multi_wifi, &cfg);
+    TEST_ASSERT_EQUAL(CIOT_ERR_OK, err);
+
+    ciot_wifi_multi_status_t status = {0};
+    ciot_wifi_multi_get_status(test_multi_wifi, &status);
+    TEST_ASSERT_EQUAL(0, status.active_index);
+
+    // Simulate disconnection: stop sends STOPPED event, which wifi_multi intercepts
+    // and calls mark_active_invalid internally
+    ciot_wifi_multi_stop(test_multi_wifi);
+
+    ciot_wifi_multi_get_status(test_multi_wifi, &status);
+    TEST_ASSERT_EQUAL(CIOT_WIFI_MULTI_ACTIVE_INDEX_NONE, status.active_index);
 }
