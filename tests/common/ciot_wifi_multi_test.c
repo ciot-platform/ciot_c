@@ -25,6 +25,7 @@ static ciot_wifi_base_t mock_wifi_base = {0};
 static ciot_iface_t *mock_wifi_iface = (ciot_iface_t*)&mock_wifi_base;
 static bool mock_wifi_fail_on_start = false;
 static char mock_wifi_fail_ssid[33] = {0};
+static uint32_t mock_wifi_start_calls = 0;
 
 static ciot_err_t mock_wifi_start(ciot_wifi_t wifi, ciot_wifi_cfg_t *cfg, void *args)
 {
@@ -33,6 +34,7 @@ static ciot_err_t mock_wifi_start(ciot_wifi_t wifi, ciot_wifi_cfg_t *cfg, void *
     CIOT_ERR_NULL_CHECK(cfg);
 
     ciot_wifi_base_t *base = (ciot_wifi_base_t *)wifi;
+    mock_wifi_start_calls++;
     base->cfg = *cfg;
 
     bool fail_for_ssid = mock_wifi_fail_ssid[0] != '\0' && strcmp(cfg->ssid, mock_wifi_fail_ssid) == 0;
@@ -110,6 +112,7 @@ void setUp(void)
 {
     mock_wifi_fail_on_start = false;
     memset(mock_wifi_fail_ssid, 0, sizeof(mock_wifi_fail_ssid));
+    mock_wifi_start_calls = 0;
     memset(&mock_wifi_base, 0, sizeof(ciot_wifi_base_t));
     mock_wifi_base.tcp = ciot_tcp_new((ciot_iface_t*)&mock_wifi_base, CIOT_TCP_TYPE_WIFI_STA);
     ciot_wifi_init((ciot_wifi_t)&mock_wifi_base);
@@ -188,6 +191,7 @@ void test_ciot_wifi_multi_task_in_idle_does_nothing(void)
     TEST_ASSERT_EQUAL(CIOT_ERR_OK, err);
     TEST_ASSERT_EQUAL(CIOT_WIFI_MULTI_ACTIVE_INDEX_NONE, status.active_index);
     TEST_ASSERT_EQUAL(0, status.next_switch_s);
+    TEST_ASSERT_FALSE(status.started);
 }
 
 void test_ciot_wifi_multi_start_requires_preconfigured_items(void)
@@ -222,6 +226,31 @@ void test_ciot_wifi_multi_start_with_single_network(void)
     TEST_ASSERT_EQUAL(1, status.items_count);
     TEST_ASSERT_EQUAL(0, status.active_index);
     TEST_ASSERT_EQUAL(1, status.valid_count);
+    TEST_ASSERT_TRUE(status.started);
+}
+
+void test_ciot_wifi_multi_start_keeps_current_connection_when_ssid_matches(void)
+{
+    // Simulate an already connected Wi-Fi interface using the same target SSID.
+    strncpy((char*)mock_wifi_base.cfg.ssid, "SSID1", sizeof(mock_wifi_base.cfg.ssid) - 1);
+    mock_wifi_base.status.tcp.state = CIOT_TCP_STATE_CONNECTED;
+
+    ciot_wifi_multi_cfg_t cfg = {0};
+    cfg.items_count = 1;
+    strncpy((char*)cfg.items[0].ssid, "SSID1", sizeof(cfg.items[0].ssid) - 1);
+    strncpy((char*)cfg.items[0].password, "Pass1", sizeof(cfg.items[0].password) - 1);
+    cfg.items[0].valid = true;
+    cfg.initial_index = 0;
+
+    ciot_err_t err = start_test_multi_wifi(test_multi_wifi, &cfg);
+    TEST_ASSERT_EQUAL(CIOT_ERR_OK, err);
+    TEST_ASSERT_EQUAL(0, mock_wifi_start_calls);
+
+    ciot_wifi_multi_status_t status = {0};
+    err = ciot_wifi_multi_get_status(test_multi_wifi, &status);
+    TEST_ASSERT_EQUAL(CIOT_ERR_OK, err);
+    TEST_ASSERT_TRUE(status.started);
+    TEST_ASSERT_EQUAL(0, status.active_index);
 }
 
 void test_ciot_wifi_multi_start_with_two_networks(void)

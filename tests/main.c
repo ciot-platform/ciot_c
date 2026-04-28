@@ -26,6 +26,7 @@ void test_ciot_wifi_multi_stop_null_check(void);
 void test_ciot_wifi_multi_task_in_idle_does_nothing(void);
 void test_ciot_wifi_multi_start_requires_preconfigured_items(void);
 void test_ciot_wifi_multi_start_with_single_network(void);
+void test_ciot_wifi_multi_start_keeps_current_connection_when_ssid_matches(void);
 void test_ciot_wifi_multi_start_with_two_networks(void);
 void test_ciot_wifi_multi_start_with_invalid_initial_index(void);
 void test_ciot_wifi_multi_stop(void);
@@ -74,6 +75,7 @@ int main(void)
     RUN_TEST(test_ciot_wifi_multi_task_in_idle_does_nothing);
     RUN_TEST(test_ciot_wifi_multi_start_requires_preconfigured_items);
     RUN_TEST(test_ciot_wifi_multi_start_with_single_network);
+    RUN_TEST(test_ciot_wifi_multi_start_keeps_current_connection_when_ssid_matches);
     RUN_TEST(test_ciot_wifi_multi_start_with_two_networks);
     RUN_TEST(test_ciot_wifi_multi_start_with_invalid_initial_index);
     RUN_TEST(test_ciot_wifi_multi_stop);
