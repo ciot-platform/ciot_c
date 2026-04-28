@@ -20,6 +20,10 @@ grpc:
 	powershell -Command dotnet build '$(CIOT_PATH)\ciot_cs\Ciot.Protos\Ciot.Protos.csproj' -v:diag"
 	powershell -Command dotnet run --project ..\ciot_cs\Ciot.Grpc\Ciot.Grpc.csproj --configuration Debug -v:diag"
 
+test:
+	"C:\Program Files\CMake\bin\cmake.EXE" --build d:/projects/ciot-platform/ciot_c/build --config Debug --target tests -j 16 --
+	build\tests\tests.exe
+
 help:
 	@echo gen-ciot: generate ANSI-C proto files
 	
