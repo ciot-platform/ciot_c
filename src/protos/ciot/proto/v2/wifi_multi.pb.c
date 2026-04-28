@@ -36,6 +36,9 @@ PB_BIND(CIOT_WIFI_MULTI_REQ_RESET_INVALID, ciot_wifi_multi_req_reset_invalid_t, 
 PB_BIND(CIOT_WIFI_MULTI_REQ_GET_ITEM, ciot_wifi_multi_req_get_item_t, AUTO)
 
 
+PB_BIND(CIOT_WIFI_MULTI_REQ_SET_ITEM, ciot_wifi_multi_req_set_item_t, AUTO)
+
+
 PB_BIND(CIOT_WIFI_MULTI_REQ, ciot_wifi_multi_req_t, AUTO)
 
 
