@@ -47,6 +47,7 @@ void test_ciot_wifi_multi_process_req_next(void);
 void test_ciot_wifi_multi_process_req_set_invalid(void);
 void test_ciot_wifi_multi_process_req_reset_invalid(void);
 void test_ciot_wifi_multi_process_req_set_item_updates_ram_only(void);
+void test_ciot_wifi_multi_process_req_set_item_requires_config(void);
 void test_ciot_wifi_multi_get_cfg(void);
 void test_ciot_wifi_multi_get_info(void);
 void test_ciot_wifi_multi_start_with_no_networks(void);
@@ -94,6 +95,7 @@ int main(void)
     RUN_TEST(test_ciot_wifi_multi_process_req_set_invalid);
     RUN_TEST(test_ciot_wifi_multi_process_req_reset_invalid);
     RUN_TEST(test_ciot_wifi_multi_process_req_set_item_updates_ram_only);
+    RUN_TEST(test_ciot_wifi_multi_process_req_set_item_requires_config);
     RUN_TEST(test_ciot_wifi_multi_get_cfg);
     RUN_TEST(test_ciot_wifi_multi_get_info);
     RUN_TEST(test_ciot_wifi_multi_start_with_no_networks);
