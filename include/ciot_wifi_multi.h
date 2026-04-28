@@ -54,6 +54,7 @@ typedef struct ciot_wifi_multi_base
     ciot_iface_event_handler_fn *wifi_event_handler;
     void *wifi_event_args;
     ciot_wifi_multi_wifi_ops_t wifi_ops;
+    bool started;
     ciot_wifi_multi_cfg_t cfg;
     ciot_wifi_multi_status_t status;
     ciot_wifi_multi_info_t info;
@@ -64,6 +65,7 @@ ciot_err_t ciot_wifi_multi_init(ciot_wifi_multi_t self);
 ciot_err_t ciot_wifi_multi_start(ciot_wifi_multi_t self, ciot_wifi_multi_cfg_t *cfg);
 ciot_err_t ciot_wifi_multi_stop(ciot_wifi_multi_t self);
 ciot_err_t ciot_wifi_multi_task(ciot_wifi_multi_t self);
+ciot_err_t ciot_wifi_multi_set_item(ciot_wifi_multi_t self, uint32_t index, const ciot_wifi_multi_item_cfg_t *item);
 ciot_err_t ciot_wifi_multi_next(ciot_wifi_multi_t self);
 ciot_err_t ciot_wifi_multi_mark_invalid(ciot_wifi_multi_t self, uint32_t index, ciot_err_t reason);
 ciot_err_t ciot_wifi_multi_mark_active_invalid(ciot_wifi_multi_t self, ciot_err_t reason);
