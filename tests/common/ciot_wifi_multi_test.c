@@ -24,6 +24,7 @@ static ciot_wifi_multi_t test_multi_wifi = NULL;
 static ciot_wifi_base_t mock_wifi_base = {0};
 static ciot_iface_t *mock_wifi_iface = (ciot_iface_t*)&mock_wifi_base;
 static bool mock_wifi_fail_on_start = false;
+static char mock_wifi_fail_ssid[33] = {0};
 
 static ciot_err_t mock_wifi_start(ciot_wifi_t wifi, ciot_wifi_cfg_t *cfg, void *args)
 {
@@ -34,7 +35,9 @@ static ciot_err_t mock_wifi_start(ciot_wifi_t wifi, ciot_wifi_cfg_t *cfg, void *
     ciot_wifi_base_t *base = (ciot_wifi_base_t *)wifi;
     base->cfg = *cfg;
 
-    if (mock_wifi_fail_on_start || cfg->disabled)
+    bool fail_for_ssid = mock_wifi_fail_ssid[0] != '\0' && strcmp(cfg->ssid, mock_wifi_fail_ssid) == 0;
+
+    if (mock_wifi_fail_on_start || cfg->disabled || fail_for_ssid)
     {
         base->status.tcp.state = CIOT_TCP_STATE_STOPPED;
         base->status.disconnect_reason = CIOT_ERR_DISCONNECTION;
@@ -101,6 +104,7 @@ static ciot_err_t mock_wifi_multi_send_data(ciot_iface_t *iface, uint8_t *data, 
 void setUp(void)
 {
     mock_wifi_fail_on_start = false;
+    memset(mock_wifi_fail_ssid, 0, sizeof(mock_wifi_fail_ssid));
     memset(&mock_wifi_base, 0, sizeof(ciot_wifi_base_t));
     mock_wifi_base.tcp = ciot_tcp_new((ciot_iface_t*)&mock_wifi_base, CIOT_TCP_TYPE_WIFI_STA);
     ciot_wifi_init((ciot_wifi_t)&mock_wifi_base);
@@ -167,6 +171,28 @@ void test_ciot_wifi_multi_stop_null_check(void)
 {
     ciot_err_t err = ciot_wifi_multi_stop(NULL);
     TEST_ASSERT_EQUAL(CIOT_ERR_NULL_ARG, err);
+}
+
+void test_ciot_wifi_multi_task_in_idle_does_nothing(void)
+{
+    ciot_err_t err = ciot_wifi_multi_task(test_multi_wifi);
+    TEST_ASSERT_EQUAL(CIOT_ERR_OK, err);
+
+    ciot_wifi_multi_status_t status = {0};
+    err = ciot_wifi_multi_get_status(test_multi_wifi, &status);
+    TEST_ASSERT_EQUAL(CIOT_ERR_OK, err);
+    TEST_ASSERT_EQUAL(CIOT_WIFI_MULTI_ACTIVE_INDEX_NONE, status.active_index);
+    TEST_ASSERT_EQUAL(0, status.next_switch_s);
+}
+
+void test_ciot_wifi_multi_start_requires_preconfigured_items(void)
+{
+    ciot_wifi_multi_cfg_t cfg = {0};
+    cfg.items_count = 1;
+    cfg.initial_index = 0;
+
+    ciot_err_t err = ciot_wifi_multi_start(test_multi_wifi, &cfg);
+    TEST_ASSERT_EQUAL(CIOT_ERR_INVALID_STATE, err);
 }
 
 // ============================================================================
@@ -340,7 +366,7 @@ void test_ciot_wifi_multi_start_schedules_next_switch_when_enabled(void)
 {
     ciot_wifi_multi_cfg_t cfg = {0};
     cfg.items_count = 2;
-    cfg.switch_interval_ms = 1000;
+    cfg.switch_interval_s = 10;
     strncpy((char*)cfg.items[0].ssid, "SSID1", sizeof(cfg.items[0].ssid) - 1);
     strncpy((char*)cfg.items[0].password, "Pass1", sizeof(cfg.items[0].password) - 1);
     cfg.items[0].valid = true;
@@ -354,15 +380,15 @@ void test_ciot_wifi_multi_start_schedules_next_switch_when_enabled(void)
 
     ciot_wifi_multi_status_t status = {0};
     ciot_wifi_multi_get_status(test_multi_wifi, &status);
-    TEST_ASSERT_NOT_EQUAL(0, status.next_switch_ms);
-    TEST_ASSERT_TRUE(status.next_switch_ms >= 1000);
+    TEST_ASSERT_NOT_EQUAL(0, status.next_switch_s);
+    TEST_ASSERT_TRUE(status.next_switch_s >= 10);
 }
 
 void test_ciot_wifi_multi_task_rotates_when_switch_is_due(void)
 {
     ciot_wifi_multi_cfg_t cfg = {0};
     cfg.items_count = 2;
-    cfg.switch_interval_ms = 1000;
+    cfg.switch_interval_s = 10;
     strncpy((char*)cfg.items[0].ssid, "SSID1", sizeof(cfg.items[0].ssid) - 1);
     strncpy((char*)cfg.items[0].password, "Pass1", sizeof(cfg.items[0].password) - 1);
     cfg.items[0].valid = true;
@@ -375,7 +401,7 @@ void test_ciot_wifi_multi_task_rotates_when_switch_is_due(void)
     TEST_ASSERT_EQUAL(CIOT_ERR_OK, err);
 
     ciot_wifi_multi_base_t *base = (ciot_wifi_multi_base_t *)test_multi_wifi;
-    base->status.next_switch_ms = 1;
+    base->status.next_switch_s = 1;
 
     err = ciot_wifi_multi_task(test_multi_wifi);
     TEST_ASSERT_EQUAL(CIOT_ERR_OK, err);
@@ -383,7 +409,127 @@ void test_ciot_wifi_multi_task_rotates_when_switch_is_due(void)
     ciot_wifi_multi_status_t status = {0};
     ciot_wifi_multi_get_status(test_multi_wifi, &status);
     TEST_ASSERT_EQUAL(1, status.active_index);
-    TEST_ASSERT_NOT_EQUAL(0, status.next_switch_ms);
+    TEST_ASSERT_NOT_EQUAL(0, status.next_switch_s);
+}
+
+void test_ciot_wifi_multi_task_rotates_and_returns_to_first_network(void)
+{
+    ciot_wifi_multi_cfg_t cfg = {0};
+    cfg.items_count = 2;
+    cfg.switch_interval_s = 10;
+    strncpy((char*)cfg.items[0].ssid, "SSID1", sizeof(cfg.items[0].ssid) - 1);
+    strncpy((char*)cfg.items[0].password, "Pass1", sizeof(cfg.items[0].password) - 1);
+    cfg.items[0].valid = true;
+    strncpy((char*)cfg.items[1].ssid, "SSID2", sizeof(cfg.items[1].ssid) - 1);
+    strncpy((char*)cfg.items[1].password, "Pass2", sizeof(cfg.items[1].password) - 1);
+    cfg.items[1].valid = true;
+    cfg.initial_index = 0;
+
+    ciot_err_t err = ciot_wifi_multi_start(test_multi_wifi, &cfg);
+    TEST_ASSERT_EQUAL(CIOT_ERR_OK, err);
+
+    ciot_wifi_multi_base_t *base = (ciot_wifi_multi_base_t *)test_multi_wifi;
+    ciot_wifi_multi_status_t status = {0};
+
+    // Verify initial state: network 0 is active
+    ciot_wifi_multi_get_status(test_multi_wifi, &status);
+    TEST_ASSERT_EQUAL(0, status.active_index);
+
+    // First task: rotate from network 0 to network 1
+    base->status.next_switch_s = 1;
+    err = ciot_wifi_multi_task(test_multi_wifi);
+    TEST_ASSERT_EQUAL(CIOT_ERR_OK, err);
+    ciot_wifi_multi_get_status(test_multi_wifi, &status);
+    TEST_ASSERT_EQUAL(1, status.active_index);
+    TEST_ASSERT_EQUAL(true, status.items[1].selected);
+
+    // Second task: rotate back from network 1 to network 0
+    base->status.next_switch_s = 1;
+    err = ciot_wifi_multi_task(test_multi_wifi);
+    TEST_ASSERT_EQUAL(CIOT_ERR_OK, err);
+    ciot_wifi_multi_get_status(test_multi_wifi, &status);
+    TEST_ASSERT_EQUAL(0, status.active_index);
+    TEST_ASSERT_EQUAL(true, status.items[0].selected);
+
+    // Third task: rotate from network 0 to network 1 again
+    base->status.next_switch_s = 1;
+    err = ciot_wifi_multi_task(test_multi_wifi);
+    TEST_ASSERT_EQUAL(CIOT_ERR_OK, err);
+    ciot_wifi_multi_get_status(test_multi_wifi, &status);
+    TEST_ASSERT_EQUAL(1, status.active_index);
+    TEST_ASSERT_EQUAL(true, status.items[1].selected);
+}
+
+void test_ciot_wifi_multi_task_retries_invalid_networks_in_rotation(void)
+{
+    ciot_wifi_multi_cfg_t cfg = {0};
+    cfg.items_count = 2;
+    cfg.switch_interval_s = 10;
+    strncpy((char*)cfg.items[0].ssid, "SSID1", sizeof(cfg.items[0].ssid) - 1);
+    strncpy((char*)cfg.items[0].password, "Pass1", sizeof(cfg.items[0].password) - 1);
+    cfg.items[0].valid = true;
+    strncpy((char*)cfg.items[1].ssid, "SSID2", sizeof(cfg.items[1].ssid) - 1);
+    strncpy((char*)cfg.items[1].password, "Pass2", sizeof(cfg.items[1].password) - 1);
+    cfg.items[1].valid = true;
+    cfg.initial_index = 0;
+
+    ciot_err_t err = ciot_wifi_multi_start(test_multi_wifi, &cfg);
+    TEST_ASSERT_EQUAL(CIOT_ERR_OK, err);
+
+    // Invalidate network 1 while network 0 remains active.
+    err = ciot_wifi_multi_mark_invalid(test_multi_wifi, 1, CIOT_ERR_DISCONNECTION);
+    TEST_ASSERT_EQUAL(CIOT_ERR_OK, err);
+
+    ciot_wifi_multi_status_t status = {0};
+    ciot_wifi_multi_get_status(test_multi_wifi, &status);
+    TEST_ASSERT_EQUAL(0, status.active_index);
+    TEST_ASSERT_FALSE(status.items[1].valid);
+
+    ciot_wifi_multi_base_t *base = (ciot_wifi_multi_base_t *)test_multi_wifi;
+    base->status.next_switch_s = 1;
+
+    // Task rotation must include invalid network again to retest it.
+    err = ciot_wifi_multi_task(test_multi_wifi);
+    TEST_ASSERT_EQUAL(CIOT_ERR_OK, err);
+
+    ciot_wifi_multi_get_status(test_multi_wifi, &status);
+    TEST_ASSERT_EQUAL(1, status.active_index);
+    TEST_ASSERT_TRUE(status.items[1].valid);
+}
+
+void test_ciot_wifi_multi_task_returns_to_previous_network_when_switch_fails(void)
+{
+    ciot_wifi_multi_cfg_t cfg = {0};
+    cfg.items_count = 2;
+    cfg.switch_interval_s = 10;
+    strncpy((char*)cfg.items[0].ssid, "SSID1", sizeof(cfg.items[0].ssid) - 1);
+    strncpy((char*)cfg.items[0].password, "Pass1", sizeof(cfg.items[0].password) - 1);
+    cfg.items[0].valid = true;
+    strncpy((char*)cfg.items[1].ssid, "SSID2", sizeof(cfg.items[1].ssid) - 1);
+    strncpy((char*)cfg.items[1].password, "Pass2", sizeof(cfg.items[1].password) - 1);
+    cfg.items[1].valid = true;
+    cfg.initial_index = 0;
+
+    ciot_err_t err = ciot_wifi_multi_start(test_multi_wifi, &cfg);
+    TEST_ASSERT_EQUAL(CIOT_ERR_OK, err);
+
+    ciot_wifi_multi_status_t status = {0};
+    ciot_wifi_multi_get_status(test_multi_wifi, &status);
+    TEST_ASSERT_EQUAL(0, status.active_index);
+
+    // Force rotation attempt and fail only when trying to switch to SSID2.
+    strncpy(mock_wifi_fail_ssid, "SSID2", sizeof(mock_wifi_fail_ssid) - 1);
+    ciot_wifi_multi_base_t *base = (ciot_wifi_multi_base_t *)test_multi_wifi;
+    base->status.next_switch_s = 1;
+
+    err = ciot_wifi_multi_task(test_multi_wifi);
+    TEST_ASSERT_EQUAL(CIOT_ERR_OK, err);
+
+    // Failed switch to SSID2 must rollback to previous SSID1.
+    ciot_wifi_multi_get_status(test_multi_wifi, &status);
+    TEST_ASSERT_EQUAL(0, status.active_index);
+    TEST_ASSERT_TRUE(status.items[0].valid);
+    TEST_ASSERT_FALSE(status.items[1].valid);
 }
 
 void test_ciot_wifi_multi_task_does_nothing_when_schedule_disabled(void)
@@ -407,7 +553,7 @@ void test_ciot_wifi_multi_task_does_nothing_when_schedule_disabled(void)
     ciot_wifi_multi_status_t status = {0};
     ciot_wifi_multi_get_status(test_multi_wifi, &status);
     TEST_ASSERT_EQUAL(0, status.active_index);
-    TEST_ASSERT_EQUAL(0, status.next_switch_ms);
+    TEST_ASSERT_EQUAL(0, status.next_switch_s);
 }
 
 // ============================================================================
@@ -653,6 +799,30 @@ void test_ciot_wifi_multi_process_req_reset_invalid(void)
     ciot_wifi_multi_get_status(test_multi_wifi, &status);
     TEST_ASSERT_TRUE(status.items[0].valid);
     TEST_ASSERT_TRUE(status.items[1].valid);
+}
+
+void test_ciot_wifi_multi_process_req_set_item_updates_ram_only(void)
+{
+    ciot_wifi_multi_req_t req = {0};
+    req.which_type = CIOT_WIFI_MULTI_REQ_SET_ITEM_TAG;
+    req.set_item.index = 0;
+    strncpy((char*)req.set_item.config.ssid, "IdleSSID", sizeof(req.set_item.config.ssid) - 1);
+    strncpy((char*)req.set_item.config.password, "IdlePass", sizeof(req.set_item.config.password) - 1);
+    req.set_item.config.valid = true;
+
+    ciot_err_t err = ciot_wifi_multi_process_req(test_multi_wifi, &req);
+    TEST_ASSERT_EQUAL(CIOT_ERR_OK, err);
+
+    ciot_wifi_multi_cfg_t cfg = {0};
+    err = ciot_wifi_multi_get_cfg(test_multi_wifi, &cfg);
+    TEST_ASSERT_EQUAL(CIOT_ERR_OK, err);
+    TEST_ASSERT_EQUAL(0, strncmp((char*)cfg.items[0].ssid, "IdleSSID", 8));
+    TEST_ASSERT_EQUAL(0, strncmp((char*)cfg.items[0].password, "IdlePass", 8));
+
+    ciot_wifi_multi_status_t status = {0};
+    err = ciot_wifi_multi_get_status(test_multi_wifi, &status);
+    TEST_ASSERT_EQUAL(CIOT_ERR_OK, err);
+    TEST_ASSERT_EQUAL(CIOT_WIFI_MULTI_ACTIVE_INDEX_NONE, status.active_index);
 }
 
 // ============================================================================

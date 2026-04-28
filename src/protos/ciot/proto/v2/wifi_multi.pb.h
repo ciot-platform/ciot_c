@@ -88,6 +88,7 @@ typedef struct ciot_wifi_multi_req_get_item {
 /* Request to set configuration for a specific network index in RAM only */
 typedef struct ciot_wifi_multi_req_set_item {
     uint32_t index; /* Index of the item to configure */
+    bool has_config;
     ciot_wifi_multi_item_cfg_t config; /* Network configuration for the index */
 } ciot_wifi_multi_req_set_item_t;
 
@@ -137,7 +138,7 @@ extern "C" {
 #define CIOT_WIFI_MULTI_REQ_MARK_ACTIVE_INVALID_INIT_DEFAULT {0}
 #define CIOT_WIFI_MULTI_REQ_RESET_INVALID_INIT_DEFAULT {0}
 #define CIOT_WIFI_MULTI_REQ_GET_ITEM_INIT_DEFAULT {0}
-#define CIOT_WIFI_MULTI_REQ_SET_ITEM_INIT_DEFAULT {0, CIOT_WIFI_MULTI_ITEM_CFG_INIT_DEFAULT}
+#define CIOT_WIFI_MULTI_REQ_SET_ITEM_INIT_DEFAULT {0, false, CIOT_WIFI_MULTI_ITEM_CFG_INIT_DEFAULT}
 #define CIOT_WIFI_MULTI_REQ_INIT_DEFAULT         {0, {CIOT_WIFI_MULTI_REQ_NEXT_INIT_DEFAULT}}
 #define CIOT_WIFI_MULTI_STOP_INIT_DEFAULT        {0}
 #define CIOT_WIFI_MULTI_DATA_INIT_DEFAULT        {0, {CIOT_WIFI_MULTI_STOP_INIT_DEFAULT}}
@@ -151,7 +152,7 @@ extern "C" {
 #define CIOT_WIFI_MULTI_REQ_MARK_ACTIVE_INVALID_INIT_ZERO {0}
 #define CIOT_WIFI_MULTI_REQ_RESET_INVALID_INIT_ZERO {0}
 #define CIOT_WIFI_MULTI_REQ_GET_ITEM_INIT_ZERO   {0}
-#define CIOT_WIFI_MULTI_REQ_SET_ITEM_INIT_ZERO   {0, CIOT_WIFI_MULTI_ITEM_CFG_INIT_ZERO}
+#define CIOT_WIFI_MULTI_REQ_SET_ITEM_INIT_ZERO   {0, false, CIOT_WIFI_MULTI_ITEM_CFG_INIT_ZERO}
 #define CIOT_WIFI_MULTI_REQ_INIT_ZERO            {0, {CIOT_WIFI_MULTI_REQ_NEXT_INIT_ZERO}}
 #define CIOT_WIFI_MULTI_STOP_INIT_ZERO           {0}
 #define CIOT_WIFI_MULTI_DATA_INIT_ZERO           {0, {CIOT_WIFI_MULTI_STOP_INIT_ZERO}}
@@ -273,7 +274,7 @@ X(a, STATIC,   SINGULAR, UINT32,   index,             1)
 
 #define CIOT_WIFI_MULTI_REQ_SET_ITEM_FIELDLIST(X, a) \
 X(a, STATIC,   SINGULAR, UINT32,   index,             1) \
-X(a, STATIC,   SINGULAR, MESSAGE,  config,            2)
+X(a, STATIC,   OPTIONAL, MESSAGE,  config,            2)
 #define CIOT_WIFI_MULTI_REQ_SET_ITEM_CALLBACK NULL
 #define CIOT_WIFI_MULTI_REQ_SET_ITEM_DEFAULT NULL
 #define ciot_wifi_multi_req_set_item_t_config_MSGTYPE ciot_wifi_multi_item_cfg_t
@@ -356,7 +357,8 @@ extern const pb_msgdesc_t ciot_wifi_multi_data_t_msg;
 #define CIOT_WIFI_MULTI_REQ_NEXT_SIZE            0
 #define CIOT_WIFI_MULTI_REQ_RESET_INVALID_SIZE   0
 #define CIOT_WIFI_MULTI_REQ_SET_INVALID_SIZE     12
-#define CIOT_WIFI_MULTI_REQ_SIZE                 14
+#define CIOT_WIFI_MULTI_REQ_SET_ITEM_SIZE        108
+#define CIOT_WIFI_MULTI_REQ_SIZE                 110
 #define CIOT_WIFI_MULTI_STATUS_SIZE              93
 #define CIOT_WIFI_MULTI_STOP_SIZE                0
 
