@@ -101,6 +101,24 @@ static ciot_err_t mock_wifi_multi_send_data(ciot_iface_t *iface, uint8_t *data, 
     return CIOT_ERR_NOT_SUPPORTED;
 }
 
+static ciot_err_t start_test_multi_wifi(ciot_wifi_multi_t wifi_multi, ciot_wifi_multi_cfg_t *cfg)
+{
+    ciot_err_t err = CIOT_ERR_OK;
+    for (uint32_t i = 0; i < cfg->items_count; i++)
+    {
+        if (cfg->items[i].ssid[0] != '\0')
+        {
+            err = ciot_wifi_multi_set_item(wifi_multi, i, &cfg->items[i]);
+            if (err != CIOT_ERR_OK)
+            {
+                return err;
+            }
+        }
+    }
+
+    return ciot_wifi_multi_start(wifi_multi, cfg);
+}
+
 void setUp(void)
 {
     mock_wifi_fail_on_start = false;
@@ -208,7 +226,7 @@ void test_ciot_wifi_multi_start_with_single_network(void)
     cfg.items[0].valid = true;
     cfg.initial_index = 0;
     
-    ciot_err_t err = ciot_wifi_multi_start(test_multi_wifi, &cfg);
+    ciot_err_t err = start_test_multi_wifi(test_multi_wifi, &cfg);
     TEST_ASSERT_EQUAL(CIOT_ERR_OK, err);
     
     ciot_wifi_multi_status_t status = {0};
@@ -231,7 +249,7 @@ void test_ciot_wifi_multi_start_with_two_networks(void)
     cfg.items[1].valid = true;
     cfg.initial_index = 0;
     
-    ciot_err_t err = ciot_wifi_multi_start(test_multi_wifi, &cfg);
+    ciot_err_t err = start_test_multi_wifi(test_multi_wifi, &cfg);
     TEST_ASSERT_EQUAL(CIOT_ERR_OK, err);
     
     ciot_wifi_multi_status_t status = {0};
@@ -254,7 +272,7 @@ void test_ciot_wifi_multi_start_with_invalid_initial_index(void)
     cfg.items[1].valid = true;
     cfg.initial_index = 1;  // Valid, should use it
     
-    ciot_err_t err = ciot_wifi_multi_start(test_multi_wifi, &cfg);
+    ciot_err_t err = start_test_multi_wifi(test_multi_wifi, &cfg);
     TEST_ASSERT_EQUAL(CIOT_ERR_OK, err);
     
     ciot_wifi_multi_status_t status = {0};
@@ -272,7 +290,7 @@ void test_ciot_wifi_multi_stop(void)
     cfg.items[0].valid = true;
     cfg.initial_index = 0;
     
-    ciot_wifi_multi_start(test_multi_wifi, &cfg);
+    start_test_multi_wifi(test_multi_wifi, &cfg);
     
     ciot_err_t err = ciot_wifi_multi_stop(test_multi_wifi);
     TEST_ASSERT_EQUAL(CIOT_ERR_OK, err);
@@ -298,7 +316,7 @@ void test_ciot_wifi_multi_next_rotates_to_next_network(void)
     cfg.items[1].valid = true;
     cfg.initial_index = 0;
     
-    ciot_wifi_multi_start(test_multi_wifi, &cfg);
+    start_test_multi_wifi(test_multi_wifi, &cfg);
     
     // Call next to rotate to network 1
     ciot_err_t err = ciot_wifi_multi_next(test_multi_wifi);
@@ -321,7 +339,7 @@ void test_ciot_wifi_multi_next_wraps_around(void)
     cfg.items[1].valid = true;
     cfg.initial_index = 1;  // Start at last item
     
-    ciot_wifi_multi_start(test_multi_wifi, &cfg);
+    start_test_multi_wifi(test_multi_wifi, &cfg);
     
     ciot_wifi_multi_status_t status = {0};
     ciot_wifi_multi_get_status(test_multi_wifi, &status);
@@ -347,7 +365,7 @@ void test_ciot_wifi_multi_next_skips_invalid_networks(void)
     cfg.items[1].valid = false;  // Mark as invalid
     cfg.initial_index = 0;
     
-    ciot_wifi_multi_start(test_multi_wifi, &cfg);
+    start_test_multi_wifi(test_multi_wifi, &cfg);
     
     ciot_wifi_multi_status_t status = {0};
     ciot_wifi_multi_get_status(test_multi_wifi, &status);
@@ -375,7 +393,7 @@ void test_ciot_wifi_multi_start_schedules_next_switch_when_enabled(void)
     cfg.items[1].valid = true;
     cfg.initial_index = 0;
 
-    ciot_err_t err = ciot_wifi_multi_start(test_multi_wifi, &cfg);
+    ciot_err_t err = start_test_multi_wifi(test_multi_wifi, &cfg);
     TEST_ASSERT_EQUAL(CIOT_ERR_OK, err);
 
     ciot_wifi_multi_status_t status = {0};
@@ -397,7 +415,7 @@ void test_ciot_wifi_multi_task_rotates_when_switch_is_due(void)
     cfg.items[1].valid = true;
     cfg.initial_index = 0;
 
-    ciot_err_t err = ciot_wifi_multi_start(test_multi_wifi, &cfg);
+    ciot_err_t err = start_test_multi_wifi(test_multi_wifi, &cfg);
     TEST_ASSERT_EQUAL(CIOT_ERR_OK, err);
 
     ciot_wifi_multi_base_t *base = (ciot_wifi_multi_base_t *)test_multi_wifi;
@@ -425,7 +443,7 @@ void test_ciot_wifi_multi_task_rotates_and_returns_to_first_network(void)
     cfg.items[1].valid = true;
     cfg.initial_index = 0;
 
-    ciot_err_t err = ciot_wifi_multi_start(test_multi_wifi, &cfg);
+    ciot_err_t err = start_test_multi_wifi(test_multi_wifi, &cfg);
     TEST_ASSERT_EQUAL(CIOT_ERR_OK, err);
 
     ciot_wifi_multi_base_t *base = (ciot_wifi_multi_base_t *)test_multi_wifi;
@@ -473,7 +491,7 @@ void test_ciot_wifi_multi_task_retries_invalid_networks_in_rotation(void)
     cfg.items[1].valid = true;
     cfg.initial_index = 0;
 
-    ciot_err_t err = ciot_wifi_multi_start(test_multi_wifi, &cfg);
+    ciot_err_t err = start_test_multi_wifi(test_multi_wifi, &cfg);
     TEST_ASSERT_EQUAL(CIOT_ERR_OK, err);
 
     // Invalidate network 1 while network 0 remains active.
@@ -510,7 +528,7 @@ void test_ciot_wifi_multi_task_returns_to_previous_network_when_switch_fails(voi
     cfg.items[1].valid = true;
     cfg.initial_index = 0;
 
-    ciot_err_t err = ciot_wifi_multi_start(test_multi_wifi, &cfg);
+    ciot_err_t err = start_test_multi_wifi(test_multi_wifi, &cfg);
     TEST_ASSERT_EQUAL(CIOT_ERR_OK, err);
 
     ciot_wifi_multi_status_t status = {0};
@@ -544,7 +562,7 @@ void test_ciot_wifi_multi_task_does_nothing_when_schedule_disabled(void)
     cfg.items[1].valid = true;
     cfg.initial_index = 0;
 
-    ciot_err_t err = ciot_wifi_multi_start(test_multi_wifi, &cfg);
+    ciot_err_t err = start_test_multi_wifi(test_multi_wifi, &cfg);
     TEST_ASSERT_EQUAL(CIOT_ERR_OK, err);
 
     err = ciot_wifi_multi_task(test_multi_wifi);
@@ -572,7 +590,7 @@ void test_ciot_wifi_multi_mark_invalid_by_index(void)
     cfg.items[1].valid = true;
     cfg.initial_index = 0;
     
-    ciot_wifi_multi_start(test_multi_wifi, &cfg);
+    start_test_multi_wifi(test_multi_wifi, &cfg);
     
     // Mark network 0 as invalid
     ciot_err_t err = ciot_wifi_multi_mark_invalid(test_multi_wifi, 0, CIOT_ERR_DISCONNECTION);
@@ -598,7 +616,7 @@ void test_ciot_wifi_multi_mark_active_invalid_triggers_failover(void)
     cfg.items[1].valid = true;
     cfg.initial_index = 0;
     
-    ciot_wifi_multi_start(test_multi_wifi, &cfg);
+    start_test_multi_wifi(test_multi_wifi, &cfg);
     
     ciot_wifi_multi_status_t status = {0};
     ciot_wifi_multi_get_status(test_multi_wifi, &status);
@@ -626,7 +644,7 @@ void test_ciot_wifi_multi_mark_invalid_no_valid_networks_left(void)
     cfg.items[1].valid = true;
     cfg.initial_index = 0;
     
-    ciot_wifi_multi_start(test_multi_wifi, &cfg);
+    start_test_multi_wifi(test_multi_wifi, &cfg);
     
     // Mark network 0 as invalid (should switch to 1)
     ciot_wifi_multi_mark_invalid(test_multi_wifi, 0, CIOT_ERR_DISCONNECTION);
@@ -660,7 +678,7 @@ void test_ciot_wifi_multi_reset_invalid_recovers_networks(void)
     cfg.items[1].valid = true;
     cfg.initial_index = 0;
     
-    ciot_wifi_multi_start(test_multi_wifi, &cfg);
+    start_test_multi_wifi(test_multi_wifi, &cfg);
     
     // Mark network 0 as invalid
     ciot_wifi_multi_mark_invalid(test_multi_wifi, 0, CIOT_ERR_DISCONNECTION);
@@ -692,7 +710,7 @@ void test_ciot_wifi_multi_reset_invalid_when_no_active_network(void)
     cfg.items[1].valid = true;
     cfg.initial_index = 0;
     
-    ciot_wifi_multi_start(test_multi_wifi, &cfg);
+    start_test_multi_wifi(test_multi_wifi, &cfg);
     
     // Mark both as invalid
     ciot_wifi_multi_mark_invalid(test_multi_wifi, 0, CIOT_ERR_DISCONNECTION);
@@ -728,7 +746,7 @@ void test_ciot_wifi_multi_process_req_next(void)
     cfg.items[1].valid = true;
     cfg.initial_index = 0;
     
-    ciot_wifi_multi_start(test_multi_wifi, &cfg);
+    start_test_multi_wifi(test_multi_wifi, &cfg);
     
     ciot_wifi_multi_req_t req = {0};
     req.which_type = CIOT_WIFI_MULTI_REQ_NEXT_TAG;
@@ -753,7 +771,7 @@ void test_ciot_wifi_multi_process_req_set_invalid(void)
     cfg.items[1].valid = true;
     cfg.initial_index = 0;
     
-    ciot_wifi_multi_start(test_multi_wifi, &cfg);
+    start_test_multi_wifi(test_multi_wifi, &cfg);
     
     ciot_wifi_multi_req_t req = {0};
     req.which_type = CIOT_WIFI_MULTI_REQ_SET_INVALID_TAG;
@@ -781,7 +799,7 @@ void test_ciot_wifi_multi_process_req_reset_invalid(void)
     cfg.items[1].valid = true;
     cfg.initial_index = 0;
     
-    ciot_wifi_multi_start(test_multi_wifi, &cfg);
+    start_test_multi_wifi(test_multi_wifi, &cfg);
     
     // Invalidate network 0
     ciot_wifi_multi_req_t req = {0};
@@ -806,6 +824,7 @@ void test_ciot_wifi_multi_process_req_set_item_updates_ram_only(void)
     ciot_wifi_multi_req_t req = {0};
     req.which_type = CIOT_WIFI_MULTI_REQ_SET_ITEM_TAG;
     req.set_item.index = 0;
+    req.set_item.has_config = true;
     strncpy((char*)req.set_item.config.ssid, "IdleSSID", sizeof(req.set_item.config.ssid) - 1);
     strncpy((char*)req.set_item.config.password, "IdlePass", sizeof(req.set_item.config.password) - 1);
     req.set_item.config.valid = true;
@@ -825,6 +844,17 @@ void test_ciot_wifi_multi_process_req_set_item_updates_ram_only(void)
     TEST_ASSERT_EQUAL(CIOT_WIFI_MULTI_ACTIVE_INDEX_NONE, status.active_index);
 }
 
+void test_ciot_wifi_multi_process_req_set_item_requires_config(void)
+{
+    ciot_wifi_multi_req_t req = {0};
+    req.which_type = CIOT_WIFI_MULTI_REQ_SET_ITEM_TAG;
+    req.set_item.index = 0;
+    req.set_item.has_config = false;
+
+    ciot_err_t err = ciot_wifi_multi_process_req(test_multi_wifi, &req);
+    TEST_ASSERT_EQUAL(CIOT_ERR_INVALID_ARG, err);
+}
+
 // ============================================================================
 // Test: Configuration retrieval
 // ============================================================================
@@ -841,7 +871,7 @@ void test_ciot_wifi_multi_get_cfg(void)
     cfg.items[1].valid = true;
     cfg.initial_index = 0;
     
-    ciot_wifi_multi_start(test_multi_wifi, &cfg);
+    start_test_multi_wifi(test_multi_wifi, &cfg);
     
     ciot_wifi_multi_cfg_t retrieved_cfg = {0};
     ciot_err_t err = ciot_wifi_multi_get_cfg(test_multi_wifi, &retrieved_cfg);
@@ -859,7 +889,7 @@ void test_ciot_wifi_multi_get_info(void)
     cfg.items[0].valid = true;
     cfg.initial_index = 0;
     
-    ciot_wifi_multi_start(test_multi_wifi, &cfg);
+    start_test_multi_wifi(test_multi_wifi, &cfg);
     
     ciot_wifi_multi_info_t info = {0};
     ciot_err_t err = ciot_wifi_multi_get_info(test_multi_wifi, &info);
@@ -876,7 +906,7 @@ void test_ciot_wifi_multi_start_with_no_networks(void)
     ciot_wifi_multi_cfg_t cfg = {0};
     cfg.items_count = 0;
     
-    ciot_err_t err = ciot_wifi_multi_start(test_multi_wifi, &cfg);
+    ciot_err_t err = start_test_multi_wifi(test_multi_wifi, &cfg);
     TEST_ASSERT_EQUAL(CIOT_ERR_INVALID_ARG, err);
 }
 
@@ -905,7 +935,7 @@ void test_ciot_wifi_multi_start_failover_when_first_network_sends_stopped_event(
     // Simulate connection failure: start sends STOPPED event
     mock_wifi_fail_on_start = true;
 
-    ciot_err_t err = ciot_wifi_multi_start(test_multi_wifi, &cfg);
+    ciot_err_t err = start_test_multi_wifi(test_multi_wifi, &cfg);
     TEST_ASSERT_EQUAL(CIOT_ERR_OK, err);
 
     // Network 0 should have been invalidated and failover to network 1 triggered,
@@ -930,7 +960,7 @@ void test_ciot_wifi_multi_failover_succeeds_when_second_network_connects(void)
 
     // First start fails, then recovery succeeds
     mock_wifi_fail_on_start = true;
-    ciot_err_t err = ciot_wifi_multi_start(test_multi_wifi, &cfg);
+    ciot_err_t err = start_test_multi_wifi(test_multi_wifi, &cfg);
     TEST_ASSERT_EQUAL(CIOT_ERR_OK, err);
 
     // Reset invalid networks and allow connection
@@ -956,7 +986,7 @@ void test_ciot_wifi_multi_mark_active_invalid_triggers_failover_via_event(void)
     cfg.items[1].valid = true;
     cfg.initial_index = 0;
 
-    ciot_err_t err = ciot_wifi_multi_start(test_multi_wifi, &cfg);
+    ciot_err_t err = start_test_multi_wifi(test_multi_wifi, &cfg);
     TEST_ASSERT_EQUAL(CIOT_ERR_OK, err);
 
     ciot_wifi_multi_status_t status = {0};

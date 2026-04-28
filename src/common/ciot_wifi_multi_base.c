@@ -160,12 +160,6 @@ ciot_err_t ciot_wifi_multi_start(ciot_wifi_multi_t self, ciot_wifi_multi_cfg_t *
 
     for (uint32_t i = 0; i < items_count; i++)
     {
-        /* Keep backward compatibility while start migrates to RAM-only item setup. */
-        if (base->cfg.items[i].ssid[0] == '\0' && cfg->items[i].ssid[0] != '\0')
-        {
-            base->cfg.items[i] = cfg->items[i];
-        }
-
         if (base->cfg.items[i].ssid[0] == '\0')
         {
             return CIOT_ERR_INVALID_STATE;
@@ -473,6 +467,10 @@ ciot_err_t ciot_wifi_multi_process_req(ciot_wifi_multi_t self, ciot_wifi_multi_r
         return CIOT_ERR_OK;
     }
     case CIOT_WIFI_MULTI_REQ_SET_ITEM_TAG:
+        if (!req->set_item.has_config)
+        {
+            return CIOT_ERR_INVALID_ARG;
+        }
         return ciot_wifi_multi_set_item(self, req->set_item.index, &req->set_item.config);
     default:
         return CIOT_ERR_NOT_SUPPORTED;
