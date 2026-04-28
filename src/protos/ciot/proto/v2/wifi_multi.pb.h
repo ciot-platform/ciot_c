@@ -115,7 +115,7 @@ typedef struct ciot_wifi_multi_data {
     pb_size_t which_type;
     union {
         ciot_wifi_multi_stop_t stop; /* Stop multi-Wi-Fi orchestrator */
-        ciot_wifi_multi_cfg_t config; /* Configuration for multi-Wi-Fi */
+        ciot_wifi_multi_cfg_t config; /* Full configuration written in RAM before start */
         ciot_wifi_multi_status_t status; /* Status of multi-Wi-Fi orchestrator */
         ciot_wifi_multi_req_t request; /* Request to multi-Wi-Fi orchestrator */
         ciot_wifi_multi_info_t info; /* Information about active network */

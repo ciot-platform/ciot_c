@@ -103,19 +103,6 @@ static ciot_err_t mock_wifi_multi_send_data(ciot_iface_t *iface, uint8_t *data, 
 
 static ciot_err_t start_test_multi_wifi(ciot_wifi_multi_t wifi_multi, ciot_wifi_multi_cfg_t *cfg)
 {
-    ciot_err_t err = CIOT_ERR_OK;
-    for (uint32_t i = 0; i < cfg->items_count; i++)
-    {
-        if (cfg->items[i].ssid[0] != '\0')
-        {
-            err = ciot_wifi_multi_set_item(wifi_multi, i, &cfg->items[i]);
-            if (err != CIOT_ERR_OK)
-            {
-                return err;
-            }
-        }
-    }
-
     return ciot_wifi_multi_start(wifi_multi, cfg);
 }
 

@@ -153,10 +153,8 @@ ciot_err_t ciot_wifi_multi_start(ciot_wifi_multi_t self, ciot_wifi_multi_cfg_t *
         return CIOT_ERR_INVALID_ARG;
     }
 
+    base->cfg = *cfg;
     base->cfg.items_count = items_count;
-    base->cfg.initial_index = cfg->initial_index;
-    base->cfg.switch_interval_s = cfg->switch_interval_s;
-    base->cfg.reconnect_attempts = cfg->reconnect_attempts;
 
     for (uint32_t i = 0; i < items_count; i++)
     {
