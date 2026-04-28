@@ -92,6 +92,7 @@ ciot_err_t ciot_wifi_multi_init(ciot_wifi_multi_t self)
     base->info.has_active_wifi_info = true;
     base->status.next_switch_s = 0;
     base->started = false;
+    base->status.started = false;
 
     CIOT_ERR_RETURN(ciot_wifi_multi_set_wifi_ops(self, NULL));
 
@@ -205,11 +206,13 @@ ciot_err_t ciot_wifi_multi_start(ciot_wifi_multi_t self, ciot_wifi_multi_cfg_t *
     }
 
     base->started = true;
+    base->status.started = true;
 
     ciot_err_t err = ciot_wifi_multi_switch_to(self, active_index, false);
     if (err != CIOT_ERR_OK)
     {
         base->started = false;
+        base->status.started = false;
         CIOT_ERR_PRINT(TAG, ciot_iface_set_event_handler(wifi_iface, base->wifi_event_handler, base->wifi_event_args));
         return err;
     }
@@ -228,6 +231,7 @@ ciot_err_t ciot_wifi_multi_stop(ciot_wifi_multi_t self)
     }
 
     base->started = false;
+    base->status.started = false;
 
     ciot_iface_t *wifi_iface = (ciot_iface_t *)base->wifi;
 
@@ -675,6 +679,15 @@ static ciot_err_t ciot_wifi_multi_switch_to(ciot_wifi_multi_t self, uint32_t ind
     ciot_wifi_cfg_t wifi_cfg = { 0 };
     CIOT_ERR_PRINT(TAG, ciot_wifi_get_cfg(base->wifi, &wifi_cfg));
 
+    // Keep current connection on startup if target SSID is already connected.
+    bool same_ssid = strncmp(wifi_cfg.ssid, base->cfg.items[index].ssid, sizeof(wifi_cfg.ssid)) == 0;
+    bool already_connected = false;
+    ciot_wifi_status_t wifi_status = { 0 };
+    if (base->wifi_ops.get_status(base->wifi, &wifi_status, base->wifi_ops.args) == CIOT_ERR_OK)
+    {
+        already_connected = wifi_status.tcp.state == CIOT_TCP_STATE_CONNECTED;
+    }
+
     wifi_cfg.disabled = false;
     wifi_cfg.type = CIOT_WIFI_TYPE_STA;
     strncpy(wifi_cfg.ssid, base->cfg.items[index].ssid, sizeof(wifi_cfg.ssid) - 1);
@@ -698,7 +711,10 @@ static ciot_err_t ciot_wifi_multi_switch_to(ciot_wifi_multi_t self, uint32_t ind
     strncpy(base->info.active_ssid, base->cfg.items[index].ssid, sizeof(base->info.active_ssid) - 1);
     ciot_wifi_multi_schedule_next_switch(self);
 
-    CIOT_ERR_RETURN(base->wifi_ops.start(base->wifi, &wifi_cfg, base->wifi_ops.args));
+    if (!(same_ssid && already_connected))
+    {
+        CIOT_ERR_RETURN(base->wifi_ops.start(base->wifi, &wifi_cfg, base->wifi_ops.args));
+    }
 
     CIOT_ERR_PRINT(TAG, ciot_wifi_multi_refresh_status(self));
     CIOT_ERR_PRINT(TAG, ciot_wifi_multi_refresh_info(self));
@@ -710,6 +726,7 @@ static ciot_err_t ciot_wifi_multi_refresh_status(ciot_wifi_multi_t self)
 {
     CIOT_ERR_NULL_CHECK(self);
     ciot_wifi_multi_base_t *base = &self->base;
+    base->status.started = base->started;
     ciot_wifi_status_t wifi_status = { 0 };
     ciot_err_t err = base->wifi_ops.get_status(base->wifi, &wifi_status, base->wifi_ops.args);
     if (err == CIOT_ERR_OK)
