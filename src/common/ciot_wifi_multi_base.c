@@ -593,7 +593,7 @@ static ciot_err_t ciot_wifi_multi_wifi_event_handler(ciot_iface_t *sender, ciot_
         CIOT_ERR_PRINT(TAG, ciot_wifi_multi_mark_active_invalid(self, base->status.last_error));
     }
 
-    CIOT_ERR_PRINT(TAG, ciot_iface_send_event_type(&base->iface, event->type));
+    CIOT_ERR_PRINT(TAG, self->base.iface.event_handler(sender, event, self->base.iface.event_args));
 
     if (base->wifi_event_handler != NULL)
     {
