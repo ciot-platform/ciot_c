@@ -217,6 +217,8 @@ ciot_err_t ciot_wifi_multi_start(ciot_wifi_multi_t self, ciot_wifi_multi_cfg_t *
         return err;
     }
 
+    ciot_iface_send_event_type(&base->iface, CIOT_EVENT_TYPE_STARTED);
+
     return CIOT_ERR_OK;
 }
 
