@@ -39,7 +39,6 @@ static ciot_err_t ciot_event_queue_push_raw(ciot_t self, ciot_receiver_t *receiv
 
 static ciot_err_t ciot_event_queue_reserve_tail(ciot_event_queue_t *queue, ciot_event_slot_t **slot)
 {
-    CIOT_LOGI(TAG, "Reserving event queue slot. count: %d", queue->count);
     if(queue->count >= CIOT_CONFIG_EVENT_QUEUE_SIZE)
     {
         CIOT_LOGE(TAG, "Event queue is full. Dropping event. total dropped: %lu", (long unsigned int)queue->dropped);
@@ -86,19 +85,20 @@ static ciot_err_t ciot_event_queue_push_raw(ciot_t self, ciot_receiver_t *receiv
     queued_event->type = event->type;
 
     ciot_err_t deser_err = CIOT_ERR_OK;
-    if(event->which_data == CIOT_EVENT_RAW_TAG)
-    {
+    // TODO: fix ifaces to send correct which_data before enable this check
+    // if(event->which_data == CIOT_EVENT_RAW_TAG)
+    // {
         deser_err = ciot_bytes_received(self, sender, event->raw.bytes, event->raw.size, queued_event);
-    }
-    else if(event->which_data == CIOT_EVENT_MSG_TAG)
-    {
-        queued_event->msg = event->msg;
-        queued_event->which_data = CIOT_EVENT_MSG_TAG;
-    }
-    else
-    {
-        deser_err = CIOT_ERR_INVALID_TYPE;
-    }
+    // }
+    // else if(event->which_data == CIOT_EVENT_MSG_TAG)
+    // {
+    //     queued_event->msg = event->msg;
+    //     queued_event->which_data = CIOT_EVENT_MSG_TAG;
+    // }
+    // else
+    // {
+    //     deser_err = CIOT_ERR_INVALID_TYPE;
+    // }
 
     if(deser_err != CIOT_ERR_OK)
     {
@@ -113,18 +113,13 @@ static ciot_err_t ciot_event_queue_push_raw(ciot_t self, ciot_receiver_t *receiv
     return CIOT_ERR_OK;
 }
 
-static ciot_event_slot_t *ciot_event_queue_peek(ciot_event_queue_t *queue)
+static bool ciot_event_queue_pop_into(ciot_event_queue_t *queue, ciot_event_slot_t *slot_out)
 {
-    if(queue->count == 0) return NULL;
-    return &queue->slots[queue->head];
-}
-
-static void ciot_event_queue_pop(ciot_event_queue_t *queue)
-{
-    if(queue->count == 0) return;
+    if(queue->count == 0 || slot_out == NULL) return false;
+    *slot_out = queue->slots[queue->head];
     queue->head = (queue->head + 1) % CIOT_CONFIG_EVENT_QUEUE_SIZE;
     queue->count--;
-    CIOT_LOGI(TAG, "Popping event queue slot. count: %d", queue->count);
+    return true;
 }
 
 #ifdef CIOT_MG_ENABLED
@@ -355,19 +350,37 @@ static ciot_err_t ciot_starting_task(ciot_t self)
 
     if (starter->waiting_result)
     {
-        ciot_event_slot_t *slot = ciot_event_queue_peek(&receiver->queue);
-        if (slot != NULL &&
-            ciot_iface_event_is_ack(slot->event.type) &&
-            starter->iface_id == slot->sender->info.id)
+        ciot_event_slot_t slot = { 0 };
+        if (ciot_event_queue_pop_into(&receiver->queue, &slot))
         {
-            CIOT_LOGI(TAG, "Interface [%lu]:%s evt %s received", (long unsigned int)slot->sender->info.id, ciot_iface_to_str(slot->sender), ciot_event_to_str(&slot->event));
-            if(self->iface.event_handler != NULL)
+            if (slot.sender != NULL &&
+                ciot_iface_event_is_ack(slot.event.type) &&
+                starter->iface_id == slot.sender->info.id)
             {
-                self->iface.event_handler(slot->sender, &slot->event, self->iface.event_args);
+                CIOT_LOGI(TAG, "Interface [%lu]:%s evt %s received", (long unsigned int)slot.sender->info.id, ciot_iface_to_str(slot.sender), ciot_event_to_str(&slot.event));
+                if(self->iface.event_handler != NULL)
+                {
+                    self->iface.event_handler(slot.sender, &slot.event, self->iface.event_args);
+                }
+                starter->iface_id++;
+                starter->waiting_result = false;
             }
-            ciot_event_queue_pop(&receiver->queue);
-            starter->iface_id++;
-            starter->waiting_result = false;
+            else
+            {
+                if(slot.sender != NULL)
+                {
+                    CIOT_LOGW(TAG, "Discarding unexpected event while waiting start ACK. expected iface:%lu got iface:%lu evt:%s",
+                        (long unsigned int)starter->iface_id,
+                        (long unsigned int)slot.sender->info.id,
+                        ciot_event_to_str(&slot.event));
+                }
+                else
+                {
+                    CIOT_LOGW(TAG, "Discarding unexpected event while waiting start ACK. expected iface:%lu got null sender evt:%s",
+                        (long unsigned int)starter->iface_id,
+                        ciot_event_to_str(&slot.event));
+                }
+            }
         }
         else if (ciot_timer_compare(&starter->timer, CIOT_CONFIG_START_TIMEOUT_SECS))
         {
@@ -455,15 +468,15 @@ static ciot_err_t ciot_busy_task(ciot_t self)
         return CIOT_ERR_TIMEOUT;
     }
 
-    ciot_event_slot_t *slot = ciot_event_queue_peek(&receiver->queue);
-    if(slot == NULL)
+    ciot_event_slot_t slot = { 0 };
+    if(!ciot_event_queue_pop_into(&receiver->queue, &slot))
     {
         self->status.state = CIOT_STATE_STARTED;
         return CIOT_ERR_OK;
     }
 
-    ciot_event_t *event = &slot->event;
-    ciot_iface_t *sender = slot->sender;
+    ciot_event_t *event = &slot.event;
+    ciot_iface_t *sender = slot.sender;
 
     if(self->status.state == CIOT_STATE_PENDING_EVENT && event->which_data == CIOT_EVENT_MSG_TAG && event->msg.iface.id < self->ifaces.count)
     {
@@ -474,8 +487,9 @@ static ciot_err_t ciot_busy_task(ciot_t self)
     if (sender == NULL)
     {
         CIOT_LOGE(TAG, "Sender is null");
-        self->status.state = CIOT_STATE_STARTED;
-        ciot_event_queue_pop(&receiver->queue);
+        self->status.state = receiver->queue.count > 0
+            ? CIOT_STATE_BUSY
+            : CIOT_STATE_STARTED;
         return CIOT_ERR_NULL_ARG;
     }
 
@@ -584,7 +598,7 @@ static ciot_err_t ciot_busy_task(ciot_t self)
         }
     }
 
-    self->status.state = receiver->queue.count > 1
+    self->status.state = receiver->queue.count > 0
         ? CIOT_STATE_BUSY
         : CIOT_STATE_STARTED;
     
@@ -593,8 +607,6 @@ static ciot_err_t ciot_busy_task(ciot_t self)
         self->iface.event_handler(sender, event, self->iface.event_args);
     }
     
-    event->msg.has_proxy = false;
-    ciot_event_queue_pop(&receiver->queue);
     CIOT_LOGI(TAG, "ciot done");
 
     return CIOT_ERR_OK;
@@ -704,21 +716,30 @@ static ciot_err_t ciot_iface_event_handler(ciot_iface_t *sender, ciot_event_t *e
         if(queued_event->msg.iface.type == CIOT_IFACE_TYPE_CUSTOM &&
            queued_event->msg.has_proxy == false)
         {
+            ciot_event_slot_t custom_slot = { 0 };
+            if(!ciot_event_queue_pop_into(&receiver->queue, &custom_slot))
+            {
+                CIOT_LOGE(TAG, "custom event dequeue failed");
+                return CIOT_ERR_FAIL;
+            }
+
+            ciot_event_t *custom_event = &custom_slot.event;
+            ciot_iface_t *custom_sender = custom_slot.sender;
+
             if(self->iface.event_handler != NULL)
             {
-                ciot_err_t err = self->iface.event_handler(sender, queued_event, self->iface.event_args);
+                ciot_err_t err = self->iface.event_handler(custom_sender, custom_event, self->iface.event_args);
                 if(err != CIOT_ERR_OK)
                 {
                     CIOT_LOGE(TAG, "error from application event handler: %s", ciot_err_to_message(err));
-                    ciot_iface_send_error(sender, queued_event->msg.iface.type, queued_event->msg.iface.type, &queued_event->msg, err);
+                    ciot_iface_send_error(custom_sender, custom_event->msg.iface.type, custom_event->msg.iface.id, &custom_event->msg, err);
                 }
             }
             else
             {
                 CIOT_LOGE(TAG, "ciot event handler is null");
-                ciot_iface_send_error(sender, CIOT_IFACE_TYPE_CIOT, self->iface.info.id, &queued_event->msg, CIOT_ERR_NULL_EVENT_HANDLER);
+                ciot_iface_send_error(custom_sender, CIOT_IFACE_TYPE_CIOT, self->iface.info.id, &custom_event->msg, CIOT_ERR_NULL_EVENT_HANDLER);
             }
-            ciot_event_queue_pop(&receiver->queue);
             return CIOT_ERR_OK;
         }
 
