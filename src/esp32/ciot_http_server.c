@@ -152,7 +152,7 @@ static ciot_err_t ciot_https_register_routes(ciot_http_server_t self)
 static esp_err_t ciot_http_server_api_handler(httpd_req_t *req)
 {
     ciot_http_server_t self = (ciot_http_server_t)req->user_ctx;
-    ciot_event_t event = {0};
+    uint8_t req_data[CIOT_CONFIG_MSG_SIZE] = {0};
 
     if (self == NULL)
     {
@@ -160,11 +160,21 @@ static esp_err_t ciot_http_server_api_handler(httpd_req_t *req)
         return ESP_FAIL;
     }
 
-    httpd_req_recv(req, (char *)event.raw.bytes, req->content_len);
+    int recv_size = req->content_len;
+    if (recv_size > (int)sizeof(req_data))
+    {
+        CIOT_LOGW(TAG, "HTTP payload truncated before event send: %d > %d", recv_size, (int)sizeof(req_data));
+        recv_size = sizeof(req_data);
+    }
 
-    event.type = CIOT_EVENT_TYPE_MSG;
-    event.raw.size = req->content_len;
-    ciot_iface_send_event(&self->base.iface, &event);
+    int bytes_read = httpd_req_recv(req, (char *)req_data, recv_size);
+    if (bytes_read < 0)
+    {
+        CIOT_LOGE(TAG, "Failed to read request body: %d", bytes_read);
+        return bytes_read;
+    }
+
+    ciot_iface_send_event_data(&self->base.iface, CIOT_EVENT_TYPE_MSG, req_data, bytes_read);
 
     if (self->resp_size == 0)
     {
@@ -305,7 +315,8 @@ static const char *get_mime_type(const char *filename)
 static esp_err_t ciot_http_server_custom_api_handler(httpd_req_t *req)
 {
     ciot_http_server_t self = (ciot_http_server_t)req->user_ctx;
-    ciot_event_t event = {0};
+    uint8_t req_data[CIOT_CONFIG_MSG_SIZE] = {0};
+    int recv_size = req->content_len;
 
     if (self == NULL)
     {
@@ -313,30 +324,41 @@ static esp_err_t ciot_http_server_custom_api_handler(httpd_req_t *req)
         return ESP_FAIL;
     }
 
-    httpd_req_recv(req, (char *)event.raw.bytes, req->content_len);
+    if (recv_size > (int)sizeof(req_data))
+    {
+        CIOT_LOGW(TAG, "Custom API payload truncated: %d > %d", recv_size, (int)sizeof(req_data));
+        recv_size = sizeof(req_data);
+    }
+
+    int bytes_read = httpd_req_recv(req, (char *)req_data, recv_size);
+    if (bytes_read < 0)
+    {
+        CIOT_LOGE(TAG, "Failed to read custom API body: %d", bytes_read);
+        return bytes_read;
+    }
 
     switch (req->method)
     {
     case HTTP_DELETE:
-        self->base.custom_api.handler(self, req->uri, strlen(req->uri), "DELETE", event.raw.bytes, req->content_len, self->base.custom_api.args);
+        self->base.custom_api.handler(self, req->uri, strlen(req->uri), "DELETE", req_data, bytes_read, self->base.custom_api.args);
         break;
     case HTTP_GET:
-        self->base.custom_api.handler(self, req->uri, strlen(req->uri), "GET", event.raw.bytes, req->content_len, self->base.custom_api.args);
+        self->base.custom_api.handler(self, req->uri, strlen(req->uri), "GET", req_data, bytes_read, self->base.custom_api.args);
         break;
     case HTTP_HEAD:
-        self->base.custom_api.handler(self, req->uri, strlen(req->uri), "HEAD", event.raw.bytes, req->content_len, self->base.custom_api.args);
+        self->base.custom_api.handler(self, req->uri, strlen(req->uri), "HEAD", req_data, bytes_read, self->base.custom_api.args);
         break;
     case HTTP_POST:
-        self->base.custom_api.handler(self, req->uri, strlen(req->uri), "POST", event.raw.bytes, req->content_len, self->base.custom_api.args);
+        self->base.custom_api.handler(self, req->uri, strlen(req->uri), "POST", req_data, bytes_read, self->base.custom_api.args);
         break;
     case HTTP_PUT:
-        self->base.custom_api.handler(self, req->uri, strlen(req->uri), "PUT", event.raw.bytes, req->content_len, self->base.custom_api.args);
+        self->base.custom_api.handler(self, req->uri, strlen(req->uri), "PUT", req_data, bytes_read, self->base.custom_api.args);
         break;
     case HTTP_CONNECT:
-        self->base.custom_api.handler(self, req->uri, strlen(req->uri), "CONNECT", event.raw.bytes, req->content_len, self->base.custom_api.args);
+        self->base.custom_api.handler(self, req->uri, strlen(req->uri), "CONNECT", req_data, bytes_read, self->base.custom_api.args);
         break;
     default:
-        self->base.custom_api.handler(self, req->uri, strlen(req->uri), "UNKNOWN", event.raw.bytes, req->content_len, self->base.custom_api.args);
+        self->base.custom_api.handler(self, req->uri, strlen(req->uri), "UNKNOWN", req_data, bytes_read, self->base.custom_api.args);
         break;
     }
 
