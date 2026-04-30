@@ -6,6 +6,7 @@
 #include <pb.h>
 #include "ciot/proto/v2/mbus.pb.h"
 #include "ciot/proto/v2/uart.pb.h"
+#include "ciot/proto/v2/errors.pb.h"
 
 #if PB_PROTO_HEADER_VERSION != 40
 #error Regenerate this file with the current version of nanopb generator.
@@ -51,7 +52,7 @@ typedef struct ciot_mbus_client_cfg {
 /* Message representing Modbus client status. */
 typedef struct ciot_mbus_client_status {
     ciot_mbus_client_state_t state; /* State of the Modbus client. */
-    ciot_mbus_error_t error; /* Modbus client error code. */
+    ciot_err_t error; /* Modbus client error code. */
 } ciot_mbus_client_status_t;
 
 /* Message representing an Modbus client request. */
@@ -91,7 +92,7 @@ extern "C" {
 
 
 #define ciot_mbus_client_status_t_state_ENUMTYPE ciot_mbus_client_state_t
-#define ciot_mbus_client_status_t_error_ENUMTYPE ciot_mbus_error_t
+#define ciot_mbus_client_status_t_error_ENUMTYPE ciot_err_t
 
 
 
@@ -101,14 +102,14 @@ extern "C" {
 #define CIOT_MBUS_CLIENT_RTU_CFG_INIT_DEFAULT    {0, false, CIOT_UART_CFG_INIT_DEFAULT}
 #define CIOT_MBUS_CLIENT_TCP_CFG_INIT_DEFAULT    {{{NULL}, NULL}, 0}
 #define CIOT_MBUS_CLIENT_CFG_INIT_DEFAULT        {0, {CIOT_MBUS_CLIENT_RTU_CFG_INIT_DEFAULT}, 0}
-#define CIOT_MBUS_CLIENT_STATUS_INIT_DEFAULT     {_CIOT_MBUS_CLIENT_STATE_MIN, _CIOT_MBUS_ERROR_MIN}
+#define CIOT_MBUS_CLIENT_STATUS_INIT_DEFAULT     {_CIOT_MBUS_CLIENT_STATE_MIN, _CIOT_ERR_MIN}
 #define CIOT_MBUS_CLIENT_REQ_INIT_DEFAULT        {0, {CIOT_MBUS_FUNCTION_REQ_INIT_DEFAULT}}
 #define CIOT_MBUS_CLIENT_DATA_INIT_DEFAULT       {0, {CIOT_MBUS_CLIENT_STOP_INIT_DEFAULT}}
 #define CIOT_MBUS_CLIENT_STOP_INIT_ZERO          {0}
 #define CIOT_MBUS_CLIENT_RTU_CFG_INIT_ZERO       {0, false, CIOT_UART_CFG_INIT_ZERO}
 #define CIOT_MBUS_CLIENT_TCP_CFG_INIT_ZERO       {{{NULL}, NULL}, 0}
 #define CIOT_MBUS_CLIENT_CFG_INIT_ZERO           {0, {CIOT_MBUS_CLIENT_RTU_CFG_INIT_ZERO}, 0}
-#define CIOT_MBUS_CLIENT_STATUS_INIT_ZERO        {_CIOT_MBUS_CLIENT_STATE_MIN, _CIOT_MBUS_ERROR_MIN}
+#define CIOT_MBUS_CLIENT_STATUS_INIT_ZERO        {_CIOT_MBUS_CLIENT_STATE_MIN, _CIOT_ERR_MIN}
 #define CIOT_MBUS_CLIENT_REQ_INIT_ZERO           {0, {CIOT_MBUS_FUNCTION_REQ_INIT_ZERO}}
 #define CIOT_MBUS_CLIENT_DATA_INIT_ZERO          {0, {CIOT_MBUS_CLIENT_STOP_INIT_ZERO}}
 

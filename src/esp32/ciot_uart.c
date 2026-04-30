@@ -75,28 +75,25 @@ ciot_err_t ciot_uart_start(ciot_uart_t self, ciot_uart_cfg_t *cfg)
 
     ciot_uart_base_t *base = &self->base;
 
-    if(base->status.state == CIOT_UART_STATE_STARTED &&
-       base->cfg.num == cfg->num)
+    if (base->status.state == CIOT_UART_STATE_STARTED &&
+        base->cfg.num != cfg->num)
     {
-        CIOT_LOGW(TAG, "UART %d already started", (int)base->cfg.num);
-        return CIOT_ERR_OK;
+        CIOT_LOGW(TAG, "Can't change UART number from %d to %d. Stop UART first", (int)base->cfg.num, (int)cfg->num);
+        return CIOT_ERR_INVALID_STATE;
     }
 
     CIOT_LOGI(TAG, "num: %d", (int)cfg->num);
 
-    if(base->status.state == CIOT_UART_STATE_STARTED)
+    if (cfg->has_gpio == false || base->status.state == CIOT_UART_STATE_STARTED)
     {
-        CIOT_LOGW(TAG, "UART already started");
-        return CIOT_ERR_OK;
-    }
-
-    if(cfg->has_gpio == false)
-    {
+        if(base->status.state == CIOT_UART_STATE_STARTED)
+        {
+            CIOT_LOGW(TAG, "UART already started. GPIO settings will be ignored");
+        }
         cfg->has_gpio = base->cfg.has_gpio;
         cfg->gpio = base->cfg.gpio;
     }
     base->cfg = *cfg;
-
 
     int num = base->cfg.num;
     const uart_config_t uart_cfg = {
@@ -109,20 +106,27 @@ ciot_err_t ciot_uart_start(ciot_uart_t self, ciot_uart_cfg_t *cfg)
     };
 
     ESP_ERROR_CHECK(uart_param_config(num, &uart_cfg));
-    ESP_ERROR_CHECK(uart_set_pin(num, base->cfg.gpio.tx, base->cfg.gpio.rx, base->cfg.gpio.rts, base->cfg.gpio.cts));
-    ESP_ERROR_CHECK(uart_driver_install(num, CIOT_CONFIG_UART_RX_BUF_SIZE, CIOT_CONFIG_UART_TX_BUF_SIZE, CIOT_CONFIG_UART_QUEUE_SIZE, &self->queue, 0));
-    ESP_ERROR_CHECK(uart_set_mode(num, base->cfg.mode));
-
-    if(base->iface.decoder)
+    
+    if (base->status.state == CIOT_UART_STATE_STARTED)
     {
-        if (num == 0)
-            xTaskCreatePinnedToCore(ciot_uart0_task, "ciot_uart0_task", CIOT_CONFIG_UART_TASK_SIZE, self, CIOT_CONFIG_UART_TASK_PRIO, &self->task, CIOT_CONFIG_UART_TASK_CORE);
-        if (num == 1)
-            xTaskCreatePinnedToCore(ciot_uart1_task, "ciot_uart1_task", CIOT_CONFIG_UART_TASK_SIZE, self, CIOT_CONFIG_UART_TASK_PRIO, &self->task, CIOT_CONFIG_UART_TASK_CORE);
-        if (num == 2)
-            xTaskCreatePinnedToCore(ciot_uart2_task, "ciot_uart2_task", CIOT_CONFIG_UART_TASK_SIZE, self, CIOT_CONFIG_UART_TASK_PRIO, &self->task, CIOT_CONFIG_UART_TASK_CORE);
+        CIOT_LOGI(TAG, "UART already started");
+    }
+    else
+    {
+        ESP_ERROR_CHECK(uart_set_pin(num, base->cfg.gpio.tx, base->cfg.gpio.rx, base->cfg.gpio.rts, base->cfg.gpio.cts));
+        ESP_ERROR_CHECK(uart_driver_install(num, CIOT_CONFIG_UART_RX_BUF_SIZE, CIOT_CONFIG_UART_TX_BUF_SIZE, CIOT_CONFIG_UART_QUEUE_SIZE, &self->queue, 0));
+        if (base->iface.decoder)
+        {
+            if (num == 0)
+                xTaskCreatePinnedToCore(ciot_uart0_task, "ciot_uart0_task", CIOT_CONFIG_UART_TASK_SIZE, self, CIOT_CONFIG_UART_TASK_PRIO, &self->task, CIOT_CONFIG_UART_TASK_CORE);
+            if (num == 1)
+                xTaskCreatePinnedToCore(ciot_uart1_task, "ciot_uart1_task", CIOT_CONFIG_UART_TASK_SIZE, self, CIOT_CONFIG_UART_TASK_PRIO, &self->task, CIOT_CONFIG_UART_TASK_CORE);
+            if (num == 2)
+                xTaskCreatePinnedToCore(ciot_uart2_task, "ciot_uart2_task", CIOT_CONFIG_UART_TASK_SIZE, self, CIOT_CONFIG_UART_TASK_PRIO, &self->task, CIOT_CONFIG_UART_TASK_CORE);
+        }
     }
 
+    ESP_ERROR_CHECK(uart_set_mode(num, base->cfg.mode));
     base->status.state = CIOT_UART_STATE_STARTED;
     ciot_iface_send_event_type(&base->iface, CIOT_EVENT_TYPE_STARTED);
 
@@ -133,7 +137,7 @@ ciot_err_t ciot_uart_stop(ciot_uart_t self)
 {
     CIOT_ERR_NULL_CHECK(self);
     CIOT_LOGI(TAG, "Stopping UART %d", (int)self->base.cfg.num);
-    if(self->base.status.state == CIOT_UART_STATE_CLOSED)
+    if (self->base.status.state == CIOT_UART_STATE_CLOSED)
     {
         CIOT_LOGW(TAG, "UART %d already stopped", (int)self->base.cfg.num);
         return CIOT_ERR_OK;
