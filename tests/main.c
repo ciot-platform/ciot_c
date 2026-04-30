@@ -17,6 +17,10 @@ void test_ciot_decoder_s();
 void test_ciot_decoder_slip();
 void test_ciot_crypt();
 
+// Queue regression tests
+void test_ciot_queue_starting_discards_unexpected_event_and_continues(void);
+void test_ciot_queue_custom_msg_handler_error_does_not_leave_dead_item(void);
+
 // WiFi Multi tests
 void test_ciot_wifi_multi_new_with_injected_wifi(void);
 void test_ciot_wifi_multi_new_creates_internal_wifi(void);
@@ -55,6 +59,10 @@ int main(void)
     test_ciot_decoder_slip();
     test_ciot_crypt();
     
+    // Queue regression tests
+    RUN_TEST(test_ciot_queue_starting_discards_unexpected_event_and_continues);
+    RUN_TEST(test_ciot_queue_custom_msg_handler_error_does_not_leave_dead_item);
+
     // WiFi Multi tests
     RUN_TEST(test_ciot_wifi_multi_new_with_injected_wifi);
     RUN_TEST(test_ciot_wifi_multi_new_creates_internal_wifi);
