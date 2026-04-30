@@ -88,16 +88,16 @@ static ciot_err_t ciot_event_queue_push_raw(ciot_t self, ciot_receiver_t *receiv
     if(event->which_data == CIOT_EVENT_RAW_TAG)
     {
         deser_err = ciot_bytes_received(self, sender, event->raw.bytes, event->raw.size, queued_event);
-    // }
-    // else if(event->which_data == CIOT_EVENT_MSG_TAG)
-    // {
-    //     queued_event->msg = event->msg;
-    //     queued_event->which_data = CIOT_EVENT_MSG_TAG;
-    // }
-    // else
-    // {
-    //     deser_err = CIOT_ERR_INVALID_TYPE;
-    // }
+    }
+    else if(event->which_data == CIOT_EVENT_MSG_TAG)
+    {
+        queued_event->msg = event->msg;
+        queued_event->which_data = CIOT_EVENT_MSG_TAG;
+    }
+    else
+    {
+        deser_err = CIOT_ERR_INVALID_TYPE;
+    }
 
     if(deser_err != CIOT_ERR_OK)
     {
