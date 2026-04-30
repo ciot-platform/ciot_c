@@ -85,9 +85,8 @@ static ciot_err_t ciot_event_queue_push_raw(ciot_t self, ciot_receiver_t *receiv
     queued_event->type = event->type;
 
     ciot_err_t deser_err = CIOT_ERR_OK;
-    // TODO: fix ifaces to send correct which_data before enable this check
-    // if(event->which_data == CIOT_EVENT_RAW_TAG)
-    // {
+    if(event->which_data == CIOT_EVENT_RAW_TAG)
+    {
         deser_err = ciot_bytes_received(self, sender, event->raw.bytes, event->raw.size, queued_event);
     // }
     // else if(event->which_data == CIOT_EVENT_MSG_TAG)
