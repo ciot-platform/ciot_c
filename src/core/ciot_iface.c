@@ -95,6 +95,7 @@ static ciot_event_t event = { 0 };
 
 ciot_err_t ciot_iface_send_event_type(ciot_iface_t *self, ciot_event_type_t event_type)
 {
+    CIOT_ERR_NULL_CHECK(self);
     event.type = event_type;
     event.which_data = CIOT_EVENT_MSG_TAG;
     event.msg.has_iface = true;
