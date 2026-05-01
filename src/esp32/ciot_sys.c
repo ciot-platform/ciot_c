@@ -23,7 +23,7 @@
 #include "freertos/task.h"
 #include "freertos/event_groups.h"
 
-static const char *TAG = "ciot_sys";
+// static const char *TAG = "ciot_sys";
 
 struct ciot_sys
 {
