@@ -185,7 +185,7 @@ ciot_err_t ciot_wifi_multi_start(ciot_wifi_multi_t self, ciot_wifi_multi_cfg_t *
         base->status.items[i].selected = false;
         base->status.items[i].last_error = CIOT_ERR_OK;
         base->status.items[i].fail_count = 0;
-        base->status.items[i].last_attempt_ms = 0;
+        base->status.items[i].last_attempt_s = 0;
         base->cfg.items[i].valid = valid;
     }
 
@@ -711,7 +711,7 @@ static ciot_err_t ciot_wifi_multi_switch_to(ciot_wifi_multi_t self, uint32_t ind
 
     base->status.active_index = index;
     base->status.items[index].selected = true;
-    base->status.items[index].last_attempt_ms = (uint32_t)ciot_timer_now();
+    base->status.items[index].last_attempt_s = (uint32_t)ciot_timer_now();
     base->info.active_index = index;
     strncpy(base->info.active_ssid, base->cfg.items[index].ssid, sizeof(base->info.active_ssid) - 1);
     ciot_wifi_multi_schedule_next_switch(self);

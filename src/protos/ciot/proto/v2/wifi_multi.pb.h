@@ -34,7 +34,7 @@ typedef struct ciot_wifi_multi_item_status {
     bool selected; /* Whether this item is currently selected/active */
     uint32_t last_error; /* Last error code from this network */
     uint32_t fail_count; /* Number of consecutive failures */
-    uint32_t last_attempt_ms; /* Timestamp of last connection attempt */
+    uint32_t last_attempt_s; /* Timestamp of last connection attempt in seconds */
 } ciot_wifi_multi_item_status_t;
 
 /* Overall status of the multi-Wi-Fi orchestrator */
@@ -170,7 +170,7 @@ extern "C" {
 #define CIOT_WIFI_MULTI_ITEM_STATUS_SELECTED_TAG 2
 #define CIOT_WIFI_MULTI_ITEM_STATUS_LAST_ERROR_TAG 3
 #define CIOT_WIFI_MULTI_ITEM_STATUS_FAIL_COUNT_TAG 4
-#define CIOT_WIFI_MULTI_ITEM_STATUS_LAST_ATTEMPT_MS_TAG 5
+#define CIOT_WIFI_MULTI_ITEM_STATUS_LAST_ATTEMPT_S_TAG 5
 #define CIOT_WIFI_MULTI_STATUS_ACTIVE_INDEX_TAG  1
 #define CIOT_WIFI_MULTI_STATUS_VALID_COUNT_TAG   2
 #define CIOT_WIFI_MULTI_STATUS_LAST_ERROR_TAG    3
@@ -222,7 +222,7 @@ X(a, STATIC,   SINGULAR, BOOL,     valid,             1) \
 X(a, STATIC,   SINGULAR, BOOL,     selected,          2) \
 X(a, STATIC,   SINGULAR, UINT32,   last_error,        3) \
 X(a, STATIC,   SINGULAR, UINT32,   fail_count,        4) \
-X(a, STATIC,   SINGULAR, UINT32,   last_attempt_ms,   5)
+X(a, STATIC,   SINGULAR, UINT32,   last_attempt_s,    5)
 #define CIOT_WIFI_MULTI_ITEM_STATUS_CALLBACK NULL
 #define CIOT_WIFI_MULTI_ITEM_STATUS_DEFAULT NULL
 
