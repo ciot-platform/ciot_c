@@ -160,8 +160,18 @@ static void ciot_mqtt_event_handler(void *handler_args, esp_event_base_t event_b
         else
         {
             ciot_mqtt_client_event_data_t evt_data = { 0 };
-            memcpy(evt_data.topic, mqtt_event->topic, mqtt_event->topic_len);
-            memcpy(evt_data.data, mqtt_event->data, mqtt_event->data_len);
+            size_t topic_len = mqtt_event->topic_len;
+            size_t data_len = mqtt_event->data_len;
+            if (topic_len > sizeof(evt_data.topic))
+            {
+                topic_len = sizeof(evt_data.topic);
+            }
+            if (data_len > sizeof(evt_data.data))
+            {
+                data_len = sizeof(evt_data.data);
+            }
+            memcpy(evt_data.topic, mqtt_event->topic, topic_len);
+            memcpy(evt_data.data, mqtt_event->data, data_len);
             ciot_iface_send_event_data(&base->iface, CIOT_EVENT_TYPE_DATA, (uint8_t*)&evt_data, sizeof(evt_data));
         }
         break;
