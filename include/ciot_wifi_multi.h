@@ -32,6 +32,19 @@ typedef enum ciot_wifi_multi_event
 } ciot_wifi_multi_event_t;
 
 typedef struct ciot_wifi_multi *ciot_wifi_multi_t;
+typedef ciot_err_t (ciot_wifi_multi_wifi_start_fn)(ciot_wifi_t wifi, ciot_wifi_cfg_t *cfg, void *args);
+typedef ciot_err_t (ciot_wifi_multi_wifi_stop_fn)(ciot_wifi_t wifi, void *args);
+typedef ciot_err_t (ciot_wifi_multi_wifi_get_status_fn)(ciot_wifi_t wifi, ciot_wifi_status_t *status, void *args);
+typedef ciot_err_t (ciot_wifi_multi_wifi_get_info_fn)(ciot_wifi_t wifi, ciot_wifi_info_t *info, void *args);
+
+typedef struct ciot_wifi_multi_wifi_ops
+{
+    ciot_wifi_multi_wifi_start_fn *start;
+    ciot_wifi_multi_wifi_stop_fn *stop;
+    ciot_wifi_multi_wifi_get_status_fn *get_status;
+    ciot_wifi_multi_wifi_get_info_fn *get_info;
+    void *args;
+} ciot_wifi_multi_wifi_ops_t;
 
 typedef struct ciot_wifi_multi_base
 {
@@ -40,6 +53,8 @@ typedef struct ciot_wifi_multi_base
     bool own_wifi;
     ciot_iface_event_handler_fn *wifi_event_handler;
     void *wifi_event_args;
+    ciot_wifi_multi_wifi_ops_t wifi_ops;
+    bool started;
     ciot_wifi_multi_cfg_t cfg;
     ciot_wifi_multi_status_t status;
     ciot_wifi_multi_info_t info;
@@ -50,6 +65,7 @@ ciot_err_t ciot_wifi_multi_init(ciot_wifi_multi_t self);
 ciot_err_t ciot_wifi_multi_start(ciot_wifi_multi_t self, ciot_wifi_multi_cfg_t *cfg);
 ciot_err_t ciot_wifi_multi_stop(ciot_wifi_multi_t self);
 ciot_err_t ciot_wifi_multi_task(ciot_wifi_multi_t self);
+ciot_err_t ciot_wifi_multi_set_item(ciot_wifi_multi_t self, uint32_t index, const ciot_wifi_multi_item_cfg_t *item);
 ciot_err_t ciot_wifi_multi_next(ciot_wifi_multi_t self);
 ciot_err_t ciot_wifi_multi_mark_invalid(ciot_wifi_multi_t self, uint32_t index, ciot_err_t reason);
 ciot_err_t ciot_wifi_multi_mark_active_invalid(ciot_wifi_multi_t self, ciot_err_t reason);
@@ -58,6 +74,7 @@ ciot_err_t ciot_wifi_multi_process_req(ciot_wifi_multi_t self, ciot_wifi_multi_r
 ciot_err_t ciot_wifi_multi_get_cfg(ciot_wifi_multi_t self, ciot_wifi_multi_cfg_t *cfg);
 ciot_err_t ciot_wifi_multi_get_status(ciot_wifi_multi_t self, ciot_wifi_multi_status_t *status);
 ciot_err_t ciot_wifi_multi_get_info(ciot_wifi_multi_t self, ciot_wifi_multi_info_t *info);
+ciot_err_t ciot_wifi_multi_set_wifi_ops(ciot_wifi_multi_t self, const ciot_wifi_multi_wifi_ops_t *ops);
 
 #endif // CIOT_CONFIG_FEATURE_WIFI_MULTI
 

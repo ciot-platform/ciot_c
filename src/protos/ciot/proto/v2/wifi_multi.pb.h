@@ -24,7 +24,7 @@ typedef struct ciot_wifi_multi_cfg {
     pb_size_t items_count;
     ciot_wifi_multi_item_cfg_t items[2]; /* List of Wi-Fi networks to cycle through */
     uint32_t initial_index; /* Index of the network to try first */
-    uint32_t switch_interval_ms; /* Interval in milliseconds for periodic network rotation */
+    uint32_t switch_interval_s; /* Interval in seconds for periodic network rotation */
     uint32_t reconnect_attempts; /* Number of reconnection attempts per network */
 } ciot_wifi_multi_cfg_t;
 
@@ -34,7 +34,7 @@ typedef struct ciot_wifi_multi_item_status {
     bool selected; /* Whether this item is currently selected/active */
     uint32_t last_error; /* Last error code from this network */
     uint32_t fail_count; /* Number of consecutive failures */
-    uint32_t last_attempt_ms; /* Timestamp of last connection attempt */
+    uint32_t last_attempt_s; /* Timestamp of last connection attempt in seconds */
 } ciot_wifi_multi_item_status_t;
 
 /* Overall status of the multi-Wi-Fi orchestrator */
@@ -42,11 +42,12 @@ typedef struct ciot_wifi_multi_status {
     uint32_t active_index; /* Index of currently active network (-1 if none) */
     uint32_t valid_count; /* Number of valid networks available */
     uint32_t last_error; /* Last global error code */
-    uint64_t next_switch_ms; /* Timestamp for next scheduled switch attempt */
+    uint64_t next_switch_s; /* Timestamp for next scheduled switch attempt (seconds) */
     pb_size_t items_count;
     ciot_wifi_multi_item_status_t items[2]; /* Status of each network item */
     bool has_tcp;
     ciot_tcp_status_t tcp; /* Status of the underlying TCP connection */
+    bool started; /* Whether multi-Wi-Fi orchestrator is started */
 } ciot_wifi_multi_status_t;
 
 /* Runtime information for multi-Wi-Fi, including active network details */
@@ -85,6 +86,13 @@ typedef struct ciot_wifi_multi_req_get_item {
     uint32_t index; /* Index of the item to retrieve */
 } ciot_wifi_multi_req_get_item_t;
 
+/* Request to set configuration for a specific network index in RAM only */
+typedef struct ciot_wifi_multi_req_set_item {
+    uint32_t index; /* Index of the item to configure */
+    bool has_config;
+    ciot_wifi_multi_item_cfg_t config; /* Network configuration for the index */
+} ciot_wifi_multi_req_set_item_t;
+
 /* Request information for multi-Wi-Fi operations */
 typedef struct ciot_wifi_multi_req {
     pb_size_t which_type;
@@ -94,6 +102,7 @@ typedef struct ciot_wifi_multi_req {
         ciot_wifi_multi_req_mark_active_invalid_t mark_active_invalid; /* Mark active as invalid */
         ciot_wifi_multi_req_reset_invalid_t reset_invalid; /* Reset invalidity flags */
         ciot_wifi_multi_req_get_item_t get_item; /* Get item information */
+        ciot_wifi_multi_req_set_item_t set_item; /* Set item configuration in RAM only */
     };
 } ciot_wifi_multi_req_t;
 
@@ -107,7 +116,7 @@ typedef struct ciot_wifi_multi_data {
     pb_size_t which_type;
     union {
         ciot_wifi_multi_stop_t stop; /* Stop multi-Wi-Fi orchestrator */
-        ciot_wifi_multi_cfg_t config; /* Configuration for multi-Wi-Fi */
+        ciot_wifi_multi_cfg_t config; /* Full configuration written in RAM before start */
         ciot_wifi_multi_status_t status; /* Status of multi-Wi-Fi orchestrator */
         ciot_wifi_multi_req_t request; /* Request to multi-Wi-Fi orchestrator */
         ciot_wifi_multi_info_t info; /* Information about active network */
@@ -123,26 +132,28 @@ extern "C" {
 #define CIOT_WIFI_MULTI_ITEM_CFG_INIT_DEFAULT    {"", "", 0}
 #define CIOT_WIFI_MULTI_CFG_INIT_DEFAULT         {0, {CIOT_WIFI_MULTI_ITEM_CFG_INIT_DEFAULT, CIOT_WIFI_MULTI_ITEM_CFG_INIT_DEFAULT}, 0, 0, 0}
 #define CIOT_WIFI_MULTI_ITEM_STATUS_INIT_DEFAULT {0, 0, 0, 0, 0}
-#define CIOT_WIFI_MULTI_STATUS_INIT_DEFAULT      {0, 0, 0, 0, 0, {CIOT_WIFI_MULTI_ITEM_STATUS_INIT_DEFAULT, CIOT_WIFI_MULTI_ITEM_STATUS_INIT_DEFAULT}, false, CIOT_TCP_STATUS_INIT_DEFAULT}
+#define CIOT_WIFI_MULTI_STATUS_INIT_DEFAULT      {0, 0, 0, 0, 0, {CIOT_WIFI_MULTI_ITEM_STATUS_INIT_DEFAULT, CIOT_WIFI_MULTI_ITEM_STATUS_INIT_DEFAULT}, false, CIOT_TCP_STATUS_INIT_DEFAULT, 0}
 #define CIOT_WIFI_MULTI_INFO_INIT_DEFAULT        {0, "", false, CIOT_WIFI_INFO_INIT_DEFAULT, false, CIOT_TCP_INFO_INIT_DEFAULT}
 #define CIOT_WIFI_MULTI_REQ_NEXT_INIT_DEFAULT    {0}
 #define CIOT_WIFI_MULTI_REQ_SET_INVALID_INIT_DEFAULT {0, 0}
 #define CIOT_WIFI_MULTI_REQ_MARK_ACTIVE_INVALID_INIT_DEFAULT {0}
 #define CIOT_WIFI_MULTI_REQ_RESET_INVALID_INIT_DEFAULT {0}
 #define CIOT_WIFI_MULTI_REQ_GET_ITEM_INIT_DEFAULT {0}
+#define CIOT_WIFI_MULTI_REQ_SET_ITEM_INIT_DEFAULT {0, false, CIOT_WIFI_MULTI_ITEM_CFG_INIT_DEFAULT}
 #define CIOT_WIFI_MULTI_REQ_INIT_DEFAULT         {0, {CIOT_WIFI_MULTI_REQ_NEXT_INIT_DEFAULT}}
 #define CIOT_WIFI_MULTI_STOP_INIT_DEFAULT        {0}
 #define CIOT_WIFI_MULTI_DATA_INIT_DEFAULT        {0, {CIOT_WIFI_MULTI_STOP_INIT_DEFAULT}}
 #define CIOT_WIFI_MULTI_ITEM_CFG_INIT_ZERO       {"", "", 0}
 #define CIOT_WIFI_MULTI_CFG_INIT_ZERO            {0, {CIOT_WIFI_MULTI_ITEM_CFG_INIT_ZERO, CIOT_WIFI_MULTI_ITEM_CFG_INIT_ZERO}, 0, 0, 0}
 #define CIOT_WIFI_MULTI_ITEM_STATUS_INIT_ZERO    {0, 0, 0, 0, 0}
-#define CIOT_WIFI_MULTI_STATUS_INIT_ZERO         {0, 0, 0, 0, 0, {CIOT_WIFI_MULTI_ITEM_STATUS_INIT_ZERO, CIOT_WIFI_MULTI_ITEM_STATUS_INIT_ZERO}, false, CIOT_TCP_STATUS_INIT_ZERO}
+#define CIOT_WIFI_MULTI_STATUS_INIT_ZERO         {0, 0, 0, 0, 0, {CIOT_WIFI_MULTI_ITEM_STATUS_INIT_ZERO, CIOT_WIFI_MULTI_ITEM_STATUS_INIT_ZERO}, false, CIOT_TCP_STATUS_INIT_ZERO, 0}
 #define CIOT_WIFI_MULTI_INFO_INIT_ZERO           {0, "", false, CIOT_WIFI_INFO_INIT_ZERO, false, CIOT_TCP_INFO_INIT_ZERO}
 #define CIOT_WIFI_MULTI_REQ_NEXT_INIT_ZERO       {0}
 #define CIOT_WIFI_MULTI_REQ_SET_INVALID_INIT_ZERO {0, 0}
 #define CIOT_WIFI_MULTI_REQ_MARK_ACTIVE_INVALID_INIT_ZERO {0}
 #define CIOT_WIFI_MULTI_REQ_RESET_INVALID_INIT_ZERO {0}
 #define CIOT_WIFI_MULTI_REQ_GET_ITEM_INIT_ZERO   {0}
+#define CIOT_WIFI_MULTI_REQ_SET_ITEM_INIT_ZERO   {0, false, CIOT_WIFI_MULTI_ITEM_CFG_INIT_ZERO}
 #define CIOT_WIFI_MULTI_REQ_INIT_ZERO            {0, {CIOT_WIFI_MULTI_REQ_NEXT_INIT_ZERO}}
 #define CIOT_WIFI_MULTI_STOP_INIT_ZERO           {0}
 #define CIOT_WIFI_MULTI_DATA_INIT_ZERO           {0, {CIOT_WIFI_MULTI_STOP_INIT_ZERO}}
@@ -153,19 +164,20 @@ extern "C" {
 #define CIOT_WIFI_MULTI_ITEM_CFG_VALID_TAG       3
 #define CIOT_WIFI_MULTI_CFG_ITEMS_TAG            1
 #define CIOT_WIFI_MULTI_CFG_INITIAL_INDEX_TAG    2
-#define CIOT_WIFI_MULTI_CFG_SWITCH_INTERVAL_MS_TAG 3
+#define CIOT_WIFI_MULTI_CFG_SWITCH_INTERVAL_S_TAG 3
 #define CIOT_WIFI_MULTI_CFG_RECONNECT_ATTEMPTS_TAG 4
 #define CIOT_WIFI_MULTI_ITEM_STATUS_VALID_TAG    1
 #define CIOT_WIFI_MULTI_ITEM_STATUS_SELECTED_TAG 2
 #define CIOT_WIFI_MULTI_ITEM_STATUS_LAST_ERROR_TAG 3
 #define CIOT_WIFI_MULTI_ITEM_STATUS_FAIL_COUNT_TAG 4
-#define CIOT_WIFI_MULTI_ITEM_STATUS_LAST_ATTEMPT_MS_TAG 5
+#define CIOT_WIFI_MULTI_ITEM_STATUS_LAST_ATTEMPT_S_TAG 5
 #define CIOT_WIFI_MULTI_STATUS_ACTIVE_INDEX_TAG  1
 #define CIOT_WIFI_MULTI_STATUS_VALID_COUNT_TAG   2
 #define CIOT_WIFI_MULTI_STATUS_LAST_ERROR_TAG    3
-#define CIOT_WIFI_MULTI_STATUS_NEXT_SWITCH_MS_TAG 4
+#define CIOT_WIFI_MULTI_STATUS_NEXT_SWITCH_S_TAG 4
 #define CIOT_WIFI_MULTI_STATUS_ITEMS_TAG         5
 #define CIOT_WIFI_MULTI_STATUS_TCP_TAG           6
+#define CIOT_WIFI_MULTI_STATUS_STARTED_TAG       7
 #define CIOT_WIFI_MULTI_INFO_ACTIVE_INDEX_TAG    1
 #define CIOT_WIFI_MULTI_INFO_ACTIVE_SSID_TAG     2
 #define CIOT_WIFI_MULTI_INFO_ACTIVE_WIFI_INFO_TAG 3
@@ -174,11 +186,14 @@ extern "C" {
 #define CIOT_WIFI_MULTI_REQ_SET_INVALID_REASON_TAG 2
 #define CIOT_WIFI_MULTI_REQ_MARK_ACTIVE_INVALID_REASON_TAG 1
 #define CIOT_WIFI_MULTI_REQ_GET_ITEM_INDEX_TAG   1
+#define CIOT_WIFI_MULTI_REQ_SET_ITEM_INDEX_TAG   1
+#define CIOT_WIFI_MULTI_REQ_SET_ITEM_CONFIG_TAG  2
 #define CIOT_WIFI_MULTI_REQ_NEXT_TAG             1
 #define CIOT_WIFI_MULTI_REQ_SET_INVALID_TAG      2
 #define CIOT_WIFI_MULTI_REQ_MARK_ACTIVE_INVALID_TAG 3
 #define CIOT_WIFI_MULTI_REQ_RESET_INVALID_TAG    4
 #define CIOT_WIFI_MULTI_REQ_GET_ITEM_TAG         5
+#define CIOT_WIFI_MULTI_REQ_SET_ITEM_TAG         6
 #define CIOT_WIFI_MULTI_DATA_STOP_TAG            1
 #define CIOT_WIFI_MULTI_DATA_CONFIG_TAG          2
 #define CIOT_WIFI_MULTI_DATA_STATUS_TAG          3
@@ -196,7 +211,7 @@ X(a, STATIC,   SINGULAR, BOOL,     valid,             3)
 #define CIOT_WIFI_MULTI_CFG_FIELDLIST(X, a) \
 X(a, STATIC,   REPEATED, MESSAGE,  items,             1) \
 X(a, STATIC,   SINGULAR, UINT32,   initial_index,     2) \
-X(a, STATIC,   SINGULAR, UINT32,   switch_interval_ms,   3) \
+X(a, STATIC,   SINGULAR, UINT32,   switch_interval_s,   3) \
 X(a, STATIC,   SINGULAR, UINT32,   reconnect_attempts,   4)
 #define CIOT_WIFI_MULTI_CFG_CALLBACK NULL
 #define CIOT_WIFI_MULTI_CFG_DEFAULT NULL
@@ -207,7 +222,7 @@ X(a, STATIC,   SINGULAR, BOOL,     valid,             1) \
 X(a, STATIC,   SINGULAR, BOOL,     selected,          2) \
 X(a, STATIC,   SINGULAR, UINT32,   last_error,        3) \
 X(a, STATIC,   SINGULAR, UINT32,   fail_count,        4) \
-X(a, STATIC,   SINGULAR, UINT32,   last_attempt_ms,   5)
+X(a, STATIC,   SINGULAR, UINT32,   last_attempt_s,    5)
 #define CIOT_WIFI_MULTI_ITEM_STATUS_CALLBACK NULL
 #define CIOT_WIFI_MULTI_ITEM_STATUS_DEFAULT NULL
 
@@ -215,9 +230,10 @@ X(a, STATIC,   SINGULAR, UINT32,   last_attempt_ms,   5)
 X(a, STATIC,   SINGULAR, UINT32,   active_index,      1) \
 X(a, STATIC,   SINGULAR, UINT32,   valid_count,       2) \
 X(a, STATIC,   SINGULAR, UINT32,   last_error,        3) \
-X(a, STATIC,   SINGULAR, UINT64,   next_switch_ms,    4) \
+X(a, STATIC,   SINGULAR, UINT64,   next_switch_s,     4) \
 X(a, STATIC,   REPEATED, MESSAGE,  items,             5) \
-X(a, STATIC,   OPTIONAL, MESSAGE,  tcp,               6)
+X(a, STATIC,   OPTIONAL, MESSAGE,  tcp,               6) \
+X(a, STATIC,   SINGULAR, BOOL,     started,           7)
 #define CIOT_WIFI_MULTI_STATUS_CALLBACK NULL
 #define CIOT_WIFI_MULTI_STATUS_DEFAULT NULL
 #define ciot_wifi_multi_status_t_items_MSGTYPE ciot_wifi_multi_item_status_t
@@ -259,12 +275,20 @@ X(a, STATIC,   SINGULAR, UINT32,   index,             1)
 #define CIOT_WIFI_MULTI_REQ_GET_ITEM_CALLBACK NULL
 #define CIOT_WIFI_MULTI_REQ_GET_ITEM_DEFAULT NULL
 
+#define CIOT_WIFI_MULTI_REQ_SET_ITEM_FIELDLIST(X, a) \
+X(a, STATIC,   SINGULAR, UINT32,   index,             1) \
+X(a, STATIC,   OPTIONAL, MESSAGE,  config,            2)
+#define CIOT_WIFI_MULTI_REQ_SET_ITEM_CALLBACK NULL
+#define CIOT_WIFI_MULTI_REQ_SET_ITEM_DEFAULT NULL
+#define ciot_wifi_multi_req_set_item_t_config_MSGTYPE ciot_wifi_multi_item_cfg_t
+
 #define CIOT_WIFI_MULTI_REQ_FIELDLIST(X, a) \
 X(a, STATIC,   ONEOF,    MESSAGE,  (type,next,next),   1) \
 X(a, STATIC,   ONEOF,    MESSAGE,  (type,set_invalid,set_invalid),   2) \
 X(a, STATIC,   ONEOF,    MESSAGE,  (type,mark_active_invalid,mark_active_invalid),   3) \
 X(a, STATIC,   ONEOF,    MESSAGE,  (type,reset_invalid,reset_invalid),   4) \
-X(a, STATIC,   ONEOF,    MESSAGE,  (type,get_item,get_item),   5)
+X(a, STATIC,   ONEOF,    MESSAGE,  (type,get_item,get_item),   5) \
+X(a, STATIC,   ONEOF,    MESSAGE,  (type,set_item,set_item),   6)
 #define CIOT_WIFI_MULTI_REQ_CALLBACK NULL
 #define CIOT_WIFI_MULTI_REQ_DEFAULT NULL
 #define ciot_wifi_multi_req_t_type_next_MSGTYPE ciot_wifi_multi_req_next_t
@@ -272,6 +296,7 @@ X(a, STATIC,   ONEOF,    MESSAGE,  (type,get_item,get_item),   5)
 #define ciot_wifi_multi_req_t_type_mark_active_invalid_MSGTYPE ciot_wifi_multi_req_mark_active_invalid_t
 #define ciot_wifi_multi_req_t_type_reset_invalid_MSGTYPE ciot_wifi_multi_req_reset_invalid_t
 #define ciot_wifi_multi_req_t_type_get_item_MSGTYPE ciot_wifi_multi_req_get_item_t
+#define ciot_wifi_multi_req_t_type_set_item_MSGTYPE ciot_wifi_multi_req_set_item_t
 
 #define CIOT_WIFI_MULTI_STOP_FIELDLIST(X, a) \
 
@@ -302,6 +327,7 @@ extern const pb_msgdesc_t ciot_wifi_multi_req_set_invalid_t_msg;
 extern const pb_msgdesc_t ciot_wifi_multi_req_mark_active_invalid_t_msg;
 extern const pb_msgdesc_t ciot_wifi_multi_req_reset_invalid_t_msg;
 extern const pb_msgdesc_t ciot_wifi_multi_req_get_item_t_msg;
+extern const pb_msgdesc_t ciot_wifi_multi_req_set_item_t_msg;
 extern const pb_msgdesc_t ciot_wifi_multi_req_t_msg;
 extern const pb_msgdesc_t ciot_wifi_multi_stop_t_msg;
 extern const pb_msgdesc_t ciot_wifi_multi_data_t_msg;
@@ -317,6 +343,7 @@ extern const pb_msgdesc_t ciot_wifi_multi_data_t_msg;
 #define CIOT_WIFI_MULTI_REQ_MARK_ACTIVE_INVALID_FIELDS &ciot_wifi_multi_req_mark_active_invalid_t_msg
 #define CIOT_WIFI_MULTI_REQ_RESET_INVALID_FIELDS &ciot_wifi_multi_req_reset_invalid_t_msg
 #define CIOT_WIFI_MULTI_REQ_GET_ITEM_FIELDS &ciot_wifi_multi_req_get_item_t_msg
+#define CIOT_WIFI_MULTI_REQ_SET_ITEM_FIELDS &ciot_wifi_multi_req_set_item_t_msg
 #define CIOT_WIFI_MULTI_REQ_FIELDS &ciot_wifi_multi_req_t_msg
 #define CIOT_WIFI_MULTI_STOP_FIELDS &ciot_wifi_multi_stop_t_msg
 #define CIOT_WIFI_MULTI_DATA_FIELDS &ciot_wifi_multi_data_t_msg
@@ -333,8 +360,9 @@ extern const pb_msgdesc_t ciot_wifi_multi_data_t_msg;
 #define CIOT_WIFI_MULTI_REQ_NEXT_SIZE            0
 #define CIOT_WIFI_MULTI_REQ_RESET_INVALID_SIZE   0
 #define CIOT_WIFI_MULTI_REQ_SET_INVALID_SIZE     12
-#define CIOT_WIFI_MULTI_REQ_SIZE                 14
-#define CIOT_WIFI_MULTI_STATUS_SIZE              93
+#define CIOT_WIFI_MULTI_REQ_SET_ITEM_SIZE        108
+#define CIOT_WIFI_MULTI_REQ_SIZE                 110
+#define CIOT_WIFI_MULTI_STATUS_SIZE              95
 #define CIOT_WIFI_MULTI_STOP_SIZE                0
 
 #ifdef __cplusplus
