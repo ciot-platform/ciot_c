@@ -19,8 +19,8 @@
 #include "ciot_timer.h"
 #include "ciot_err.h"
 #include "ciot_ntp.h"
-#include "freertos/task.h"
 #include "freertos/FreeRTOS.h"
+#include "freertos/task.h"
 #include "freertos/event_groups.h"
 
 static const char *TAG = "ciot_sys";
@@ -102,9 +102,9 @@ ciot_err_t ciot_sys_init_dfu(void)
 
 void ciot_sys_log_run_time_stats(void)
 {
-    char buffer[512];
-    vTaskGetRunTimeStats(buffer);
-    CIOT_LOGI(TAG, "%s", buffer);
+    // char buffer[512];
+    // vTaskGetRunTimeStats(buffer);
+    // CIOT_LOGI(TAG, "%s", buffer);
 }
 
 #endif  //!CIOT_CONFIG_FEATURE_SYS == 1
