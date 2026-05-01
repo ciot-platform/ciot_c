@@ -229,7 +229,7 @@ static ciot_err_t ciot_wifi_start_sta(ciot_wifi_t self, ciot_wifi_cfg_t *cfg)
         self->connect_attempts = 0;
     }
     
-    ESP_ERROR_CHECK(esp_wifi_disconnect());
+    CIOT_ERR_PRINT(esp_wifi_disconnect());
     ESP_ERROR_CHECK(esp_wifi_set_config(WIFI_IF_STA, &conf));
     CIOT_ERR_PRINT(TAG, esp_wifi_start());
 
