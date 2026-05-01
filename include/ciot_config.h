@@ -70,6 +70,10 @@
 #define CIOT_CONFIG_START_TIMEOUT_SECS 5
 #define CIOT_CONFIG_BUSY_TIMEOUT_SECS 30
 
+#ifndef CIOT_CONFIG_EVENT_QUEUE_SIZE
+#define CIOT_CONFIG_EVENT_QUEUE_SIZE 16
+#endif
+
 // #define CIOT_CONFIG_HTTP_SERVER_ALLOW_ORIGIN "*"
 
 #define ciot_serializer_to_bytes ciot_serializer_pb_to_bytes

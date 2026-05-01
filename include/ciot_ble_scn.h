@@ -73,7 +73,7 @@ ciot_err_t ciot_ble_scn_get_cfg(ciot_ble_scn_t self, ciot_ble_scn_cfg_t *cfg);
 ciot_err_t ciot_ble_scn_get_status(ciot_ble_scn_t self, ciot_ble_scn_status_t *status);
 ciot_err_t ciot_ble_scn_task(ciot_ble_scn_t self);
 ciot_err_t ciot_ble_scn_base_task(ciot_ble_scn_t self);
-void ciot_ble_scn_handle_adv_report(ciot_ble_scn_t self, ciot_ble_scn_adv_t *adv);
+void ciot_ble_scn_handle_adv_report(ciot_ble_scn_t self, ciot_ble_scn_event_adv_report_t *adv);
 ciot_err_t ciot_ble_scn_handle_event(ciot_ble_scn_t self, void *event, void *event_args);
 ciot_err_t ciot_ble_scn_set_filter(ciot_ble_scn_t self, ciot_ble_scn_filter_fn *filter, void *args);
 void ciot_ble_scn_copy_mac(uint8_t destiny[6], uint8_t source[6], bool reverse);

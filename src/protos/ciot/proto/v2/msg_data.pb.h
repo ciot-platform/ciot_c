@@ -25,6 +25,7 @@
 #include "ciot/proto/v2/usb.pb.h"
 #include "ciot/proto/v2/mbus_client.pb.h"
 #include "ciot/proto/v2/mbus_server.pb.h"
+#include "ciot/proto/v2/wifi_multi.pb.h"
 
 #if PB_PROTO_HEADER_VERSION != 40
 #error Regenerate this file with the current version of nanopb generator.
@@ -57,6 +58,7 @@ typedef struct ciot_msg_data {
         ciot_usb_data_t usb; /* USB data. */
         ciot_mbus_client_data_t mbus_client; /* Modbus client data. */
         ciot_mbus_server_data_t mbus_server; /* Modbus server data. */
+        ciot_wifi_multi_data_t wifi_multi; /* Multi-WiFi data. */
     };
 } ciot_msg_data_t;
 
@@ -92,6 +94,7 @@ extern "C" {
 #define CIOT_MSG_DATA_USB_TAG                    21
 #define CIOT_MSG_DATA_MBUS_CLIENT_TAG            22
 #define CIOT_MSG_DATA_MBUS_SERVER_TAG            23
+#define CIOT_MSG_DATA_WIFI_MULTI_TAG             24
 
 /* Struct field encoding specification for nanopb */
 #define CIOT_MSG_DATA_FIELDLIST(X, a) \
@@ -116,7 +119,8 @@ X(a, STATIC,   ONEOF,    MESSAGE,  (type,wifi,wifi),  19) \
 X(a, STATIC,   ONEOF,    MESSAGE,  (type,log,log),   20) \
 X(a, STATIC,   ONEOF,    MESSAGE,  (type,usb,usb),   21) \
 X(a, STATIC,   ONEOF,    MESSAGE,  (type,mbus_client,mbus_client),  22) \
-X(a, STATIC,   ONEOF,    MESSAGE,  (type,mbus_server,mbus_server),  23)
+X(a, STATIC,   ONEOF,    MESSAGE,  (type,mbus_server,mbus_server),  23) \
+X(a, STATIC,   ONEOF,    MESSAGE,  (type,wifi_multi,wifi_multi),  24)
 #define CIOT_MSG_DATA_CALLBACK NULL
 #define CIOT_MSG_DATA_DEFAULT NULL
 #define ciot_msg_data_t_type_common_MSGTYPE ciot_common_t
@@ -141,6 +145,7 @@ X(a, STATIC,   ONEOF,    MESSAGE,  (type,mbus_server,mbus_server),  23)
 #define ciot_msg_data_t_type_usb_MSGTYPE ciot_usb_data_t
 #define ciot_msg_data_t_type_mbus_client_MSGTYPE ciot_mbus_client_data_t
 #define ciot_msg_data_t_type_mbus_server_MSGTYPE ciot_mbus_server_data_t
+#define ciot_msg_data_t_type_wifi_multi_MSGTYPE ciot_wifi_multi_data_t
 
 extern const pb_msgdesc_t ciot_msg_data_t_msg;
 

@@ -12,6 +12,7 @@
 #ifndef __CIOT__H__
 #define __CIOT__H__
 
+#include "ciot_config.h"
 #include "ciot_iface.h"
 #include "ciot_storage.h"
 #include "ciot_types.h"
@@ -33,7 +34,7 @@
 #warning "Target undefined."
 #endif
 
-#define CIOT_VER 0,21,0,4
+#define CIOT_VER 0,22,0,0
 #define CIOT_IFACE_CFG_FILENAME "cfg%d.dat"
 
 #if defined(CIOT_TARGET_WIN) || defined(CIOT_TARGET_LINUX)
@@ -70,12 +71,30 @@ typedef struct ciot_starter
     uint64_t timer;
 } ciot_starter_t;
 
+typedef struct ciot_event_slot
+{
+    ciot_iface_t *sender;
+    ciot_event_t event;
+    bool truncated;
+} ciot_event_slot_t;
+
+#ifndef CIOT_CONFIG_EVENT_QUEUE_SIZE
+#define CIOT_CONFIG_EVENT_QUEUE_SIZE 16
+#endif
+
+typedef struct ciot_event_queue
+{
+    ciot_event_slot_t slots[CIOT_CONFIG_EVENT_QUEUE_SIZE];
+    uint8_t head;
+    uint8_t tail;
+    uint8_t count;
+    uint32_t dropped;
+} ciot_event_queue_t;
+
 typedef struct ciot_receiver
 {
-    bool serialized;
-    ciot_iface_t *sender;
     ciot_iface_t *proxy;
-    ciot_event_t event;
+    ciot_event_queue_t queue;
     uint64_t timeout_timer;
 } ciot_receiver_t;
 

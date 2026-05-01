@@ -38,5 +38,6 @@
 #include "protos/ciot/proto/v2/uart.pb.h"
 #include "protos/ciot/proto/v2/usb.pb.h"
 #include "protos/ciot/proto/v2/wifi.pb.h"
+#include "protos/ciot/proto/v2/wifi_multi.pb.h"
 
 #endif  //!__CIOT_TYPES__H__
