@@ -598,4 +598,4 @@ static uint64_t ciot_wifi_multi_now_ms(void)
     return ciot_timer_now() * 1000ULL;
 }
 
-#endif // CIOT_CONFIG_FEATURE_WIFI == 1
+#endif // CIOT_CONFIG_FEATURE_WIFI_MULTI == 1
