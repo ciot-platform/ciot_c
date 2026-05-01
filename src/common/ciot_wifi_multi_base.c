@@ -813,4 +813,4 @@ static ciot_err_t ciot_wifi_multi_wifi_get_info_default(ciot_wifi_t wifi, ciot_w
     return ciot_wifi_get_info(wifi, info);
 }
 
-#endif // CIOT_CONFIG_FEATURE_WIFI == 1
+#endif // CIOT_CONFIG_FEATURE_WIFI_MULTI == 1

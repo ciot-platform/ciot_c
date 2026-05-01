@@ -50,6 +50,7 @@ ciot_err_t ciot_iface_send_req(ciot_iface_t *self, ciot_msg_t *req);
 ciot_err_t ciot_iface_send_error(ciot_iface_t *self, ciot_iface_type_t iface_type, uint16_t iface_id, ciot_msg_t *msg, ciot_err_t err);
 ciot_err_t ciot_iface_send_event(ciot_iface_t *self, ciot_event_t *event);
 ciot_err_t ciot_iface_send_event_type(ciot_iface_t *self, ciot_event_type_t event_type);
+ciot_err_t ciot_iface_send_event_data(ciot_iface_t *self, ciot_event_type_t event_type, uint8_t *data, int size);
 ciot_err_t ciot_iface_send_internal_event(ciot_iface_t *self, void *event_data, int event_type);
 ciot_err_t ciot_iface_process_msg(ciot_iface_t *self, ciot_msg_t *msg, ciot_iface_t *sender);
 ciot_err_t ciot_iface_process_data(ciot_iface_t *self, uint8_t *data, int size, ciot_event_type_t event_type);

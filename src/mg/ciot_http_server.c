@@ -134,10 +134,7 @@ static void ciot_http_server_event_handler(struct mg_connection *c, int ev, void
         self->conn_tx = c;
         if (mg_match(hm->uri, mg_str(base->cfg.route), NULL) && check_method(hm, "POST"))
         {
-            event.type = CIOT_EVENT_TYPE_MSG;
-            memcpy(event.raw.bytes, hm->body.buf, hm->body.len);
-            event.raw.size = hm->body.len;
-            ciot_iface_send_event(&base->iface, &event);
+            ciot_iface_send_event_data(&base->iface, CIOT_EVENT_TYPE_MSG, (uint8_t *)hm->body.buf, hm->body.len);
         }
         else if(self->base.custom_api.enabled && mg_match(hm->uri, mg_str(self->base.custom_api.uri), NULL))
         {
@@ -166,11 +163,14 @@ static void ciot_http_server_event_handler(struct mg_connection *c, int ev, void
         }
         else
         {
-            ciot_http_server_event_data_t *event_data = (ciot_http_server_event_data_t *)&event.raw;
-            memcpy(event_data->uri, hm->uri.buf, hm->uri.len);
-            memcpy(event_data->body, hm->body.buf, hm->body.len);
-            event.type = CIOT_EVENT_TYPE_DATA;
-            ciot_iface_send_event(&base->iface, &event);
+            ciot_http_server_event_data_t evt_data = {0};
+            size_t uri_size = hm->uri.len;
+            size_t body_size = hm->body.len;
+            if (uri_size > sizeof(evt_data.uri)) uri_size = sizeof(evt_data.uri);
+            if (body_size > sizeof(evt_data.body)) body_size = sizeof(evt_data.body);
+            memcpy(evt_data.uri, hm->uri.buf, uri_size);
+            memcpy(evt_data.body, hm->body.buf, body_size);
+            ciot_iface_send_event_data(&base->iface, CIOT_EVENT_TYPE_DATA, (uint8_t *)&evt_data, sizeof(evt_data));
         }
         break;
     }
