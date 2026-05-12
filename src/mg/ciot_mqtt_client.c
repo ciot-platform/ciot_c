@@ -206,19 +206,18 @@ static void ciot_mqtt_client_event_handler(struct mg_connection *c, int ev, void
         struct mg_mqtt_message *mm = (struct mg_mqtt_message *)ev_data;
         if(base->process_all_topics || (strlen(base->cfg.topics.sub) == mm->topic.len && strncmp(mm->topic.buf, base->cfg.topics.sub, mm->topic.len) == 0))
         {
-            event.type = CIOT_EVENT_TYPE_MSG;
-            memcpy(event.raw.bytes, mm->data.buf, mm->data.len);
-            event.raw.size = mm->data.len;
-            ciot_iface_send_event(&base->iface, &event);
+            ciot_iface_send_event_data(&base->iface, CIOT_EVENT_TYPE_MSG, (uint8_t *)mm->data.buf, mm->data.len);
         }
         else
         {
-            ciot_mqtt_client_event_data_t *event_data = (ciot_mqtt_client_event_data_t*)&event.raw.bytes[0];
-            event.type = CIOT_EVENT_TYPE_DATA;
-            event.raw.size = mm->data.len;
-            memcpy(event_data->topic, mm->topic.buf, mm->topic.len);
-            memcpy(event_data->data, mm->data.buf, mm->data.len);
-            ciot_iface_send_event(&base->iface, &event);
+            ciot_mqtt_client_event_data_t evt_data = {0};
+            size_t topic_size = mm->topic.len;
+            size_t data_size = mm->data.len;
+            if (topic_size > sizeof(evt_data.topic)) topic_size = sizeof(evt_data.topic);
+            if (data_size > sizeof(evt_data.data)) data_size = sizeof(evt_data.data);
+            memcpy(evt_data.topic, mm->topic.buf, topic_size);
+            memcpy(evt_data.data, mm->data.buf, data_size);
+            ciot_iface_send_event_data(&base->iface, CIOT_EVENT_TYPE_DATA, (uint8_t *)&evt_data, sizeof(evt_data));
         }
         break;
     }

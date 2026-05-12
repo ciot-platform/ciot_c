@@ -34,6 +34,5 @@ add_executable(${PROJECT_NAME}
 target_link_libraries(${PROJECT_NAME} unity)
 
 if (WIN32)
-    target_link_libraries(${PROJECT_NAME} ws2_32)
-    target_link_libraries(${PROJECT_NAME} ws2_32 bcrypt)
+    target_link_libraries(${PROJECT_NAME} iphlpapi ws2_32 bcrypt)
 endif()

@@ -136,11 +136,10 @@ ciot_err_t ciot_ble_scn_base_task(ciot_ble_scn_t self)
 			// ciot_iface_event_t event = {0};
             // event.type = CIOT_IFACE_EVENT_DATA;
             // event.data = (uint8_t*)&adv_fifo->list[adv_fifo->rp];
-            ciot_event_t event = { 0 };
-            event.type = CIOT_EVENT_TYPE_DATA,
-            memcpy(event.raw.bytes, (uint8_t*)&adv_fifo->list[adv_fifo->rp], sizeof(ciot_ble_scn_adv_t));
-            event.raw.size = sizeof(ciot_ble_scn_adv_t);
-            ciot_iface_send_event(&base->iface, &event);
+            ciot_iface_send_event_data(&base->iface,
+                                      CIOT_EVENT_TYPE_DATA,
+                                      (uint8_t*)&adv_fifo->list[adv_fifo->rp],
+                                      sizeof(ciot_ble_scn_adv_t));
 			adv_fifo->list[adv_fifo->rp].info.rssi = 0;
 			adv_fifo->rp++;
 			base->status.fifo_len--;
@@ -159,7 +158,7 @@ ciot_err_t ciot_ble_scn_base_task(ciot_ble_scn_t self)
     return CIOT_ERR_OK;
 }
 
-void ciot_ble_scn_handle_adv_report(ciot_ble_scn_t self, ciot_ble_scn_adv_t *adv)
+void ciot_ble_scn_handle_adv_report(ciot_ble_scn_t self, ciot_ble_scn_event_adv_report_t *adv)
 {
     ciot_ble_scn_base_t *base = (ciot_ble_scn_base_t*)self;
 #ifdef CIOT_CONFIG_BLE_SCN_ADV_FIFO_SIZE
@@ -192,11 +191,7 @@ void ciot_ble_scn_handle_adv_report(ciot_ble_scn_t self, ciot_ble_scn_adv_t *adv
         }
     }
 #else
-    ciot_event_t event = {0};
-    event.type = CIOT_EVENT_TYPE_DATA;
-    event.raw.size = sizeof(*adv);
-    memcpy(event.raw.bytes, adv, sizeof(*adv));
-    ciot_iface_send_event(&base->iface, &event);
+    ciot_iface_send_event_data(&base->iface, CIOT_EVENT_TYPE_DATA, (uint8_t*)adv, sizeof(*adv));
 #endif
 }
 

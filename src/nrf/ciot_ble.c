@@ -253,7 +253,8 @@ static void ciot_ble_evt_handler(ble_evt_t const *p_ble_evt, void *p_context)
         if (ble_scn->filter.handler == NULL || ble_scn->filter.handler((ciot_ble_scn_t)ble_scn, &adv_report, ble_scn->filter.args))
         {
             // TODO: verificar tempo de execução (intervalo entre recebimento do adv e reinício do scan)
-            ciot_iface_send_internal_event(&ble_scn->iface, &adv_report, CIOT_BLE_SCN_EVENT_ADV_REPORT);
+            // ciot_iface_send_internal_event(&ble_scn->iface, &adv_report, CIOT_BLE_SCN_EVENT_ADV_REPORT);
+            ciot_ble_scn_handle_adv_report((ciot_ble_scn_t)ble_scn, &adv_report);
         }
         ciot_ble_scn_continue((ciot_ble_scn_t)ble_scn);
     }
