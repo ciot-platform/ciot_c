@@ -42,6 +42,7 @@ typedef struct ciot_wifi_base
     ciot_wifi_status_t status;
     ciot_wifi_info_t info;
     ciot_wifi_ap_list_t ap_list;
+    bool reconnect;
 } ciot_wifi_base_t;
 
 ciot_wifi_t ciot_wifi_new(ciot_wifi_type_t type);
@@ -59,6 +60,7 @@ ciot_err_t ciot_wifi_get_scanned_ap(ciot_wifi_t self, int id, ciot_wifi_ap_info_
 ciot_err_t ciot_wifi_get_scanned_aps(ciot_wifi_t self, ciot_wifi_ap_list_t *ap_list);
 ciot_err_t ciot_wifi_get_ip(ciot_wifi_t self, uint8_t ip[4]);
 ciot_err_t ciot_wifi_get_rssi(ciot_wifi_t self, int32_t *rssi);
+ciot_err_t ciot_wifi_set_reconnect(ciot_wifi_t self, bool reconnect);
 bool ciot_wifi_is_connected(ciot_wifi_t self);
 
 #ifdef __cplusplus
