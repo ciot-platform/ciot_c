@@ -431,6 +431,13 @@ static void ciot_wifi_sta_event_handler(void *handler_args, esp_event_base_t eve
         if (!base->cfg.disabled
             && base->cfg.ssid[0] != '\0')
         {
+            if (self->connect_attempts == CIOT_WIFI_CONNECTION_ATTEMPTS)
+            {
+                CIOT_LOGI(TAG, "Connection failed. Maximum retry attempts reached.");
+                tcp->status->state = CIOT_TCP_STATE_DISCONNECTED;
+                ciot_iface_send_event_type(&self->base.iface, CIOT_EVENT_TYPE_STOPPED);
+            }
+
             if (self->connect_attempts < CIOT_WIFI_CONNECTION_ATTEMPTS || self->base.reconnect)
             {
                 self->connect_attempts++;
@@ -441,11 +448,6 @@ static void ciot_wifi_sta_event_handler(void *handler_args, esp_event_base_t eve
                 CIOT_ERR_PRINT(TAG, esp_wifi_connect());
             }
 
-            if (self->connect_attempts == CIOT_WIFI_CONNECTION_ATTEMPTS)
-            {
-                tcp->status->state = CIOT_TCP_STATE_DISCONNECTED;
-                ciot_iface_send_event_type(&self->base.iface, CIOT_EVENT_TYPE_STOPPED);
-            }
             break;
         }
         else
