@@ -122,12 +122,14 @@ ciot_err_t ciot_wifi_stop(ciot_wifi_t self)
     self->base.cfg.disabled = true;
 
     wifi_mode_t mode;
+    ciot_err_t err = CIOT_ERR_OK;
     ESP_ERROR_CHECK(esp_wifi_get_mode(&mode));
 
-    if(self->base.status.tcp.state != CIOT_TCP_STATE_CONNECTED || mode == WIFI_MODE_NULL)
+    if(self->base.status.tcp.state != CIOT_TCP_STATE_TCP_STATE_CONNECTED)
     {
-        // Already stopped. Send event otherwise ciot will timeout waiting for the event to update the state.
+        CIOT_LOGI(TAG, "WiFi already stopped");
         ciot_iface_send_event_type(&self->base.iface, CIOT_EVENT_TYPE_STOPPED);
+        return CIOT_ERR_OK;
     }
 
     switch (self->base.cfg.type)
@@ -135,16 +137,16 @@ ciot_err_t ciot_wifi_stop(ciot_wifi_t self)
     case CIOT_WIFI_TYPE_STA:
         CIOT_LOGI(TAG, "Stopping station");
         ESP_ERROR_CHECK(esp_wifi_disconnect());
-        return CIOT_ERR_OK;
+        break;
     case CIOT_WIFI_TYPE_AP:
         CIOT_LOGI(TAG, "Stopping access point");
         ESP_ERROR_CHECK(esp_wifi_set_mode(WIFI_MODE_STA));
-        return CIOT_ERR_OK;
+        break;
     default:
         return CIOT_ERR_INVALID_TYPE;
     }
 
-    return CIOT_ERR_OK;
+    return err == ESP_OK ? CIOT_ERR_OK : CIOT_ERR_FAIL;
 }
 
 ciot_err_t ciot_wifi_task(ciot_wifi_t self)
@@ -444,6 +446,11 @@ static void ciot_wifi_sta_event_handler(void *handler_args, esp_event_base_t eve
                 ciot_iface_send_event_type(&self->base.iface, CIOT_EVENT_TYPE_STOPPED);
             }
             break;
+        }
+        else
+        {
+            tcp->status->state = CIOT_TCP_STATE_DISCONNECTED;
+            ciot_iface_send_event_type(&self->base.iface, CIOT_EVENT_TYPE_STOPPED);
         }
         break;
     }
