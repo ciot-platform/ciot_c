@@ -1,6 +1,6 @@
 {
     "env": {
-        "IDF_COMPILER": "C:\\Users\\BINAR\\.espressif\\tools\\xtensa-esp-elf\\esp-13.2.0_20240530\\xtensa-esp-elf\\bin\\xtensa-esp32-elf-gcc.exe",
+        "IDF_COMPILER": "C:\\Espressif\\tools\\xtensa-esp-elf\\esp-15.2.0_20251204\\xtensa-esp-elf\\bin\\xtensa-esp32-elf-gcc.exe",
         "CIOT_SDK_ROOT": "../ciot_c",
         "HG_TCP_DIR": "..//hg_tcp",
         "HG_PCM_DIR": "..//hg_pcm",
@@ -10,6 +10,7 @@
         "NRF_SOFTDEVICE": "s140",
         "NRF_SOFTDEVICE_FLAG": "S140",
         "NRF_SD_BLE_API_VERSION": "7",
+        "IDF_PATH": "C:/esp/v5.4.3/esp-idf",
         "ESP8266_PATH": "C:/msys32/home/BINAR/esp",
         "ESP8266_COMPILER": "${ESP8266_PATH}/xtensa-lx106-elf/bin/xtensa-lx106-elf-gcc.exe"
     },
@@ -25,21 +26,21 @@
         {
             "name": "ESP-IDF",
             "compilerPath": null,
-            "forcedInclude": [
-                "${workspaceFolder}/examples/esp32/build/config/sdkconfig.h"
-            ],
+            // "forcedInclude": [
+            //     "${workspaceFolder}/examples/esp32/build/config/sdkconfig.h"
+            // ],
             "includePath": [
-                "${config:idf.espIdfPathWin}/components/**",
+                "${IDF_PATH}/components/**",
                 "${workspaceFolder}/examples/esp32/main/**",
                 "include/**",
                 "src/esp32/**",
                 "src/common/**",
-                "src/proto/nanopb",
-                "src/proto"
+                "src/nanopb",
+                "src/protos"
             ],
             "browse": {
                 "path": [
-                    "${config:idf.espIdfPathWin}/components",
+                    "${IDF_PATH}/components/**",
                     "${workspaceFolder}/examples/esp32/main/**"
                 ],
                 "limitSymbolsToIncludedHeaders": false
