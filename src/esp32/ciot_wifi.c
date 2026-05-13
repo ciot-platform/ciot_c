@@ -28,9 +28,7 @@
 struct ciot_wifi
 {
     ciot_wifi_base_t base;
-    bool reconnecting;
-    uint8_t connect_attempts;
-    bool switching_network;
+    uint16_t connect_attempts;
 };
 
 static esp_err_t esp_wifi_init_mode(ciot_wifi_type_t type);
@@ -124,23 +122,31 @@ ciot_err_t ciot_wifi_stop(ciot_wifi_t self)
     self->base.cfg.disabled = true;
 
     wifi_mode_t mode;
+    ciot_err_t err = CIOT_ERR_OK;
     ESP_ERROR_CHECK(esp_wifi_get_mode(&mode));
+
+    if(self->base.status.tcp.state != CIOT_TCP_STATE_TCP_STATE_CONNECTED)
+    {
+        CIOT_LOGI(TAG, "WiFi already stopped");
+        ciot_iface_send_event_type(&self->base.iface, CIOT_EVENT_TYPE_STOPPED);
+        return CIOT_ERR_OK;
+    }
 
     switch (self->base.cfg.type)
     {
     case CIOT_WIFI_TYPE_STA:
         CIOT_LOGI(TAG, "Stopping station");
         ESP_ERROR_CHECK(esp_wifi_disconnect());
-        return CIOT_ERR_OK;
+        break;
     case CIOT_WIFI_TYPE_AP:
         CIOT_LOGI(TAG, "Stopping access point");
         ESP_ERROR_CHECK(esp_wifi_set_mode(WIFI_MODE_STA));
-        return CIOT_ERR_OK;
+        break;
     default:
         return CIOT_ERR_INVALID_TYPE;
     }
 
-    return CIOT_ERR_OK;
+    return err == ESP_OK ? CIOT_ERR_OK : CIOT_ERR_FAIL;
 }
 
 ciot_err_t ciot_wifi_task(ciot_wifi_t self)
@@ -222,28 +228,12 @@ static ciot_err_t ciot_wifi_start_sta(ciot_wifi_t self, ciot_wifi_cfg_t *cfg)
     conf.sta.scan_method = WIFI_ALL_CHANNEL_SCAN;
     conf.sta.sort_method = WIFI_CONNECT_AP_BY_SIGNAL;
 
-    if (tcp->status->state == CIOT_TCP_STATE_CONNECTED)
-    {
-        self->switching_network = true;
-        self->reconnecting = false;
-        self->connect_attempts = 0;
-        ESP_ERROR_CHECK(esp_wifi_disconnect());
-    }
-
+    ESP_ERROR_CHECK(esp_wifi_disconnect());
     ESP_ERROR_CHECK(esp_wifi_set_config(WIFI_IF_STA, &conf));
-    CIOT_ERR_PRINT(TAG, esp_wifi_start());
-
-    CIOT_LOGI(TAG, "WiFi state %d", tcp->status->state);
-    if (tcp->status->state == CIOT_TCP_STATE_DISCONNECTED ||
-        tcp->status->state == CIOT_TCP_STATE_STARTED)
-    {
-        CIOT_LOGI(TAG, "Wifi sta connecting...");
-        self->connect_attempts = 1;
-        self->reconnecting = true;
-        self->switching_network = false;
-        tcp->status->state = CIOT_TCP_STATE_CONNECTING;
-        CIOT_ERR_PRINT(TAG, esp_wifi_connect());
-    }
+    CIOT_LOGI(TAG, "Wifi sta connecting...");
+    self->connect_attempts = 1;
+    tcp->status->state = CIOT_TCP_STATE_CONNECTING;
+    CIOT_ERR_PRINT(TAG, esp_wifi_connect());
 
     return CIOT_ERR_OK;
 }
@@ -394,12 +384,9 @@ static void ciot_wifi_sta_event_handler(void *handler_args, esp_event_base_t eve
     case WIFI_EVENT_STA_START:
     {
         CIOT_LOGI(TAG, "WIFI_EVENT_STA_START");
-        self->switching_network = false;
         if (base->cfg.ssid[0] != '\0')
         {
             CIOT_LOGI(TAG, "Wifi sta connecting...");
-            self->connect_attempts = 1;
-            self->reconnecting = true;
             tcp->status->state = CIOT_TCP_STATE_CONNECTING;
             CIOT_ERR_PRINT(TAG, esp_wifi_connect());
         }
@@ -421,13 +408,12 @@ static void ciot_wifi_sta_event_handler(void *handler_args, esp_event_base_t eve
         wifi_event_sta_connected_t *data = (wifi_event_sta_connected_t *)event_data;
         tcp->status->state = CIOT_TCP_STATE_CONNECTED;
         tcp->status->conn_count++;
+        self->connect_attempts = 0;
         base->status.disconnect_reason = 0;
         base->info.has_ap = true;
         base->info.ap.authmode = data->authmode;
         memcpy(base->info.ap.bssid, data->bssid, sizeof(data->bssid));
         memcpy(base->info.ap.ssid, data->ssid, sizeof(data->ssid));
-        self->reconnecting = false;
-        self->connect_attempts = 0;
         ciot_wifi_get_rssi(self, &base->status.rssi);
         CIOT_ERR_PRINT(TAG, ciot_tcp_start(base->tcp));
         break;
@@ -441,35 +427,34 @@ static void ciot_wifi_sta_event_handler(void *handler_args, esp_event_base_t eve
         memset(base->info.ap.bssid, 0, sizeof(base->info.ap.bssid));
         memset(base->info.ap.ssid, 0, sizeof(base->info.ap.ssid));
         CIOT_LOGI(TAG, "reason: %u", (unsigned int)base->status.disconnect_reason);
-        
-        if (self->switching_network)
-        {
-            CIOT_LOGI(TAG, "Network switch in progress. Skipping reconnect retry.");
-            self->switching_network = false;
-            self->reconnecting = false;
-            self->connect_attempts = 0;
-            tcp->status->state = CIOT_TCP_STATE_DISCONNECTED;
-            break;
-        }
-
+       
         if (!base->cfg.disabled
-            && base->cfg.ssid[0] != '\0'
-            && self->connect_attempts < CIOT_WIFI_CONNECTION_ATTEMPTS)
+            && base->cfg.ssid[0] != '\0')
         {
-            self->connect_attempts++;
-            self->reconnecting = true;
-            tcp->status->state = CIOT_TCP_STATE_CONNECTING;
-            CIOT_LOGI(TAG, "Connection lost. Retrying (%u/%u)...",
-                      (unsigned int)self->connect_attempts,
-                      (unsigned int)CIOT_WIFI_CONNECTION_ATTEMPTS);
-            CIOT_ERR_PRINT(TAG, esp_wifi_connect());
+            if (self->connect_attempts == CIOT_WIFI_CONNECTION_ATTEMPTS)
+            {
+                CIOT_LOGI(TAG, "Connection failed. Maximum retry attempts reached.");
+                tcp->status->state = CIOT_TCP_STATE_DISCONNECTED;
+                ciot_iface_send_event_type(&self->base.iface, CIOT_EVENT_TYPE_STOPPED);
+            }
+
+            if (self->connect_attempts < CIOT_WIFI_CONNECTION_ATTEMPTS || self->base.reconnect)
+            {
+                self->connect_attempts++;
+                tcp->status->state = CIOT_TCP_STATE_CONNECTING;
+                CIOT_LOGI(TAG, "Connection lost. Retrying (%u/%u)...",
+                          (unsigned int)self->connect_attempts,
+                          (unsigned int)CIOT_WIFI_CONNECTION_ATTEMPTS);
+                CIOT_ERR_PRINT(TAG, esp_wifi_connect());
+            }
+
             break;
         }
-
-        self->reconnecting = false;
-        self->connect_attempts = 0;
-        tcp->status->state = CIOT_TCP_STATE_DISCONNECTED;
-        ciot_iface_send_event_type(&self->base.iface, CIOT_EVENT_TYPE_STOPPED);
+        else
+        {
+            tcp->status->state = CIOT_TCP_STATE_DISCONNECTED;
+            ciot_iface_send_event_type(&self->base.iface, CIOT_EVENT_TYPE_STOPPED);
+        }
         break;
     }
     default:
