@@ -98,6 +98,7 @@ ciot_err_t ciot_iface_send_event_type(ciot_iface_t *self, ciot_event_type_t even
     CIOT_ERR_NULL_CHECK(self);
     event.type = event_type;
     event.which_data = CIOT_EVENT_MSG_TAG;
+    event.msg.error = CIOT_ERR_OK;
     event.msg.has_iface = true;
     event.msg.iface = self->info;
     event.msg.has_data = true;
