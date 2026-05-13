@@ -121,10 +121,6 @@ ciot_err_t ciot_wifi_stop(ciot_wifi_t self)
 
     self->base.cfg.disabled = true;
 
-    wifi_mode_t mode;
-    ciot_err_t err = CIOT_ERR_OK;
-    ESP_ERROR_CHECK(esp_wifi_get_mode(&mode));
-
     if(self->base.status.tcp.state != CIOT_TCP_STATE_TCP_STATE_CONNECTED)
     {
         CIOT_LOGI(TAG, "WiFi already stopped");
@@ -145,7 +141,7 @@ ciot_err_t ciot_wifi_stop(ciot_wifi_t self)
         return CIOT_ERR_INVALID_TYPE;
     }
 
-    return err == ESP_OK ? CIOT_ERR_OK : CIOT_ERR_FAIL;
+        return CIOT_ERR_OK;
 }
 
 ciot_err_t ciot_wifi_task(ciot_wifi_t self)
