@@ -129,7 +129,6 @@ ciot_err_t ciot_wifi_stop(ciot_wifi_t self)
     {
         CIOT_LOGI(TAG, "WiFi already stopped");
         ciot_iface_send_event_type(&self->base.iface, CIOT_EVENT_TYPE_STOPPED);
-        return CIOT_ERR_OK;
     }
 
     switch (self->base.cfg.type)
