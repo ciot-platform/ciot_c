@@ -62,7 +62,7 @@ ciot_err_t ciot_wifi_process_req(ciot_wifi_t self, ciot_wifi_req_t *req)
 
 static ciot_err_t ciot_wifi_process_data(ciot_iface_t *iface, ciot_msg_data_t *data)
 {
-    CIOT_ERR_TYPE_CHECK(data->which_type, CIOT_MSG_DATA_WIFI_TAG);
+    CIOT_ERR_TYPES_CHECK(data->which_type, CIOT_MSG_DATA_WIFI_TAG, CIOT_MSG_DATA_COMMON_TAG);
 
     ciot_wifi_t self = iface->ptr;
     ciot_wifi_data_t *wifi = &data->wifi;
@@ -201,6 +201,14 @@ bool ciot_wifi_is_connected(ciot_wifi_t self)
     CIOT_ERR_NULL_CHECK(self);
     ciot_wifi_base_t *base = (ciot_wifi_base_t*)self;
     return base->status.tcp.state == CIOT_TCP_STATE_CONNECTED;
+}
+
+ciot_err_t ciot_wifi_set_reconnect(ciot_wifi_t self, bool reconnect)
+{
+    CIOT_ERR_NULL_CHECK(self);
+    ciot_wifi_base_t *base = (ciot_wifi_base_t*)self;
+    base->reconnect = reconnect;
+    return CIOT_ERR_OK;
 }
 
 #endif // CIOT_CONFIG_FEATURE_WIFI == 1

@@ -51,6 +51,15 @@ ciot_err_t ciot_mbus_server_process_req(ciot_mbus_server_t self, ciot_mbus_serve
     }
 }
 
+ciot_err_t ciot_mbus_server_get_status(ciot_mbus_server_t self, ciot_mbus_server_status_t *status)
+{
+    ciot_mbus_server_base_t *base = (ciot_mbus_server_base_t*)self;
+    CIOT_ERR_NULL_CHECK(self);
+    CIOT_ERR_NULL_CHECK(status);
+    *status = base->status;
+    return CIOT_ERR_OK;
+}
+
 static ciot_err_t ciot_mbus_server_process_func(ciot_mbus_server_t self, ciot_mbus_function_req_t *func)
 {
     switch (func->code)
