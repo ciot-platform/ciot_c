@@ -203,4 +203,12 @@ bool ciot_wifi_is_connected(ciot_wifi_t self)
     return base->status.tcp.state == CIOT_TCP_STATE_CONNECTED;
 }
 
+ciot_err_t ciot_wifi_set_reconnect(ciot_wifi_t self, bool reconnect)
+{
+    CIOT_ERR_NULL_CHECK(self);
+    ciot_wifi_base_t *base = (ciot_wifi_base_t*)self;
+    base->reconnect = reconnect;
+    return CIOT_ERR_OK;
+}
+
 #endif // CIOT_CONFIG_FEATURE_WIFI == 1
