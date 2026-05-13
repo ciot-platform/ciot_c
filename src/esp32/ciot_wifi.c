@@ -408,6 +408,7 @@ static void ciot_wifi_sta_event_handler(void *handler_args, esp_event_base_t eve
         wifi_event_sta_connected_t *data = (wifi_event_sta_connected_t *)event_data;
         tcp->status->state = CIOT_TCP_STATE_CONNECTED;
         tcp->status->conn_count++;
+        self->connect_attempts = 0;
         base->status.disconnect_reason = 0;
         base->info.has_ap = true;
         base->info.ap.authmode = data->authmode;
