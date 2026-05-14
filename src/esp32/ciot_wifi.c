@@ -29,6 +29,7 @@ struct ciot_wifi
 {
     ciot_wifi_base_t base;
     uint16_t connect_attempts;
+    bool skip_disconnect_event;
 };
 
 static esp_err_t esp_wifi_init_mode(ciot_wifi_type_t type);
@@ -218,10 +219,17 @@ static ciot_err_t ciot_wifi_start_sta(ciot_wifi_t self, ciot_wifi_cfg_t *cfg)
 {
     ciot_tcp_base_t *tcp = (ciot_tcp_base_t *)self->base.tcp;
     wifi_config_t conf = { 0 };
+
     strncpy((char *)conf.sta.ssid, cfg->ssid, sizeof(conf.sta.ssid));
     strncpy((char *)conf.sta.password, cfg->password, sizeof(conf.sta.password));
     conf.sta.scan_method = WIFI_ALL_CHANNEL_SCAN;
     conf.sta.sort_method = WIFI_CONNECT_AP_BY_SIGNAL;
+
+    if(tcp->status->state == CIOT_TCP_STATE_CONNECTED)
+    {
+        CIOT_LOGI(TAG, "Already connected. Disconnect event will be skipped otherwise ciot will receive disconnect event for the current connection instead of the new one.");
+        self->skip_disconnect_event = true;
+    }
 
     ESP_ERROR_CHECK(esp_wifi_disconnect());
     ESP_ERROR_CHECK(esp_wifi_set_config(WIFI_IF_STA, &conf));
@@ -329,7 +337,12 @@ static void ciot_wifi_ap_event_handler(void *handler_args, esp_event_base_t even
     {
         CIOT_LOGI(TAG, "WIFI_EVENT_AP_STACONNECTED");
         tcp->status->state = CIOT_TCP_STATE_CONNECTED;
-        tcp->status->conn_count++;
+        wifi_sta_list_t sta_list;
+        esp_err_t err = esp_wifi_ap_get_sta_list(&sta_list);
+        if(err == ESP_OK)
+        {
+            tcp->status->conn_count = sta_list.num;
+        }
         base->status.disconnect_reason = 0;
         ciot_iface_send_event_type(&base->iface, CIOT_WIFI_EVENT_AP_STA_CONNECTED);
         break;
@@ -422,6 +435,13 @@ static void ciot_wifi_sta_event_handler(void *handler_args, esp_event_base_t eve
         memset(base->info.ap.bssid, 0, sizeof(base->info.ap.bssid));
         memset(base->info.ap.ssid, 0, sizeof(base->info.ap.ssid));
         CIOT_LOGI(TAG, "reason: %u", (unsigned int)base->status.disconnect_reason);
+
+        if(self->skip_disconnect_event)
+        {
+            CIOT_LOGI(TAG, "Skipping disconnect event for the current connection");
+            self->skip_disconnect_event = false;
+            break;
+        }
        
         if (!base->cfg.disabled
             && base->cfg.ssid[0] != '\0')
