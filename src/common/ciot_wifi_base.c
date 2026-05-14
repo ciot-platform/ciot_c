@@ -62,7 +62,7 @@ ciot_err_t ciot_wifi_process_req(ciot_wifi_t self, ciot_wifi_req_t *req)
 
 static ciot_err_t ciot_wifi_process_data(ciot_iface_t *iface, ciot_msg_data_t *data)
 {
-    CIOT_ERR_TYPE_CHECK(data->which_type, CIOT_MSG_DATA_WIFI_TAG);
+    CIOT_ERR_TYPES_CHECK(data->which_type, CIOT_MSG_DATA_WIFI_TAG, CIOT_MSG_DATA_COMMON_TAG);
 
     ciot_wifi_t self = iface->ptr;
     ciot_wifi_data_t *wifi = &data->wifi;

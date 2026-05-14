@@ -95,8 +95,10 @@ static ciot_event_t event = { 0 };
 
 ciot_err_t ciot_iface_send_event_type(ciot_iface_t *self, ciot_event_type_t event_type)
 {
+    CIOT_ERR_NULL_CHECK(self);
     event.type = event_type;
     event.which_data = CIOT_EVENT_MSG_TAG;
+    event.msg.error = CIOT_ERR_OK;
     event.msg.has_iface = true;
     event.msg.iface = self->info;
     event.msg.has_data = true;
@@ -107,12 +109,19 @@ ciot_err_t ciot_iface_send_event_type(ciot_iface_t *self, ciot_event_type_t even
     return ciot_iface_send_event(self, &event);
 }
 
-ciot_err_t ciot_iface_send_internal_event(ciot_iface_t *self, void *event_data, int event_type)
+ciot_err_t ciot_iface_send_event_data(ciot_iface_t *self, ciot_event_type_t event_type, uint8_t *data, int size)
 {
-    event.type = CIOT_EVENT_TYPE_INTERNAL;
-    event.which_data = CIOT_EVENT_INTERNAL_TAG;
-    event.internal.data = event_data;
-    event.internal.type = event_type;
+    CIOT_ERR_NULL_CHECK(self);
+    CIOT_ERR_NULL_CHECK(data);
+    if(size > (int)sizeof(event.raw.bytes))
+    {
+        CIOT_LOGW(TAG, "Event data truncated: %d > %d", size, (int)sizeof(event.raw.bytes));
+        size = sizeof(event.raw.bytes);
+    }
+    event.type = event_type;
+    event.which_data = CIOT_EVENT_RAW_TAG;
+    event.raw.size = size;
+    memcpy(event.raw.bytes, data, size);
     return ciot_iface_send_event(self, &event);
 }
 
@@ -152,11 +161,12 @@ ciot_err_t ciot_iface_process_data(ciot_iface_t *self, uint8_t *data, int size, 
             CIOT_ERR_RETURN(self->decoder->decode(self->decoder, data[i]));
             if(self->decoder->state == CIOT_DECODER_STATE_DONE)
             {
-                ciot_event_t event = { 0 };
-                if(self->decoder->result.size >= sizeof(event.raw)) return CIOT_ERR_SMALL_RAW;
+                int decoded_size = self->decoder->result.size;
+                if(decoded_size > (int)sizeof(event.raw.bytes)) return CIOT_ERR_SMALL_RAW;
                 event.type = event_type;
-                event.raw.size = self->decoder->result.size;
-                memcpy(event.raw.bytes, self->decoder->result.buf, self->decoder->result.size);
+                event.which_data = CIOT_EVENT_RAW_TAG;
+                event.raw.size = decoded_size;
+                memcpy(event.raw.bytes, self->decoder->result.buf, decoded_size);
                 return ciot_iface_send_event(self, &event);
             }
         }
@@ -164,9 +174,9 @@ ciot_err_t ciot_iface_process_data(ciot_iface_t *self, uint8_t *data, int size, 
     }
     else
     {
-        ciot_event_t event = { 0 };
-        if(size >= sizeof(event.raw)) return CIOT_ERR_SMALL_RAW;
+        if(size > (int)sizeof(event.raw.bytes)) return CIOT_ERR_SMALL_RAW;
         event.type = event_type;
+        event.which_data = CIOT_EVENT_RAW_TAG;
         event.raw.size = size;
         memcpy(event.raw.bytes, data, size);
         return ciot_iface_send_event(self, &event);
@@ -293,6 +303,10 @@ const char* ciot_iface_type_to_str(ciot_iface_type_t iface_type)
             return "MBUS_CLIENT";
         case CIOT_IFACE_TYPE_MBUS_SERVER:
             return "MBUS_SERVER";
+#if CIOT_CONFIG_FEATURE_WIFI_MULTI == 1
+        case CIOT_IFACE_TYPE_WIFI_MULTI:
+            return "WIFI_MULTI";
+#endif
         default:
             return "UNKNOWN";
         break;

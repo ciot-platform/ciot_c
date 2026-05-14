@@ -39,6 +39,14 @@
         return CIOT_ERR_INVALID_TYPE;                                          \
     }
 
+#define CIOT_ERR_TYPES_CHECK(current, expected1, expected2)                                 \
+    if (current != expected1 && current != expected2)                                                   \
+    {                                                                          \
+        CIOT_ERR_LOG("ciot_err", CIOT_ERR_INVALID_TYPE);                       \
+        CIOT_LOGE("ciot_err", "current: %d, expected: %d or %d", current, expected1, expected2); \
+        return CIOT_ERR_INVALID_TYPE;                                          \
+    }
+
 #define CIOT_ERR_MSG_DATA_TAG_CHECK(current, expected)                         \
     if (current != expected && current != CIOT_MSG_DATA_COMMON_TAG)            \
     {                                                                          \
