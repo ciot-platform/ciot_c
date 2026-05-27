@@ -2,8 +2,8 @@
 
 ### Changes
 
-MQTT client event handling improvements:
-* Set the `base->status.state` to `CIOT_MQTT_CLIENT_STATE_DISCONNECTED` when an MQTT disconnection event occurs in both `ciot_mqtt_client.c` for ESP32 and ESP8266. This ensures the client state accurately reflects the disconnected status. [[1]](diffhunk://#diff-f8eaf168fd7e70a563ff15acc977930908baa391c7a476f3d605cf857af68974R144) [[2]](diffhunk://#diff-b22fe51bd53f8103fe2b667c21cdf608a57f4dd05d97e316f7097f0c507c88e4R133)
+**Wi-Fi AP client management improvements:**
 
-Version update:
-* Updated the `CIOT_VER` macro in `ciot.h` from `0,21,2,0` to `0,21,2,1` to reflect the new version.
+* Added logging to show the current number of AP clients whenever a client connects or disconnects, making it easier to monitor client activity.
+* Ensured that the AP client count (`conn_count`) is decremented only when greater than zero, preventing negative counts.
+* Updated the AP state to `CIOT_TCP_STATE_CONNECTED` if there are still clients connected, or to `CIOT_TCP_STATE_STARTED` if no clients remain, ensuring the AP state accurately reflects the connection status.
