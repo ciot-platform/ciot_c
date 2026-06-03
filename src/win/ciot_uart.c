@@ -161,6 +161,19 @@ ciot_err_t ciot_uart_read_bytes(ciot_uart_t self, uint8_t *bytes, int size)
     return self->bytes_read == size ? CIOT_ERR_OK : CIOT_ERR_READING;
 }
 
+size_t ciot_uart_available(ciot_uart_t self)
+{
+    if(self == NULL)
+    {
+        CIOT_LOGE(TAG, "ciot_uart_available: self is NULL");
+        return 0;
+    }
+    DWORD error;
+    COMSTAT status;
+    ClearCommError(self->handle, &error, &status);
+    return status.cbInQue;
+}
+
 static void ciot_uart_process_error(ciot_uart_t self, DWORD error)
 {
     ciot_uart_base_t *base = &self->base;
