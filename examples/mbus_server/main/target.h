@@ -39,8 +39,9 @@
                 .gpio.rts = TARGET_RS485_RTS_PIN,    \
                 .gpio.cts = TARGET_RS485_CTS_PIN,    \
                 .mode = TARGET_RS485_MODE,           \
-                .read_timeout = 0,                   \
-                .write_timeout = 0,                  \
+                .read_timeout = TARGET_RS485_READ_TIMEOUT,  \
+                .write_timeout = TARGET_RS485_WRITE_TIMEOUT, \
+
             },                                       \
         },                                           \
     }
