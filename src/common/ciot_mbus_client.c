@@ -93,14 +93,15 @@ ciot_err_t ciot_mbus_client_send_bytes(ciot_mbus_client_t self, uint8_t *data, i
 
 static ciot_err_t ciot_mbus_client_process_request_result(ciot_mbus_client_t self, nmbs_error error)
 {
-    if(error == NMBS_ERROR_NONE)
+    ciot_err_t err = ciot_mbus_get_error(error);
+    if(err == CIOT_ERR_OK)
     {
         self->base.status.requests_success++;
     } else {
         self->base.status.requests_error++;
-        self->base.status.error = ciot_mbus_get_error(error);
+        self->base.status.error = err;
     }
-    return self->base.status.error;
+    return err;
 }
 
 ciot_err_t ciot_mbus_client_read_coils(ciot_mbus_client_t self, uint16_t address, uint16_t quantity, nmbs_bitfield coils_out)
