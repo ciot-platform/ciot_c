@@ -179,7 +179,6 @@ size_t ciot_uart_available(ciot_uart_t self)
 
     return (size_t)status.cbInQue;
 }
-}
 
 static void ciot_uart_process_error(ciot_uart_t self, DWORD error)
 {
