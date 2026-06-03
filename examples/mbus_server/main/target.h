@@ -41,7 +41,6 @@
                 .mode = TARGET_RS485_MODE,           \
                 .read_timeout = TARGET_RS485_READ_TIMEOUT,  \
                 .write_timeout = TARGET_RS485_WRITE_TIMEOUT, \
-
             },                                       \
         },                                           \
     }
