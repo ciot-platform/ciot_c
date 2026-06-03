@@ -38,6 +38,15 @@ ciot_err_t ciot_mbus_client_process_req(ciot_mbus_client_t self, ciot_mbus_clien
     return CIOT_ERR_NOT_SUPPORTED;    
 }
 
+ciot_err_t ciot_mbus_client_get_status(ciot_mbus_client_t self, ciot_mbus_client_status_t *status)
+{
+    ciot_mbus_client_base_t *base = (ciot_mbus_client_base_t*)self;
+    CIOT_ERR_NULL_CHECK(self);
+    CIOT_ERR_NULL_CHECK(status);
+    *status = base->status;
+    return CIOT_ERR_OK;
+}
+
 static ciot_err_t ciot_mbus_client_process_data(ciot_iface_t *iface, ciot_msg_data_t *data)
 {
     CIOT_ERR_TYPE_CHECK(data->which_type, CIOT_MSG_DATA_MBUS_CLIENT_TAG);
