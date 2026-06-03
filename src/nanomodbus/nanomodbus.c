@@ -1917,9 +1917,6 @@ nmbs_error nmbs_server_poll(nmbs_t* nmbs) {
     bool first_byte_received = false;
     nmbs_error err = recv_req_header(nmbs, &first_byte_received);
     if (err != NMBS_ERROR_NONE) {
-        if (!first_byte_received && err == NMBS_ERROR_TIMEOUT)
-            return NMBS_ERROR_NONE;
-
         return err;
     }
 
