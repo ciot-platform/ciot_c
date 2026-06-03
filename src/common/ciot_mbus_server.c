@@ -119,6 +119,9 @@ ciot_err_t ciot_mbus_server_task(ciot_mbus_server_t self)
         nmbs_error err = nmbs_server_poll(&self->nmbs);
         self->base.status.error = ciot_mbus_get_error(err);
         self->base.status.last_poll = ciot_timer_now();
+        if(err != NMBS_ERROR_NONE) {
+            self->base.status.error_count++;
+        }
         return self->base.status.error;
     }
     return CIOT_ERR_OK;
