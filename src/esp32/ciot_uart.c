@@ -171,6 +171,23 @@ ciot_err_t ciot_uart_read_bytes(ciot_uart_t self, uint8_t *bytes, int size)
     return read == size ? CIOT_ERR_OK : CIOT_ERR_TIMEOUT;
 }
 
+size_t ciot_uart_available(ciot_uart_t self)
+{
+    if(self == NULL)
+    {
+        CIOT_LOGE(TAG, "ciot_uart_available: self is NULL");
+        return 0;
+    }
+    size_t available = 0;
+    esp_err_t err = uart_get_buffered_data_len(self->base.cfg.num, &available);
+    if (err != ESP_OK)
+    {
+        CIOT_LOGE(TAG, "uart_get_buffered_data_len failed (%d)", (int)err);
+        return 0;
+    }
+    return available;
+}
+
 static void ciot_uart0_task(void *args)
 {
     ciot_uart_t self = (ciot_uart_t)args;

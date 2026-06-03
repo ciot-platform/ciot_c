@@ -331,15 +331,21 @@ static void ciot_wifi_ap_event_handler(void *handler_args, esp_event_base_t even
         tcp->status->state = CIOT_TCP_STATE_CONNECTED;
         tcp->status->conn_count++;
         base->status.disconnect_reason = 0;
+        CIOT_LOGI(TAG, "AP clients: %u", (unsigned int)tcp->status->conn_count);
         ciot_iface_send_event_type(&base->iface, CIOT_WIFI_EVENT_AP_STA_CONNECTED);
         break;
     }
     case WIFI_EVENT_AP_STADISCONNECTED:
     {
         CIOT_LOGI(TAG, "WIFI_EVENT_AP_STADISCONNECTED");
-        tcp->status->state = CIOT_TCP_STATE_STARTED;
         base->status.disconnect_reason = ((wifi_event_ap_stadisconnected_t*)event_data)->reason;
         CIOT_LOGI(TAG, "reason: %u", (unsigned int)base->status.disconnect_reason);
+        if(tcp->status->conn_count > 0)
+        {
+            tcp->status->conn_count--;
+        }
+        CIOT_LOGI(TAG, "AP clients: %u", (unsigned int)tcp->status->conn_count);
+        tcp->status->state = tcp->status->conn_count > 0 ? CIOT_TCP_STATE_CONNECTED : CIOT_TCP_STATE_STARTED;
         ciot_iface_send_event_type(&base->iface, CIOT_WIFI_EVENT_AP_STA_DISCONNECTED);
         break;
     }
