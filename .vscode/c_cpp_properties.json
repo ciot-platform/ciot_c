@@ -25,16 +25,16 @@
         },
         {
             "name": "ESP-IDF",
-            "compilerPath": null,
-            // "forcedInclude": [
-            //     "${workspaceFolder}/examples/esp32/build/config/sdkconfig.h"
-            // ],
+            "compilerPath": "${IDF_COMPILER}",
+            "forcedInclude": [
+                "${workspaceFolder}/examples/esp32/build/config/sdkconfig.h"
+            ],
             "includePath": [
                 "${IDF_PATH}/components/**",
                 "${workspaceFolder}/examples/esp32/main/**",
                 "include/**",
-                "src/esp32/**",
-                "src/common/**",
+                "src/esp32",
+                "src/common",
                 "src/nanopb",
                 "src/protos"
             ],

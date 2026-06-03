@@ -141,6 +141,7 @@ static void ciot_mqtt_event_handler(void *handler_args, esp_event_base_t event_b
         break;
     case MQTT_EVENT_DISCONNECTED:
         ESP_LOGI(TAG, "MQTT_EVENT_DISCONNECTED");
+        base->status.state = CIOT_MQTT_CLIENT_STATE_DISCONNECTED;
         ciot_iface_send_event_type(&base->iface, CIOT_EVENT_TYPE_STOPPED);
         break;
     case MQTT_EVENT_SUBSCRIBED:
