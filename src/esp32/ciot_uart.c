@@ -179,9 +179,13 @@ size_t ciot_uart_available(ciot_uart_t self)
         return 0;
     }
     size_t available = 0;
-    uart_get_buffered_data_len(self->base.cfg.num, &available);
+    esp_err_t err = uart_get_buffered_data_len(self->base.cfg.num, &available);
+    if (err != ESP_OK)
+    {
+        CIOT_LOGE(TAG, "uart_get_buffered_data_len failed (%d)", (int)err);
+        return 0;
+    }
     return available;
-}
 
 static void ciot_uart0_task(void *args)
 {
