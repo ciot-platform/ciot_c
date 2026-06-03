@@ -40,6 +40,10 @@ ciot_err_t ciot_uart_get_cfg(ciot_uart_t self, ciot_uart_cfg_t *cfg);
 ciot_err_t ciot_uart_get_status(ciot_uart_t self, ciot_uart_status_t *status);
 ciot_err_t ciot_uart_send_bytes(ciot_uart_t self, uint8_t *data, int size);
 ciot_err_t ciot_uart_read_bytes(ciot_uart_t self, uint8_t *data, int size);
+#if defined(CIOT_PLATFORM_NRF)
+__attribute__((deprecated("ciot_uart_available() is not supported on NRF and always returns 0.")))
+#endif
+size_t ciot_uart_available(ciot_uart_t self);
 
 #ifdef __cplusplus
 }

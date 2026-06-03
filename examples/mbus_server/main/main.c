@@ -14,43 +14,13 @@
 #include "main.h"
 #include "ciot_storage_nvs.h"
 
-#define REGS_COUNT 32
-#define SERVER_ADDR 1
-
 device_t self;
 
 ciot_msg_data_t sys_cfg = {};
 
-ciot_msg_data_t uart_cfg = {
-    .which_type = CIOT_MSG_DATA_UART_TAG,
-    .uart = {
-        .which_type = CIOT_UART_DATA_CONFIG_TAG,
-        .config = {
-            .baud_rate = 9600,
-            .num = 9,
-            .gpio.rx = 34,
-            .gpio.tx = 32,
-            .gpio.rts = 33,
-            .gpio.cts = -1,
-            .mode = 1,
-            .read_timeout = 0,
-            .write_timeout = 0,
-        },
-    },
-};
+ciot_msg_data_t uart_cfg = TARGET_RS485_CFG;
 
-ciot_msg_data_t mbus_server_cfg = {
-    .which_type = CIOT_MSG_DATA_MBUS_SERVER_TAG,
-    .mbus_server = {
-        .which_type = CIOT_MBUS_SERVER_DATA_CONFIG_TAG,
-        .config = {
-            .which_type = CIOT_MBUS_SERVER_CFG_RTU_TAG,
-            .rtu = {
-                .server_id = 1,
-            },
-        },
-    },
-};
+ciot_msg_data_t mbus_server_cfg = TARGET_MBUS_SERVER_CFG;
 
 static const char *TAG = "main";
 
@@ -72,9 +42,9 @@ static void device_start()
 
     ciot_mbus_data_t mbus_data = {
         .coils.values = self.mbus_data.coils,
-        .coils.count = DEVICE_MBUS_COILS_COUNT,
+        .coils.count = TARGET_MBUS_COILS_COUNT,
         .regs.values = self.mbus_data.regs,
-        .regs.count = DEVICE_MBUS_REGS_COUNT,
+        .regs.count = TARGET_MBUS_REGS_COUNT,
     };
     self.ifaces.mbus_server = ciot_mbus_server_new(CIOT_HANDLE, &mbus_data, (ciot_iface_t*)self.ifaces.uart);
     self.ifaces.list[DEVICE_IFACE_ID_MBUS_SERVER] = (ciot_iface_t*)self.ifaces.mbus_server;
@@ -99,7 +69,10 @@ static void device_task()
 
 static void device_update_data_task()
 {
-    self.mbus_data.regs[0] = time(NULL);
+    for (size_t i = 0; i < TARGET_MBUS_REGS_COUNT; i++)
+    {
+        self.mbus_data.regs[i] = time(NULL);
+    }
 }
 
 int main(void)
