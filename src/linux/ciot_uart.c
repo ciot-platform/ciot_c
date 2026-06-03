@@ -66,8 +66,13 @@ ciot_err_t ciot_uart_read_bytes(ciot_uart_t self, uint8_t *bytes, int size)
 
 size_t ciot_uart_available(ciot_uart_t self)
 {
-    CIOT_ERR_NULL_CHECK(self);
+    if (self == NULL)
+    {
+        CIOT_ERR_LOG("ciot_uart", CIOT_ERR_NULL_ARG);
+        return 0;
+    }
     return 0;
+}
 }
 
 #endif // CIOT_CONFIG_FEATURE_UART == 1
