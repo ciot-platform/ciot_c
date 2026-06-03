@@ -73,6 +73,5 @@ size_t ciot_uart_available(ciot_uart_t self)
     }
     return 0;
 }
-}
 
 #endif // CIOT_CONFIG_FEATURE_UART == 1

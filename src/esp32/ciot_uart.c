@@ -186,6 +186,7 @@ size_t ciot_uart_available(ciot_uart_t self)
         return 0;
     }
     return available;
+}
 
 static void ciot_uart0_task(void *args)
 {
