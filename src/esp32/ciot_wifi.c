@@ -239,6 +239,7 @@ static ciot_err_t ciot_wifi_start_ap(ciot_wifi_t self, ciot_wifi_cfg_t *cfg)
     wifi_config_t conf = { 0 };
     strncpy((char *)conf.ap.ssid, cfg->ssid, sizeof(conf.ap.ssid));
     strncpy((char *)conf.ap.password, cfg->password, sizeof(conf.ap.password));
+    conf.ap.ssid_hidden = cfg->ssid_hidden ? 1 : 0;
     conf.ap.authmode = WIFI_AUTH_WPA_WPA2_PSK;
     conf.ap.max_connection = 4;
     ESP_ERROR_CHECK(esp_wifi_set_mode(WIFI_MODE_APSTA));
