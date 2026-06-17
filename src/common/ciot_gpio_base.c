@@ -48,7 +48,10 @@ ciot_err_t ciot_gpio_task(ciot_gpio_t self)
     if(ciot_timer_millis() > base->timer)
     {
         base->timer = ciot_timer_millis() + base->cfg.blink_interval;
-        base->blink_signal = !base->blink_signal;
+        
+        base->blink_signal     = (base->blink_tick >> 0) & 1;
+        bool slow_blink_signal = (base->blink_tick >> 2) & 1;
+        base->blink_tick++;
 
         if(base->blinking)
         {
@@ -73,6 +76,18 @@ ciot_err_t ciot_gpio_task(ciot_gpio_t self)
                 if(state == CIOT_GPIO_STATE_BLINKING)
                 {
                     base->set_state(num, base->blink_signal);
+                    base->blinking = true;
+                }
+
+                if(state == CIOT_GPIO_STATE_BLINKING_REVERSE)
+                {
+                    base->set_state(num, !base->blink_signal);
+                    base->blinking = true;
+                }
+
+                if(state == CIOT_GPIO_STATE_BLINKING_SLOW)
+                {
+                    base->set_state(num, slow_blink_signal);
                     base->blinking = true;
                 }
             }
@@ -210,7 +225,9 @@ ciot_err_t ciot_gpio_set_state(ciot_gpio_t self, uint16_t id, ciot_gpio_state_t 
         base->set_state(num, !base->get_state(num));
     }
 
-    if(state == CIOT_GPIO_STATE_BLINKING)
+    if(state == CIOT_GPIO_STATE_BLINKING ||
+       state == CIOT_GPIO_STATE_BLINKING_REVERSE ||
+       state == CIOT_GPIO_STATE_BLINKING_SLOW)
     {
         base->blinking = true;
         base->status.states.bytes[id] = state;
