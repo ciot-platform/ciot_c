@@ -34,6 +34,7 @@ typedef struct ciot_gpio_base
     uint64_t timer;
     bool blinking;
     bool blink_signal;
+    uint8_t blink_tick;
 } ciot_gpio_base_t;
 
 ciot_gpio_t ciot_gpio_new(void *handle);
