@@ -113,9 +113,15 @@ ciot_err_t ciot_mbus_server_task(ciot_mbus_server_t self)
     CIOT_ERR_NULL_CHECK(self);
     if (self->base.status.state == CIOT_MBUS_SERVER_STATE_STARTED && self->base.conn->state == CIOT_IFACE_STATE_STARTED)
     {
+        if(self->base.cfg.which_type == CIOT_MBUS_SERVER_CFG_RTU_TAG && ciot_uart_available((ciot_uart_t)self->base.conn) == 0) {
+            return CIOT_ERR_OK;
+        }
         nmbs_error err = nmbs_server_poll(&self->nmbs);
         self->base.status.error = ciot_mbus_get_error(err);
         self->base.status.last_poll = ciot_timer_now();
+        if(err != NMBS_ERROR_NONE) {
+            self->base.status.error_count++;
+        }
         return self->base.status.error;
     }
     return CIOT_ERR_OK;

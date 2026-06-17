@@ -91,12 +91,25 @@ ciot_err_t ciot_mbus_client_send_bytes(ciot_mbus_client_t self, uint8_t *data, i
     return CIOT_ERR_NOT_IMPLEMENTED;
 }
 
+static ciot_err_t ciot_mbus_client_process_request_result(ciot_mbus_client_t self, nmbs_error error)
+{
+    ciot_err_t err = ciot_mbus_get_error(error);
+    if(err == CIOT_ERR_OK)
+    {
+        self->base.status.requests_success++;
+    } else {
+        self->base.status.requests_error++;
+        self->base.status.error = err;
+    }
+    return err;
+}
+
 ciot_err_t ciot_mbus_client_read_coils(ciot_mbus_client_t self, uint16_t address, uint16_t quantity, nmbs_bitfield coils_out)
 {
     CIOT_ERR_STATE_CHECK(self->base.status.state, CIOT_MBUS_CLIENT_STATE_STARTED);
     CIOT_ERR_STATE_CHECK(self->iface->state, CIOT_IFACE_STATE_STARTED);
     nmbs_error error = nmbs_read_coils(&self->nmbs, address, quantity, coils_out);
-    return ciot_mbus_get_error(error);
+    return ciot_mbus_client_process_request_result(self, error);
 }
 
 ciot_err_t ciot_mbus_client_read_discrete_inputs(ciot_mbus_client_t self, uint16_t address, uint16_t quantity, nmbs_bitfield inputs_out)
@@ -104,7 +117,7 @@ ciot_err_t ciot_mbus_client_read_discrete_inputs(ciot_mbus_client_t self, uint16
     CIOT_ERR_STATE_CHECK(self->base.status.state, CIOT_MBUS_CLIENT_STATE_STARTED);
     CIOT_ERR_STATE_CHECK(self->iface->state, CIOT_IFACE_STATE_STARTED);
     nmbs_error error = nmbs_read_discrete_inputs(&self->nmbs, address, quantity, inputs_out);
-    return ciot_mbus_get_error(error);
+    return ciot_mbus_client_process_request_result(self, error);
 }
 
 ciot_err_t ciot_mbus_client_read_holding_registers(ciot_mbus_client_t self, uint16_t address, uint16_t quantity, uint16_t* registers_out)
@@ -112,7 +125,7 @@ ciot_err_t ciot_mbus_client_read_holding_registers(ciot_mbus_client_t self, uint
     CIOT_ERR_STATE_CHECK(self->base.status.state, CIOT_MBUS_CLIENT_STATE_STARTED);
     CIOT_ERR_STATE_CHECK(self->iface->state, CIOT_IFACE_STATE_STARTED);
     nmbs_error error = nmbs_read_holding_registers(&self->nmbs, address, quantity, registers_out);
-    return ciot_mbus_get_error(error);
+    return ciot_mbus_client_process_request_result(self, error);
 }
 
 ciot_err_t ciot_mbus_client_read_input_registers(ciot_mbus_client_t self, uint16_t address, uint16_t quantity, uint16_t* registers_out)
@@ -120,7 +133,7 @@ ciot_err_t ciot_mbus_client_read_input_registers(ciot_mbus_client_t self, uint16
     CIOT_ERR_STATE_CHECK(self->base.status.state, CIOT_MBUS_CLIENT_STATE_STARTED);
     CIOT_ERR_STATE_CHECK(self->iface->state, CIOT_IFACE_STATE_STARTED);
     nmbs_error error = nmbs_read_input_registers(&self->nmbs, address, quantity, registers_out);
-    return ciot_mbus_get_error(error);
+    return ciot_mbus_client_process_request_result(self, error);
 }
 
 ciot_err_t ciot_mbus_client_write_single_coil(ciot_mbus_client_t self, uint16_t address, bool value)
@@ -128,7 +141,7 @@ ciot_err_t ciot_mbus_client_write_single_coil(ciot_mbus_client_t self, uint16_t 
     CIOT_ERR_STATE_CHECK(self->base.status.state, CIOT_MBUS_CLIENT_STATE_STARTED);
     CIOT_ERR_STATE_CHECK(self->iface->state, CIOT_IFACE_STATE_STARTED);
     nmbs_error error = nmbs_write_single_coil(&self->nmbs, address, value);
-    return ciot_mbus_get_error(error);
+    return ciot_mbus_client_process_request_result(self, error);
 }
 
 ciot_err_t ciot_mbus_client_write_single_register(ciot_mbus_client_t self, uint16_t address, uint16_t value)
@@ -136,7 +149,7 @@ ciot_err_t ciot_mbus_client_write_single_register(ciot_mbus_client_t self, uint1
     CIOT_ERR_STATE_CHECK(self->base.status.state, CIOT_MBUS_CLIENT_STATE_STARTED);
     CIOT_ERR_STATE_CHECK(self->iface->state, CIOT_IFACE_STATE_STARTED);
     nmbs_error error = nmbs_write_single_register(&self->nmbs, address, value);
-    return ciot_mbus_get_error(error);
+    return ciot_mbus_client_process_request_result(self, error);
 }
 
 ciot_err_t ciot_mbus_client_write_multiple_coils(ciot_mbus_client_t self, uint16_t address, uint16_t quantity, const nmbs_bitfield coils)
@@ -144,7 +157,7 @@ ciot_err_t ciot_mbus_client_write_multiple_coils(ciot_mbus_client_t self, uint16
     CIOT_ERR_STATE_CHECK(self->base.status.state, CIOT_MBUS_CLIENT_STATE_STARTED);
     CIOT_ERR_STATE_CHECK(self->iface->state, CIOT_IFACE_STATE_STARTED);
     nmbs_error error = nmbs_write_multiple_coils(&self->nmbs, address, quantity, coils);
-    return ciot_mbus_get_error(error);
+    return ciot_mbus_client_process_request_result(self, error);
 }
 
 ciot_err_t ciot_mbus_client_write_multiple_registers(ciot_mbus_client_t self, uint16_t address, uint16_t quantity, const uint16_t* registers)
@@ -152,7 +165,7 @@ ciot_err_t ciot_mbus_client_write_multiple_registers(ciot_mbus_client_t self, ui
     CIOT_ERR_STATE_CHECK(self->base.status.state, CIOT_MBUS_CLIENT_STATE_STARTED);
     CIOT_ERR_STATE_CHECK(self->iface->state, CIOT_IFACE_STATE_STARTED);
     nmbs_error error = nmbs_write_multiple_registers(&self->nmbs, address, quantity, registers);
-    return ciot_mbus_get_error(error);
+    return ciot_mbus_client_process_request_result(self, error);
 }
 
 static int32_t ciot_mbus_client_read(uint8_t *buf, uint16_t count, int32_t byte_timeout_ms, void *arg)

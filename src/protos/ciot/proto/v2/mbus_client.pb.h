@@ -53,6 +53,8 @@ typedef struct ciot_mbus_client_cfg {
 typedef struct ciot_mbus_client_status {
     ciot_mbus_client_state_t state; /* State of the Modbus client. */
     ciot_err_t error; /* Modbus client error code. */
+    uint32_t requests_success; /* Number of successful requests */
+    uint32_t requests_error; /* Number of erroneous requests */
 } ciot_mbus_client_status_t;
 
 /* Message representing an Modbus client request. */
@@ -102,14 +104,14 @@ extern "C" {
 #define CIOT_MBUS_CLIENT_RTU_CFG_INIT_DEFAULT    {0, false, CIOT_UART_CFG_INIT_DEFAULT}
 #define CIOT_MBUS_CLIENT_TCP_CFG_INIT_DEFAULT    {{{NULL}, NULL}, 0}
 #define CIOT_MBUS_CLIENT_CFG_INIT_DEFAULT        {0, {CIOT_MBUS_CLIENT_RTU_CFG_INIT_DEFAULT}, 0}
-#define CIOT_MBUS_CLIENT_STATUS_INIT_DEFAULT     {_CIOT_MBUS_CLIENT_STATE_MIN, _CIOT_ERR_MIN}
+#define CIOT_MBUS_CLIENT_STATUS_INIT_DEFAULT     {_CIOT_MBUS_CLIENT_STATE_MIN, _CIOT_ERR_MIN, 0, 0}
 #define CIOT_MBUS_CLIENT_REQ_INIT_DEFAULT        {0, {CIOT_MBUS_FUNCTION_REQ_INIT_DEFAULT}}
 #define CIOT_MBUS_CLIENT_DATA_INIT_DEFAULT       {0, {CIOT_MBUS_CLIENT_STOP_INIT_DEFAULT}}
 #define CIOT_MBUS_CLIENT_STOP_INIT_ZERO          {0}
 #define CIOT_MBUS_CLIENT_RTU_CFG_INIT_ZERO       {0, false, CIOT_UART_CFG_INIT_ZERO}
 #define CIOT_MBUS_CLIENT_TCP_CFG_INIT_ZERO       {{{NULL}, NULL}, 0}
 #define CIOT_MBUS_CLIENT_CFG_INIT_ZERO           {0, {CIOT_MBUS_CLIENT_RTU_CFG_INIT_ZERO}, 0}
-#define CIOT_MBUS_CLIENT_STATUS_INIT_ZERO        {_CIOT_MBUS_CLIENT_STATE_MIN, _CIOT_ERR_MIN}
+#define CIOT_MBUS_CLIENT_STATUS_INIT_ZERO        {_CIOT_MBUS_CLIENT_STATE_MIN, _CIOT_ERR_MIN, 0, 0}
 #define CIOT_MBUS_CLIENT_REQ_INIT_ZERO           {0, {CIOT_MBUS_FUNCTION_REQ_INIT_ZERO}}
 #define CIOT_MBUS_CLIENT_DATA_INIT_ZERO          {0, {CIOT_MBUS_CLIENT_STOP_INIT_ZERO}}
 
@@ -123,6 +125,8 @@ extern "C" {
 #define CIOT_MBUS_CLIENT_CFG_TIMEOUT_TAG         3
 #define CIOT_MBUS_CLIENT_STATUS_STATE_TAG        1
 #define CIOT_MBUS_CLIENT_STATUS_ERROR_TAG        2
+#define CIOT_MBUS_CLIENT_STATUS_REQUESTS_SUCCESS_TAG 3
+#define CIOT_MBUS_CLIENT_STATUS_REQUESTS_ERROR_TAG 4
 #define CIOT_MBUS_CLIENT_REQ_FUNCTION_TAG        1
 #define CIOT_MBUS_CLIENT_DATA_STOP_TAG           1
 #define CIOT_MBUS_CLIENT_DATA_CONFIG_TAG         2
@@ -159,7 +163,9 @@ X(a, STATIC,   SINGULAR, UINT32,   timeout,           3)
 
 #define CIOT_MBUS_CLIENT_STATUS_FIELDLIST(X, a) \
 X(a, STATIC,   SINGULAR, UENUM,    state,             1) \
-X(a, STATIC,   SINGULAR, UENUM,    error,             2)
+X(a, STATIC,   SINGULAR, UENUM,    error,             2) \
+X(a, STATIC,   SINGULAR, UINT32,   requests_success,   3) \
+X(a, STATIC,   SINGULAR, UINT32,   requests_error,    4)
 #define CIOT_MBUS_CLIENT_STATUS_CALLBACK NULL
 #define CIOT_MBUS_CLIENT_STATUS_DEFAULT NULL
 
@@ -205,7 +211,7 @@ extern const pb_msgdesc_t ciot_mbus_client_data_t_msg;
 #define CIOT_CIOT_PROTO_V2_MBUS_CLIENT_PB_H_MAX_SIZE CIOT_MBUS_CLIENT_REQ_SIZE
 #define CIOT_MBUS_CLIENT_REQ_SIZE                221
 #define CIOT_MBUS_CLIENT_RTU_CFG_SIZE            74
-#define CIOT_MBUS_CLIENT_STATUS_SIZE             4
+#define CIOT_MBUS_CLIENT_STATUS_SIZE             16
 #define CIOT_MBUS_CLIENT_STOP_SIZE               0
 
 #ifdef __cplusplus

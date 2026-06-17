@@ -19,6 +19,7 @@ if(DEFINED ENV{IDF_PATH})
             ${CIOT_PB_INCLUDE_DIRS}
             ${CIOT_MBUS_INCLUDE_DIRS}
     )
+    add_compile_definitions(TARGET_ESP32)
 else()
     include_directories(
         .
@@ -35,6 +36,7 @@ else()
         ${MAIN_SRCS}
     )
     if(WIN32)
+        add_compile_definitions(TARGET_WIN32)
         target_link_libraries(${PROJECT_NAME} iphlpapi ws2_32 bcrypt)
     endif()
 endif()

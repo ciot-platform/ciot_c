@@ -1,11 +1,23 @@
 {
-    "idf.flashType": "UART",
-    "idf.portWin": "COM1",
-    "idf.buildPathWin": "${workspaceFolder}/build/esp32",
-    "cmake.buildDirectory": "${workspaceFolder}/build/win32",
-    "files.associations": {
-        "ciot_storage_nvs.h": "c",
-        "list": "c",
-        "ranges": "c"
-    }
+  "idf.flashType": "UART",
+  "idf.portWin": "COM1",
+  "idf.buildPathWin": "${workspaceFolder}/build/esp32",
+  "cmake.buildDirectory": "${workspaceFolder}/build/win32",
+  "files.associations": {
+    "ciot_storage_nvs.h": "c",
+    "list": "c",
+    "ranges": "c"
+  },
+  "idf.currentSetup": "C:\\esp\\v6.0\\esp-idf",
+  "idf.customExtraVars": {
+    "OPENOCD_SCRIPTS": "C:\\Users\\Strea\\.espressif\\tools\\openocd-esp32\\v0.12.0-esp32-20240821/openocd-esp32/share/openocd/scripts",
+    "IDF_CCACHE_ENABLE": "1",
+    "ESP_ROM_ELF_DIR": "C:\\Users\\Strea\\.espressif\\tools\\esp-rom-elfs\\20230320/"
+  },
+  "clangd.path": "C:\\Espressif\\tools\\esp-clang\\esp-20.1.1_20250829\\esp-clang\\bin\\clangd.exe",
+  "clangd.arguments": [
+    "--background-index",
+    "--query-driver=**",
+    "--compile-commands-dir=d:\\projects\\ciot-platform\\ciot_c\\examples\\mbus_server/build/esp32"
+  ]
 }

@@ -57,4 +57,14 @@ ciot_err_t ciot_uart_send_bytes(ciot_uart_t self, uint8_t *bytes, int size)
     return CIOT_ERR_NOT_IMPLEMENTED;
 }
 
+size_t ciot_uart_available(ciot_uart_t self)
+{
+    if (self == NULL)
+    {
+        CIOT_ERR_LOG("ciot_uart", CIOT_ERR_NULL_ARG);
+        return 0;
+    }
+    return 0;
+}
+
 #endif // CIOT_CONFIG_FEATURE_UART == 1

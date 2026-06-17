@@ -173,6 +173,11 @@ ciot_err_t ciot_uart_read_bytes(ciot_uart_t self, uint8_t *bytes, int size)
     return code == NRF_SUCCESS ? size : CIOT_ERR_FAIL;
 }
 
+size_t ciot_uart_available(ciot_uart_t self)
+{
+    return 0;
+}
+
 ciot_err_t ciot_uart_task(ciot_uart_t self)
 {
     return CIOT_ERR_NOT_IMPLEMENTED;

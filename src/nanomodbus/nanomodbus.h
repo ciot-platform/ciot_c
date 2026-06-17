@@ -309,6 +309,7 @@ nmbs_error nmbs_server_create(nmbs_t* nmbs, uint8_t address_rtu, const nmbs_plat
 /** Handle incoming requests to the server.
  * This function should be called in a loop in order to serve any incoming request. Its maximum duration, in case of no
  * received request, is the value set with nmbs_set_read_timeout() (unless set to < 0).
+ * @note Check if data is available on the transport before calling this function, in order to avoid timeout errors and reduce latency.
  * @param nmbs pointer to the nmbs_t instance
  *
  * @return NMBS_ERROR_NONE if successful, other errors otherwise.

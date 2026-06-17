@@ -17,12 +17,11 @@
 #include "ciot_uart.h"
 #include "ciot_mbus_server.h"
 
+#include "target.h"
+
 #ifdef IDF_VER
 #define main app_main
 #endif
-
-#define DEVICE_MBUS_COILS_COUNT 16
-#define DEVICE_MBUS_REGS_COUNT 10
 
 typedef enum device_iface_id
 {
@@ -36,8 +35,8 @@ typedef enum device_iface_id
 
 typedef struct device_mbus_data
 {
-    uint8_t coils[(DEVICE_MBUS_COILS_COUNT / sizeof(uint8_t))];
-    uint16_t regs[DEVICE_MBUS_REGS_COUNT];
+    uint8_t coils[(TARGET_MBUS_COILS_COUNT / sizeof(uint8_t))];
+    uint16_t regs[TARGET_MBUS_REGS_COUNT];
 } device_mbus_data_t;
 
 typedef struct device_ifaces
