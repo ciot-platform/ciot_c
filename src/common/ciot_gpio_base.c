@@ -50,7 +50,7 @@ ciot_err_t ciot_gpio_task(ciot_gpio_t self)
         base->timer = ciot_timer_millis() + base->cfg.blink_interval;
         
         base->blink_signal     = (base->blink_tick >> 0) & 1;
-        bool slow_blink_signal = (base->blink_tick >> 2) & 1;
+        bool slow_blink_signal = (base->blink_tick >> 1) & 1;
         base->blink_tick++;
 
         if(base->blinking)
