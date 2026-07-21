@@ -37,11 +37,17 @@ typedef struct ciot_ble_scn_event_adv_report
 typedef bool (ciot_ble_scn_filter_fn)(ciot_ble_scn_t self, ciot_ble_scn_event_adv_report_t *adv_report, void *args);
 
 #ifdef CIOT_CONFIG_BLE_SCN_ADV_FIFO_SIZE
+typedef struct ciot_ble_scn_adv_fifo_slot
+{
+    ciot_ble_scn_adv_t adv;
+    volatile bool locked;
+} ciot_ble_scn_adv_fifo_slot_t;
+
 typedef struct ciot_ble_scn_adv_fifo
 {
-    ciot_ble_scn_adv_t list[CIOT_CONFIG_BLE_SCN_ADV_FIFO_SIZE];
-    int wp;
-    int rp;
+    ciot_ble_scn_adv_fifo_slot_t list[CIOT_CONFIG_BLE_SCN_ADV_FIFO_SIZE];
+    volatile int wp;
+    volatile int rp;
 } ciot_ble_scn_adv_fifo_t;
 #endif
 
@@ -77,6 +83,12 @@ void ciot_ble_scn_handle_adv_report(ciot_ble_scn_t self, ciot_ble_scn_event_adv_
 ciot_err_t ciot_ble_scn_handle_event(ciot_ble_scn_t self, void *event, void *event_args);
 ciot_err_t ciot_ble_scn_set_filter(ciot_ble_scn_t self, ciot_ble_scn_filter_fn *filter, void *args);
 void ciot_ble_scn_copy_mac(uint8_t destiny[6], uint8_t source[6], bool reverse);
+
+#ifdef CIOT_CONFIG_BLE_SCN_ADV_FIFO_SIZE
+ciot_err_t ciot_ble_scn_adv_fifo_pop(ciot_ble_scn_t self, ciot_ble_scn_adv_t *adv);
+size_t ciot_ble_scn_adv_fifo_count(ciot_ble_scn_t self);
+size_t ciot_ble_scn_adv_fifo_lost(ciot_ble_scn_t self);
+#endif
 
 #ifdef __cplusplus
 }

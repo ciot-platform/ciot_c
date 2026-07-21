@@ -16,17 +16,23 @@
 
 #include <stdlib.h>
 #include <string.h>
+#include "app_util_platform.h"
+#include "ciot_log.h"
 #include "ciot_ble_scn.h"
 #include "ciot_config.h"
 
-// static const char *TAG = "ciot_ble_scn";
+#if CIOT_CONFIG_BLE_SCN_ADV_FIFO_ENABLED
+static const char *TAG = "ciot_ble_scn";
+#endif
 
 static ciot_err_t ciot_ble_scn_process_data(ciot_iface_t *iface, ciot_msg_data_t *data);
 static ciot_err_t ciot_ble_scn_get_data(ciot_iface_t *iface, ciot_msg_data_t *msg);
 static ciot_err_t ciot_ble_scn_send_data(ciot_iface_t *iface, uint8_t *data, int size);
 
-#ifdef CIOT_CONFIG_BLE_SCN_ADV_FIFO_SIZE
+#ifdef CIOT_CONFIG_BLE_SCN_ADV_FIFO_ENABLED
 static ciot_err_t ciot_ble_scn_base_init_fifo(ciot_ble_scn_adv_fifo_t *adv_fifo);
+static ciot_err_t ciot_ble_scn_adv_fifo_push(ciot_ble_scn_base_t *base, ciot_ble_scn_event_adv_report_t *adv);
+// static ciot_err_t ciot_ble_scn_adv_fifo_read(ciot_ble_scn_base_t *base, ciot_ble_scn_adv_t *adv);
 #endif
 
 ciot_err_t ciot_ble_scn_init(ciot_ble_scn_t self)
@@ -39,7 +45,7 @@ ciot_err_t ciot_ble_scn_init(ciot_ble_scn_t self)
     base->iface.send_data = ciot_ble_scn_send_data;
     base->iface.info.type = CIOT_IFACE_TYPE_BLE_SCN;
 
-#if CIOT_CONFIG_BLE_SCN_ADV_FIFO_SIZE
+#if CIOT_CONFIG_BLE_SCN_ADV_FIFO_ENABLED
     ciot_ble_scn_base_init_fifo(&base->adv_fifo);
 #endif
 
@@ -125,75 +131,131 @@ ciot_err_t ciot_ble_scn_get_status(ciot_ble_scn_t self, ciot_ble_scn_status_t *s
 
 ciot_err_t ciot_ble_scn_base_task(ciot_ble_scn_t self)
 {
-    #if CIOT_CONFIG_BLE_SCN_ADV_FIFO_SIZE
-    CIOT_ERR_NULL_CHECK(self);
-    ciot_ble_scn_base_t *base = (ciot_ble_scn_base_t*)self;
-    ciot_ble_scn_adv_fifo_t *adv_fifo = &base->adv_fifo;
-	if(base->status.fifo_len > 0)
-	{
-		if(adv_fifo->list[adv_fifo->rp].info.rssi != 0)
-		{
-			// ciot_iface_event_t event = {0};
-            // event.type = CIOT_IFACE_EVENT_DATA;
-            // event.data = (uint8_t*)&adv_fifo->list[adv_fifo->rp];
-            ciot_iface_send_event_data(&base->iface,
-                                      CIOT_EVENT_TYPE_DATA,
-                                      (uint8_t*)&adv_fifo->list[adv_fifo->rp],
-                                      sizeof(ciot_ble_scn_adv_t));
-			adv_fifo->list[adv_fifo->rp].info.rssi = 0;
-			adv_fifo->rp++;
-			base->status.fifo_len--;
-			if(adv_fifo->rp >= CIOT_CONFIG_BLE_SCN_ADV_FIFO_SIZE)
-			{
-				adv_fifo->rp = 0;
-			}
-		}
-        else
-        {
-            base->status.err_code = CIOT_ERR_FIFO_READ;
-            adv_fifo->rp++;
-        }
-	}
-#endif
     return CIOT_ERR_OK;
 }
 
 void ciot_ble_scn_handle_adv_report(ciot_ble_scn_t self, ciot_ble_scn_event_adv_report_t *adv)
 {
-    ciot_ble_scn_base_t *base = (ciot_ble_scn_base_t*)self;
-#ifdef CIOT_CONFIG_BLE_SCN_ADV_FIFO_SIZE
-    ciot_ble_scn_adv_fifo_t *adv_fifo = &base->adv_fifo;
-    if(adv_fifo->list[adv_fifo->wp].info.rssi == 0)
-    {
-        adv_fifo->list[adv_fifo->wp] = *adv;
-        adv_fifo->wp++;
-        base->status.fifo_len++;
-        if(base->status.fifo_len > base->status.fifo_max)
-        {
-            base->status.fifo_max = base->status.fifo_len;
-        }
-        if(adv_fifo->wp == CIOT_CONFIG_BLE_SCN_ADV_FIFO_SIZE)
-        {
-            adv_fifo->wp = 0;
-        }
-    }
-    else
-    {
-        adv_fifo->rp = adv_fifo->wp;
-        base->status.advs_losted++;
-        if(base->status.fifo_len == 0)
-        {
-            base->status.err_code = CIOT_ERR_INVALID_SIZE;
-            for (size_t i = 0; i < BOARD_BLE_SCN_ADV_FIFO_SIZE; i++)
-            {
-                if(adv_fifo->list[i].info.rssi != 0) base->status.fifo_len++;
-            }
-        }
-    }
+#ifdef CIOT_CONFIG_BLE_SCN_ADV_FIFO_ENABLED
+    ciot_ble_scn_adv_fifo_push((ciot_ble_scn_base_t *)self, adv);
 #else
+    ciot_ble_scn_base_t *base = (ciot_ble_scn_base_t*)self;
     ciot_iface_send_event_data(&base->iface, CIOT_EVENT_TYPE_DATA, (uint8_t*)adv, sizeof(*adv));
 #endif
 }
+
+#ifdef CIOT_CONFIG_BLE_SCN_ADV_FIFO_ENABLED
+ciot_err_t ciot_ble_scn_adv_fifo_pop(ciot_ble_scn_t self, ciot_ble_scn_adv_t *adv)
+{
+    CIOT_ERR_NULL_CHECK(self);
+    CIOT_ERR_NULL_CHECK(adv);
+
+    ciot_ble_scn_base_t *base = (ciot_ble_scn_base_t *)self;
+    ciot_ble_scn_adv_fifo_t *adv_fifo = &base->adv_fifo;
+    ciot_ble_scn_adv_fifo_slot_t *slot = NULL;
+
+    if (base->status.fifo_len == 0)
+    {
+        base->status.err_code = CIOT_ERR_NOT_FOUND;
+        return CIOT_ERR_NOT_FOUND;
+    }
+
+    slot = &adv_fifo->list[adv_fifo->rp];
+    if (slot->locked)
+    {
+        base->status.err_code = CIOT_ERR_BUSY;
+        CIOT_LOGE(TAG, "ADV FIFO pop contention (slot=%d)", adv_fifo->rp);
+        return CIOT_ERR_BUSY;
+    }
+
+    slot->locked = true;
+    *adv = slot->adv;                   /// copy slot->adv to adv
+    slot->adv.has_info = false;
+    slot->locked = false;
+   
+    if (base->status.fifo_len > base->status.fifo_max)
+    {
+        base->status.fifo_max = base->status.fifo_len;
+    }
+    adv_fifo->rp++;
+    base->status.fifo_len--;
+    if (adv_fifo->rp >= CIOT_CONFIG_BLE_SCN_ADV_FIFO_SIZE)
+    {
+        adv_fifo->rp = 0;
+    }
+
+    return CIOT_ERR_OK;
+}
+
+size_t ciot_ble_scn_adv_fifo_count(ciot_ble_scn_t self)
+{
+    if (self == NULL)
+    {
+        return 0;
+    }
+
+    ciot_ble_scn_base_t *base = (ciot_ble_scn_base_t *)self;
+    return base->status.fifo_len;
+}
+
+size_t ciot_ble_scn_adv_fifo_lost(ciot_ble_scn_t self)
+{
+    if (self == NULL)
+    {
+        return 0;
+    }
+
+    ciot_ble_scn_base_t *base = (ciot_ble_scn_base_t *)self;
+    return base->status.advs_losted;
+}
+
+static ciot_err_t ciot_ble_scn_adv_fifo_push(ciot_ble_scn_base_t *base, ciot_ble_scn_event_adv_report_t *adv)
+{
+    ciot_ble_scn_adv_fifo_t *adv_fifo = &base->adv_fifo;
+    ciot_ble_scn_adv_fifo_slot_t *slot = NULL;
+
+    if (base->status.fifo_len >= CIOT_CONFIG_BLE_SCN_ADV_FIFO_SIZE)
+    {
+        base->status.advs_losted++;
+        base->status.err_code = CIOT_ERR_NO_MEMORY;
+        CIOT_LOGE(TAG, "ADV FIFO full (wp=%d rp=%d len=%lu)", adv_fifo->wp, adv_fifo->rp, (unsigned long)base->status.fifo_len);
+        return CIOT_ERR_NO_MEMORY;
+    }
+
+    slot = &adv_fifo->list[adv_fifo->wp];
+    if (slot->locked)
+    {
+        base->status.advs_losted++;
+        base->status.err_code = CIOT_ERR_BUSY;
+        CIOT_LOGE(TAG, "ADV FIFO push contention (slot=%d)", adv_fifo->wp);
+        return CIOT_ERR_BUSY;
+    }
+
+    slot->locked = true;
+    slot->adv.has_info = true;
+    memcpy(slot->adv.info.mac, adv->mac, sizeof(slot->adv.info.mac));
+    slot->adv.info.rssi = adv->rssi;
+    slot->adv.payload.size = adv->payload_len;
+
+    memcpy(slot->adv.payload.bytes, adv->payload, slot->adv.payload.size);
+    
+    adv_fifo->wp++;
+    base->status.fifo_len++;
+    
+    if (adv_fifo->wp == CIOT_CONFIG_BLE_SCN_ADV_FIFO_SIZE)
+    {
+        adv_fifo->wp = 0;
+    }
+    
+    slot->locked = false;
+    return CIOT_ERR_OK;
+}
+
+// static ciot_err_t ciot_ble_scn_adv_fifo_read(ciot_ble_scn_base_t *base, ciot_ble_scn_adv_t *adv)
+// {
+    
+// }
+#endif
 
 ciot_err_t ciot_ble_scn_set_filter(ciot_ble_scn_t self, ciot_ble_scn_filter_fn *filter, void *args)
 {
@@ -215,17 +277,10 @@ void ciot_ble_scn_copy_mac(uint8_t destiny[6], uint8_t source[6], bool reverse)
     }
 }
 
-#if CIOT_CONFIG_BLE_SCN_ADV_FIFO_SIZE
+#if CIOT_CONFIG_BLE_SCN_ADV_FIFO_ENABLED
 static ciot_err_t ciot_ble_scn_base_init_fifo(ciot_ble_scn_adv_fifo_t *adv_fifo)
 {
-    // for (size_t i = 0; i < CIOT_CONFIG_BLE_SCN_ADV_FIFO_SIZE; i++)
-    // {
-    //     ciot__ble_scn_adv__init(&adv_fifo->list[i]);
-    //     ciot__ble_scn_adv_info__init(&adv_fifo->data.infos[i]);
-    //     adv_fifo->list[i].info = &adv_fifo->data.infos[i];
-    //     adv_fifo->list[i].info->mac.data = adv_fifo->data.macs[i];
-    //     adv_fifo->list[i].payload.data = adv_fifo->data.advs[i];
-    // }
+    memset(adv_fifo, 0, sizeof(*adv_fifo));
     return CIOT_ERR_OK;
 }
 #endif
