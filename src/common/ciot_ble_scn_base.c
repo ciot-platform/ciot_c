@@ -29,7 +29,7 @@ static ciot_err_t ciot_ble_scn_process_data(ciot_iface_t *iface, ciot_msg_data_t
 static ciot_err_t ciot_ble_scn_get_data(ciot_iface_t *iface, ciot_msg_data_t *msg);
 static ciot_err_t ciot_ble_scn_send_data(ciot_iface_t *iface, uint8_t *data, int size);
 
-#ifdef CIOT_CONFIG_BLE_SCN_ADV_FIFO_ENABLED
+#if CIOT_CONFIG_BLE_SCN_ADV_FIFO_ENABLED
 static ciot_err_t ciot_ble_scn_base_init_fifo(ciot_ble_scn_adv_fifo_t *adv_fifo);
 static ciot_err_t ciot_ble_scn_adv_fifo_push(ciot_ble_scn_base_t *base, ciot_ble_scn_event_adv_report_t *adv);
 #endif
@@ -135,7 +135,7 @@ ciot_err_t ciot_ble_scn_base_task(ciot_ble_scn_t self)
 
 void ciot_ble_scn_handle_adv_report(ciot_ble_scn_t self, ciot_ble_scn_event_adv_report_t *adv)
 {
-#ifdef CIOT_CONFIG_BLE_SCN_ADV_FIFO_ENABLED
+#if CIOT_CONFIG_BLE_SCN_ADV_FIFO_ENABLED
     ciot_ble_scn_adv_fifo_push((ciot_ble_scn_base_t *)self, adv);
 #else
     ciot_ble_scn_base_t *base = (ciot_ble_scn_base_t*)self;
@@ -143,7 +143,7 @@ void ciot_ble_scn_handle_adv_report(ciot_ble_scn_t self, ciot_ble_scn_event_adv_
 #endif
 }
 
-#ifdef CIOT_CONFIG_BLE_SCN_ADV_FIFO_ENABLED
+#if CIOT_CONFIG_BLE_SCN_ADV_FIFO_ENABLED
 ciot_err_t ciot_ble_scn_adv_fifo_pop(ciot_ble_scn_t self, ciot_ble_scn_adv_t *adv)
 {
     CIOT_ERR_NULL_CHECK(self);

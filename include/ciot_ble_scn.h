@@ -36,7 +36,7 @@ typedef struct ciot_ble_scn_event_adv_report
 
 typedef bool (ciot_ble_scn_filter_fn)(ciot_ble_scn_t self, ciot_ble_scn_event_adv_report_t *adv_report, void *args);
 
-#ifdef CIOT_CONFIG_BLE_SCN_ADV_FIFO_SIZE
+#if CIOT_CONFIG_BLE_SCN_ADV_FIFO_ENABLED
 typedef struct ciot_ble_scn_adv_fifo_slot
 {
     ciot_ble_scn_adv_t adv;
@@ -64,7 +64,7 @@ typedef struct ciot_ble_scn_base
     ciot_ble_scn_status_t status;
     // ciot_ble_scn_adv_t recv;
     ciot_ble_scn_filter_t filter;
-#ifdef CIOT_CONFIG_BLE_SCN_ADV_FIFO_SIZE
+#if CIOT_CONFIG_BLE_SCN_ADV_FIFO_ENABLED
     ciot_ble_scn_adv_fifo_t adv_fifo;
 #endif
 } ciot_ble_scn_base_t;
