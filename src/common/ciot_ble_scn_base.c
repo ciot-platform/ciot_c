@@ -1,15 +1,14 @@
 /**
  * @file ciot_ble_scn_base.c
  * @author your name (you@domain.com)
- * @brief 
+ * @brief
  * @version 0.1
  * @date 2024-06-07
- * 
+ *
  * @copyright Copyright (c) 2024
- * 
+ *
  */
 
- 
 #include "ciot_config.h"
 
 #if CIOT_CONFIG_FEATURE_BLE_SCN == 1
@@ -36,7 +35,7 @@ static ciot_err_t ciot_ble_scn_adv_fifo_push(ciot_ble_scn_base_t *base, ciot_ble
 
 ciot_err_t ciot_ble_scn_init(ciot_ble_scn_t self)
 {
-    ciot_ble_scn_base_t *base = (ciot_ble_scn_base_t*)self;
+    ciot_ble_scn_base_t *base = (ciot_ble_scn_base_t *)self;
 
     base->iface.ptr = self;
     base->iface.process_data = ciot_ble_scn_process_data;
@@ -114,7 +113,7 @@ ciot_err_t ciot_ble_scn_get_cfg(ciot_ble_scn_t self, ciot_ble_scn_cfg_t *cfg)
 {
     CIOT_ERR_NULL_CHECK(self);
     CIOT_ERR_NULL_CHECK(cfg);
-    ciot_ble_scn_base_t *base = (ciot_ble_scn_base_t*)self;
+    ciot_ble_scn_base_t *base = (ciot_ble_scn_base_t *)self;
     *cfg = base->cfg;
     return CIOT_ERR_OK;
 }
@@ -123,7 +122,7 @@ ciot_err_t ciot_ble_scn_get_status(ciot_ble_scn_t self, ciot_ble_scn_status_t *s
 {
     CIOT_ERR_NULL_CHECK(self);
     CIOT_ERR_NULL_CHECK(status);
-    ciot_ble_scn_base_t *base = (ciot_ble_scn_base_t*)self;
+    ciot_ble_scn_base_t *base = (ciot_ble_scn_base_t *)self;
     *status = base->status;
     return CIOT_ERR_OK;
 }
@@ -138,8 +137,8 @@ void ciot_ble_scn_handle_adv_report(ciot_ble_scn_t self, ciot_ble_scn_event_adv_
 #if CIOT_CONFIG_BLE_SCN_ADV_FIFO_ENABLED
     ciot_ble_scn_adv_fifo_push((ciot_ble_scn_base_t *)self, adv);
 #else
-    ciot_ble_scn_base_t *base = (ciot_ble_scn_base_t*)self;
-    ciot_iface_send_event_data(&base->iface, CIOT_EVENT_TYPE_DATA, (uint8_t*)adv, sizeof(*adv));
+    ciot_ble_scn_base_t *base = (ciot_ble_scn_base_t *)self;
+    ciot_iface_send_event_data(&base->iface, CIOT_EVENT_TYPE_DATA, (uint8_t *)adv, sizeof(*adv));
 #endif
 }
 
@@ -168,10 +167,10 @@ ciot_err_t ciot_ble_scn_adv_fifo_pop(ciot_ble_scn_t self, ciot_ble_scn_adv_t *ad
     }
 
     slot->locked = true;
-    *adv = slot->adv;                   /// copy slot->adv to adv
+    *adv = slot->adv; /// copy slot->adv to adv
     slot->adv.has_info = false;
     slot->locked = false;
-   
+
     if (base->status.fifo_len > base->status.fifo_max)
     {
         base->status.fifo_max = base->status.fifo_len;
@@ -246,15 +245,15 @@ static ciot_err_t ciot_ble_scn_adv_fifo_push(ciot_ble_scn_base_t *base, ciot_ble
     }
     slot->adv.payload.size = adv->payload_len;
     memcpy(slot->adv.payload.bytes, adv->payload, slot->adv.payload.size);
-    
+
     adv_fifo->wp++;
     base->status.fifo_len++;
-    
+
     if (adv_fifo->wp == CIOT_CONFIG_BLE_SCN_ADV_FIFO_SIZE)
     {
         adv_fifo->wp = 0;
     }
-    
+
     slot->locked = false;
     return CIOT_ERR_OK;
 }
@@ -264,8 +263,8 @@ static ciot_err_t ciot_ble_scn_adv_fifo_push(ciot_ble_scn_base_t *base, ciot_ble
 ciot_err_t ciot_ble_scn_set_filter(ciot_ble_scn_t self, ciot_ble_scn_filter_fn *filter, void *args)
 {
     CIOT_ERR_NULL_CHECK(self);
-	CIOT_ERR_NULL_CHECK(filter);
-    ciot_ble_scn_base_t *base = (ciot_ble_scn_base_t*)self;
+    CIOT_ERR_NULL_CHECK(filter);
+    ciot_ble_scn_base_t *base = (ciot_ble_scn_base_t *)self;
     base->filter.handler = filter;
     base->filter.args = args;
     return CIOT_ERR_OK;
@@ -287,4 +286,4 @@ static ciot_err_t ciot_ble_scn_base_init_fifo(ciot_ble_scn_adv_fifo_t *adv_fifo)
 }
 #endif
 
-#endif  //!CIOT_CONFIG_FEATURE_BLE_SCN == 1
+#endif //! CIOT_CONFIG_FEATURE_BLE_SCN == 1
