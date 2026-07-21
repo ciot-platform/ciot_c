@@ -51,7 +51,7 @@ ciot_err_t ciot_uart_start(ciot_uart_t self, ciot_uart_cfg_t *cfg)
     {
         return CIOT_ERR_INVALID_ARG;
     }
-    
+
     if (_self != NULL && _self != self)
     {
         return CIOT_ERR_INVALID_STATE;
@@ -158,6 +158,11 @@ ciot_err_t ciot_uart_task(ciot_uart_t self)
 
 static void ciot_uart_event_handler(app_uart_evt_t *p_event)
 {
+    if (_self == NULL)
+    {
+        return;
+    }
+
     ciot_uart_t self = _self;
     ciot_uart_base_t *base = &self->base;
     uint8_t byte;
