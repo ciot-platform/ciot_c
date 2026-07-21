@@ -32,7 +32,6 @@ static ciot_err_t ciot_ble_scn_send_data(ciot_iface_t *iface, uint8_t *data, int
 #ifdef CIOT_CONFIG_BLE_SCN_ADV_FIFO_ENABLED
 static ciot_err_t ciot_ble_scn_base_init_fifo(ciot_ble_scn_adv_fifo_t *adv_fifo);
 static ciot_err_t ciot_ble_scn_adv_fifo_push(ciot_ble_scn_base_t *base, ciot_ble_scn_event_adv_report_t *adv);
-// static ciot_err_t ciot_ble_scn_adv_fifo_read(ciot_ble_scn_base_t *base, ciot_ble_scn_adv_t *adv);
 #endif
 
 ciot_err_t ciot_ble_scn_init(ciot_ble_scn_t self)
@@ -251,10 +250,6 @@ static ciot_err_t ciot_ble_scn_adv_fifo_push(ciot_ble_scn_base_t *base, ciot_ble
     return CIOT_ERR_OK;
 }
 
-// static ciot_err_t ciot_ble_scn_adv_fifo_read(ciot_ble_scn_base_t *base, ciot_ble_scn_adv_t *adv)
-// {
-    
-// }
 #endif
 
 ciot_err_t ciot_ble_scn_set_filter(ciot_ble_scn_t self, ciot_ble_scn_filter_fn *filter, void *args)
@@ -264,8 +259,6 @@ ciot_err_t ciot_ble_scn_set_filter(ciot_ble_scn_t self, ciot_ble_scn_filter_fn *
     ciot_ble_scn_base_t *base = (ciot_ble_scn_base_t*)self;
     base->filter.handler = filter;
     base->filter.args = args;
-    // base->filter.handler = filter;
-    // base->filter.args = args;
     return CIOT_ERR_OK;
 }
 
