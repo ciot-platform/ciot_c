@@ -45,10 +45,11 @@ extern "C"
         }                                                  \
     } while (0)
 
-#if CIOT_CONFIG_FEATURE_LOGGER
+#if CIOT_CONFIG_FEATURE_IFACE_LOGGER
 
 #include "ciot_logger.h"
 
+// Forwarding logging macros to ciot_logger functions
 #define CIOT_LOGD ciot_logd
 #define CIOT_LOGV ciot_logv
 #define CIOT_LOGI ciot_logi
