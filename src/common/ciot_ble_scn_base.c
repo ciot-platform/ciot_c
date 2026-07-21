@@ -234,6 +234,16 @@ static ciot_err_t ciot_ble_scn_adv_fifo_push(ciot_ble_scn_base_t *base, ciot_ble
     slot->adv.has_info = true;
     memcpy(slot->adv.info.mac, adv->mac, sizeof(slot->adv.info.mac));
     slot->adv.info.rssi = adv->rssi;
+
+    const size_t max_payload = sizeof(slot->adv.payload.bytes);
+    if (adv->payload_len > max_payload)
+    {
+        slot->locked = false;
+        base->status.advs_losted++;
+        base->status.err_code = CIOT_ERR_INVALID_SIZE;
+        CIOT_LOGE(TAG, "ADV payload too large (%u > %lu)", adv->payload_len, (unsigned long)max_payload);
+        return CIOT_ERR_INVALID_SIZE;
+    }
     slot->adv.payload.size = adv->payload_len;
     memcpy(slot->adv.payload.bytes, adv->payload, slot->adv.payload.size);
     
