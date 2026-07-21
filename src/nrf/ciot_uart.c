@@ -17,12 +17,12 @@
 #include "ciot_uart.h"
 #include "ciot_err.h"
 
- #ifndef CIOT_CONFIG_UART_RX_BUF_SIZE
- #define CIOT_CONFIG_UART_RX_BUF_SIZE 256
- #endif
- #ifndef CIOT_CONFIG_UART_TX_BUF_SIZE
- #define CIOT_CONFIG_UART_TX_BUF_SIZE 256
- #endif
+#ifndef CIOT_CONFIG_UART_RX_BUF_SIZE
+#define CIOT_CONFIG_UART_RX_BUF_SIZE 256
+#endif
+#ifndef CIOT_CONFIG_UART_TX_BUF_SIZE
+#define CIOT_CONFIG_UART_TX_BUF_SIZE 256
+#endif
 
 struct ciot_uart
 {
