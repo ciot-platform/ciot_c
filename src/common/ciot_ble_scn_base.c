@@ -235,7 +235,6 @@ static ciot_err_t ciot_ble_scn_adv_fifo_push(ciot_ble_scn_base_t *base, ciot_ble
     memcpy(slot->adv.info.mac, adv->mac, sizeof(slot->adv.info.mac));
     slot->adv.info.rssi = adv->rssi;
     slot->adv.payload.size = adv->payload_len;
-
     memcpy(slot->adv.payload.bytes, adv->payload, slot->adv.payload.size);
     
     adv_fifo->wp++;
