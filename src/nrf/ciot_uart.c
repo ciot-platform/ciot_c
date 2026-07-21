@@ -47,7 +47,12 @@ ciot_err_t ciot_uart_start(ciot_uart_t self, ciot_uart_cfg_t *cfg)
     CIOT_ERR_NULL_CHECK(self);
     CIOT_ERR_NULL_CHECK(cfg);
 
-    if(_self != NULL)
+    if (cfg->num != 0)
+    {
+        return CIOT_ERR_INVALID_ARG;
+    }
+    
+    if (_self != NULL && _self != self)
     {
         return CIOT_ERR_INVALID_STATE;
     }
