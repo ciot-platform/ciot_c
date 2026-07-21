@@ -11,7 +11,7 @@
 
 #include "ciot_config.h"
 
-#if CIOT_CONFIG_FEATURE_UART == 1 == 0 && defined(CIOT_PLATFORM_NRF)
+#if CIOT_CONFIG_FEATURE_UART == 1 && defined(CIOT_PLATFORM_NRF)
 
 #include "app_uart.h"
 #include "ciot_uart.h"
