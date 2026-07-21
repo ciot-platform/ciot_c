@@ -2,12 +2,12 @@
 
 ### Changes
 
-**Modbus client status tracking improvements:**
+**Enhancements to GPIO blinking functionality:**
 
-* Added `requests_success` and `requests_error` fields to the `ciot_mbus_client_status_t` struct to track the number of successful and failed requests. Updated related macros, tags, and field lists in `mbus_client.pb.h` to support these new fields. [[1]](diffhunk://#diff-6bf44a776dd28cd8ec06193fb80a558c71c3f9214b21e0596abb4a124d546fd1R56-R57) [[2]](diffhunk://#diff-6bf44a776dd28cd8ec06193fb80a558c71c3f9214b21e0596abb4a124d546fd1L105-R114) [[3]](diffhunk://#diff-6bf44a776dd28cd8ec06193fb80a558c71c3f9214b21e0596abb4a124d546fd1R128-R129) [[4]](diffhunk://#diff-6bf44a776dd28cd8ec06193fb80a558c71c3f9214b21e0596abb4a124d546fd1L162-R168) [[5]](diffhunk://#diff-6bf44a776dd28cd8ec06193fb80a558c71c3f9214b21e0596abb4a124d546fd1L208-R214)
-* Updated the default and zero-initialization macros for `ciot_mbus_client_status_t` to initialize the new counters to zero.
+* Added two new GPIO states: `CIOT_GPIO_STATE_BLINKING_REVERSE` (alternates state in reverse phase) and `CIOT_GPIO_STATE_BLINKING_SLOW` (alternates state at half speed), and updated the enum helpers accordingly. [[1]](diffhunk://#diff-ef3b99b04bb0fd99e2e8aac7e8d21ff36127ce6229ac4352527520c64c57cd56L20-R22) [[2]](diffhunk://#diff-ef3b99b04bb0fd99e2e8aac7e8d21ff36127ce6229ac4352527520c64c57cd56L97-R108)
 
-**Modbus client API and internal logic changes:**
+**Core logic updates:**
 
-* Added a new function, `ciot_mbus_client_get_status`, to retrieve the current Modbus client status, including the new request counters.
-* Refactored error handling in `ciot_mbus_client.c` by introducing `ciot_mbus_client_process_request_result`, which updates the request counters and status error code after each Modbus operation. All Modbus request functions now use this helper for consistent status updates.
+* Modified the `ciot_gpio_base_t` struct to include a new `blink_tick` field for tracking blink phases.
+* Updated the `ciot_gpio_task` function to generate blink signals based on `blink_tick`, supporting the new reverse and slow blinking modes.
+* Enhanced the GPIO state handling to recognize and enable the new blinking modes when setting state. [[1]](diffhunk://#diff-ca74fefe242cdfc7f78a04c8c2ed8bf09d18045410717c57b75e73b859865d36R81-R92) [[2]](diffhunk://#diff-ca74fefe242cdfc7f78a04c8c2ed8bf09d18045410717c57b75e73b859865d36L213-R230)
