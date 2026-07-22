@@ -31,7 +31,7 @@ typedef struct ciot_logger
 
 static ciot_logger_t logger;
 
-char log_buffer[CIOT_CONFIG_LOG_BUFFER_SIZE];
+static char log_buffer[CIOT_CONFIG_LOG_BUFFER_SIZE];
 
 static const char *ciot_log_level_to_str(ciot_log_level_t level)
 {

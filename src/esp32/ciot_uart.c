@@ -233,6 +233,7 @@ static void ciot_uart2_task(void *args)
 static void ciot_uart_event_handler(ciot_uart_t self, uart_event_t *event)
 {
     ciot_uart_base_t *base = &self->base;
+    size_t rx_buffer_used = 0;
 
     switch (event->type)
     {
@@ -252,7 +253,13 @@ static void ciot_uart_event_handler(ciot_uart_t self, uart_event_t *event)
         xQueueReset(self->queue);
         break;
     case UART_BUFFER_FULL:
-        ESP_LOGE(TAG, "UART_BUFFER_FULL[%ld]: %d", base->cfg.num, event->size);
+        uart_get_buffered_data_len(base->cfg.num, &rx_buffer_used);
+        ESP_LOGE(TAG,
+                 "UART_BUFFER_FULL[%ld]: event_size=%d, rx_used=%lu/%d",
+                 base->cfg.num,
+                 event->size,
+                 (unsigned long)rx_buffer_used,
+                 CIOT_CONFIG_UART_RX_BUF_SIZE);
         base->status.error = CIOT_UART_ERROR_BUFFER_FULL;
         uart_flush_input(base->cfg.num);
         xQueueReset(self->queue);
