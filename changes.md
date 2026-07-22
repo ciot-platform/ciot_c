@@ -13,3 +13,16 @@
 
 * Refactored the NRF UART implementation to use the higher-level `app_uart` driver, removing custom FIFO management and direct use of `nrf_drv_uart`. (`src/nrf/ciot_uart.c`) [[1]](diffhunk://#diff-ffccc2f85616dfd12ec2dbc6a3a71126f30eb2c9fdd873a1d71ee6f6fb46885fL16-R29) [[2]](diffhunk://#diff-ffccc2f85616dfd12ec2dbc6a3a71126f30eb2c9fdd873a1d71ee6f6fb46885fR43-R48) [[3]](diffhunk://#diff-ffccc2f85616dfd12ec2dbc6a3a71126f30eb2c9fdd873a1d71ee6f6fb46885fL74-L121) [[4]](diffhunk://#diff-ffccc2f85616dfd12ec2dbc6a3a71126f30eb2c9fdd873a1d71ee6f6fb46885fL132-R98) [[5]](diffhunk://#diff-ffccc2f85616dfd12ec2dbc6a3a71126f30eb2c9fdd873a1d71ee6f6fb46885fL143-R135)
 * Simplified UART event handling and error reporting by using `app_uart_evt_t` events and global instance management. (`src/nrf/ciot_uart.c`)
+
+**Modbus Server Improvements:**
+
+* Added configurable timeout macros for Modbus server read and byte timeouts in `ciot_mbus_server.h`, allowing easier adjustment of communication timeouts.
+* Added an `nmbs_initialized` flag to the `ciot_mbus_server` struct to track initialization state, supporting safer resource management.
+* Updated the `ciot_mbus_server_start` function to return errors from `ciot_uart_start` using `CIOT_ERR_RETURN`, improving error propagation.
+* Implemented the `ciot_mbus_server_stop` function to properly stop the UART connection, reset the Modbus server state, and send a stopped event, replacing the previous "not implemented" stub.
+
+**UART Handling and Logging:**
+
+* Improved UART buffer full event logging in `ciot_uart_event_handler` to include both the event size and the actual RX buffer usage, aiding in debugging buffer overflows.
+* Added a local `rx_buffer_used` variable in the UART event handler to support the improved logging.
+* Changed the `log_buffer` in `ciot_logger.c` from global to static scope for better encapsulation and to avoid namespace pollution.
