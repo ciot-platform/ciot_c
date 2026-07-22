@@ -253,13 +253,14 @@ static void ciot_uart_event_handler(ciot_uart_t self, uart_event_t *event)
         xQueueReset(self->queue);
         break;
     case UART_BUFFER_FULL:
-        uart_get_buffered_data_len(base->cfg.num, &rx_buffer_used);
+        esp_err_t esp_err = uart_get_buffered_data_len(base->cfg.num, &rx_buffer_used);
         ESP_LOGE(TAG,
-                 "UART_BUFFER_FULL[%ld]: event_size=%d, rx_used=%lu/%d",
-                 base->cfg.num,
-                 event->size,
+                 "UART_BUFFER_FULL[%lu]: event_size=%lu, rx_used=%lu/%u%s",
+                 (unsigned long)base->cfg.num,
+                 (unsigned long)event->size,
                  (unsigned long)rx_buffer_used,
-                 CIOT_CONFIG_UART_RX_BUF_SIZE);
+                 (unsigned)CIOT_CONFIG_UART_RX_BUF_SIZE,
+                  esp_err == ESP_OK ? "" : " (uart_get_buffered_data_len failed)");
         base->status.error = CIOT_UART_ERROR_BUFFER_FULL;
         uart_flush_input(base->cfg.num);
         xQueueReset(self->queue);
