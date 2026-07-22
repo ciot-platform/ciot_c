@@ -108,20 +108,20 @@ ciot_err_t ciot_mbus_server_start(ciot_mbus_server_t self, ciot_mbus_server_cfg_
 
 ciot_err_t ciot_mbus_server_stop(ciot_mbus_server_t self)
 {
-    CIOT_ERR_NULL_CHECK(self);
-
-    if (self->base.cfg.which_type == CIOT_MBUS_SERVER_CFG_RTU_TAG)
-    {
-        CIOT_ERR_RETURN(ciot_uart_stop((ciot_uart_t)self->base.conn));
-    }
-
-    memset(&self->nmbs, 0, sizeof(self->nmbs));
-    self->nmbs_initialized = false;
-    self->base.status.state = CIOT_MBUS_SERVER_STATE_STOPPED;
-    self->base.status.error = CIOT_ERR_OK;
-    ciot_iface_send_event_type(&self->base.iface, CIOT_EVENT_TYPE_STOPPED);
-
-    return CIOT_ERR_OK;
+     CIOT_ERR_NULL_CHECK(self);
+     ciot_err_t uart_err = CIOT_ERR_OK;
+     if (self->nmbs_initialized &&
+         self->base.cfg.which_type == CIOT_MBUS_SERVER_CFG_RTU_TAG &&
+         self->base.cfg.rtu.has_uart)
+     {
+         uart_err = ciot_uart_stop((ciot_uart_t)self->base.conn);
+     }
+     memset(&self->nmbs, 0, sizeof(self->nmbs));
+     self->nmbs_initialized = false;
+     self->base.status.state = CIOT_MBUS_SERVER_STATE_STOPPED;
+     self->base.status.error = uart_err;
+     ciot_iface_send_event_type(&self->base.iface, CIOT_EVENT_TYPE_STOPPED);
+     return uart_err;
 }
 
 ciot_err_t ciot_mbus_server_task(ciot_mbus_server_t self)
