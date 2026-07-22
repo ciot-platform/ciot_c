@@ -72,6 +72,9 @@ ciot_err_t ciot_mbus_server_start(ciot_mbus_server_t self, ciot_mbus_server_cfg_
     callbacks.read_holding_registers = ciot_mbus_server_read_holding_registers;
     callbacks.write_multiple_registers = ciot_mbus_server_write_multiple_registers;
 
+    nmbs_set_read_timeout_ms(&self->nmbs, CIOT_MBUS_SERVER_READ_TIMEOUT_MS);
+    nmbs_set_byte_timeout_ms(&self->nmbs, CIOT_MBUS_SERVER_BYTE_TIMEOUT_MS);
+
     nmbs_error err = 0;
     switch (cfg->which_type)
     {
