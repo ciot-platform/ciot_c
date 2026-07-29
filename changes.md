@@ -26,3 +26,7 @@
 * Improved UART buffer full event logging in `ciot_uart_event_handler` to include both the event size and the actual RX buffer usage, aiding in debugging buffer overflows.
 * Added a local `rx_buffer_used` variable in the UART event handler to support the improved logging.
 * Changed the `log_buffer` in `ciot_logger.c` from global to static scope for better encapsulation and to avoid namespace pollution.
+
+**Core event handling improvements:**
+
+* [`src/core/ciot.c`](diffhunk://#diff-ac3505c8e7850d45dfcfdd990afb140a041683f93b640fc2b17a8e05bdd30c10R593-L603): Moved the check for `CIOT_EVENT_TYPE_MSG` and the core's started state earlier in the `ciot_iface_event_handler` function, replacing a previous error log with a debug log and ensuring the function returns early with `CIOT_ERR_BUSY` if the core is not started. This prevents further processing of message events when the core is not ready.
