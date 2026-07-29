@@ -590,17 +590,17 @@ static ciot_err_t ciot_iface_event_handler(ciot_iface_t *sender, ciot_event_t *e
         }
     }
 
+    if (event->type == CIOT_EVENT_TYPE_MSG && self->status.state != CIOT_STATE_STARTED)
+    {
+        CIOT_LOGD(TAG, "ciot core is not started");
+        return CIOT_ERR_BUSY;
+    }
+    
     receiver->event = *event;
     receiver->sender = sender;
     
     if (event->type == CIOT_EVENT_TYPE_MSG)
     {
-        if (self->status.state != CIOT_STATE_STARTED)
-        {
-            CIOT_LOGE(TAG, "ciot core is not started");
-            return CIOT_ERR_BUSY;
-        }
-
         CIOT_ERR_RETURN(ciot_bytes_received(self, sender, event->raw.bytes, event->raw.size));
 
 #if CIOT_CONFIG_FEATURE_LOG == 1
