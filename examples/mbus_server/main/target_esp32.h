@@ -35,5 +35,13 @@
 #define TARGET_MBUS_SERVER_ID 1                           ///< Modbus server ID
 #define TARGET_MBUS_COILS_COUNT 32                        ///< Modbus coils count
 #define TARGET_MBUS_REGS_COUNT 32                         ///< Modbus registers count
+#define TARGET_MBUS_SERVER_TCP_PORT 502                   ///< Modbus TCP server port
+
+/**
+ * @brief WiFi station configuration, needed to reach the Modbus TCP server
+ *
+ */
+#define TARGET_WIFI_STA_SSID "CIOT ESP32 AP"     ///< WiFi network to join
+#define TARGET_WIFI_STA_PASSWORD "admin123"      ///< WiFi network password
 
 #endif  //!__TARGET_ESP32__H__
