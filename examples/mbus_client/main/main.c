@@ -52,6 +52,43 @@ ciot_msg_data_t mbus_client_cfg = {
     },
 };
 
+#if defined(CIOT_PLATFORM_ESP32)
+
+#define WIFI_STA_SSID "CIOT ESP32 AP"
+#define WIFI_STA_PASSWORD "admin123"
+
+/* Server IP address for the Modbus TCP client demo below (edit for your network). */
+static uint8_t mbus_client_tcp_server_ip[4] = {192, 168, 1, 50};
+
+ciot_msg_data_t wifi_sta_cfg = {
+    .which_type = CIOT_MSG_DATA_WIFI_TAG,
+    .wifi = {
+        .which_type = CIOT_WIFI_DATA_CONFIG_TAG,
+        .config = {
+            .type = CIOT_WIFI_TYPE_STA,
+            .ssid = WIFI_STA_SSID,
+            .password = WIFI_STA_PASSWORD,
+        },
+    },
+};
+
+ciot_msg_data_t mbus_client_tcp_cfg = {
+    .which_type = CIOT_MSG_DATA_MBUS_CLIENT_TAG,
+    .mbus_client = {
+        .which_type = CIOT_MBUS_CLIENT_DATA_CONFIG_TAG,
+        .config = {
+            .which_type = CIOT_MBUS_CLIENT_CFG_TCP_TAG,
+            .tcp = {
+                .ip.arg = mbus_client_tcp_server_ip,
+                .port = 502,
+            },
+            .timeout = 500,
+        },
+    },
+};
+
+#endif // CIOT_PLATFORM_ESP32
+
 static const char *TAG = "main";
 
 static ciot_err_t event_handler(ciot_iface_t *sender, ciot_event_t *event, void *args);
@@ -73,6 +110,20 @@ static void device_start()
     self.ifaces.mbus_client = ciot_mbus_client_new(CIOT_HANDLE, (ciot_iface_t *)self.ifaces.uart);
     self.ifaces.list[DEVICE_IFACE_ID_MBUS_CLIENT] = (ciot_iface_t *)self.ifaces.mbus_client;
     self.ifaces.cfgs[DEVICE_IFACE_ID_MBUS_CLIENT] = &mbus_client_cfg;
+
+#if defined(CIOT_PLATFORM_ESP32)
+    self.ifaces.wifi_sta = ciot_wifi_new(CIOT_WIFI_TYPE_STA);
+    self.ifaces.list[DEVICE_IFACE_ID_WIFI_STA] = (ciot_iface_t *)self.ifaces.wifi_sta;
+    self.ifaces.cfgs[DEVICE_IFACE_ID_WIFI_STA] = &wifi_sta_cfg;
+
+    self.ifaces.mbus_socket = ciot_socket_new(CIOT_HANDLE);
+    self.ifaces.list[DEVICE_IFACE_ID_MBUS_SOCKET] = (ciot_iface_t *)self.ifaces.mbus_socket;
+    self.ifaces.cfgs[DEVICE_IFACE_ID_MBUS_SOCKET] = NULL; // started internally by mbus_client_tcp, not through generic config
+
+    self.ifaces.mbus_client_tcp = ciot_mbus_client_new(CIOT_HANDLE, (ciot_iface_t *)self.ifaces.mbus_socket);
+    self.ifaces.list[DEVICE_IFACE_ID_MBUS_CLIENT_TCP] = (ciot_iface_t *)self.ifaces.mbus_client_tcp;
+    self.ifaces.cfgs[DEVICE_IFACE_ID_MBUS_CLIENT_TCP] = &mbus_client_tcp_cfg;
+#endif
 
     ciot_iface_set_event_handler(&self.ifaces.ciot->iface, event_handler, &self);
     ciot_cfg_t ciot_cfg = {
@@ -99,11 +150,31 @@ static void mbus_read_data_task()
     }
 }
 
+#if defined(CIOT_PLATFORM_ESP32)
+static void mbus_read_data_tcp_task()
+{
+    if (ciot_timer_compare(&self.timer_tcp, 1))
+    {
+        uint16_t reg;
+        ciot_err_t err = ciot_mbus_client_read_holding_registers(self.ifaces.mbus_client_tcp, 0, 1, &reg);
+        if (err != CIOT_ERR_OK)
+        {
+            CIOT_LOGE(TAG, "Error reading register over Modbus TCP: %s", ciot_err_to_message(err));
+            return;
+        }
+        CIOT_LOGI(TAG, "TCP: %d", reg);
+    }
+}
+#endif
+
 static void device_task()
 {
     ciot_task(self.ifaces.ciot);
     ciot_sys_task(self.ifaces.sys);
     mbus_read_data_task();
+#if defined(CIOT_PLATFORM_ESP32)
+    mbus_read_data_tcp_task();
+#endif
 }
 
 int main(void)

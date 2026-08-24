@@ -16,6 +16,8 @@
 #include "ciot_sys.h"
 #include "ciot_uart.h"
 #include "ciot_mbus_client.h"
+#include "ciot_socket.h"
+#include "ciot_wifi.h"
 
 #ifdef IDF_VER
 #define main app_main
@@ -31,6 +33,9 @@ typedef enum device_iface_id
     DEVICE_IFACE_ID_SYS,
     DEVICE_IFACE_ID_UART,
     DEVICE_IFACE_ID_MBUS_CLIENT,
+    DEVICE_IFACE_ID_WIFI_STA,        ///< CIOT_PLATFORM_ESP32 only, needed to reach the Modbus TCP server
+    DEVICE_IFACE_ID_MBUS_SOCKET,     ///< CIOT_PLATFORM_ESP32 only, raw TCP transport for DEVICE_IFACE_ID_MBUS_CLIENT_TCP
+    DEVICE_IFACE_ID_MBUS_CLIENT_TCP, ///< CIOT_PLATFORM_ESP32 only, second Modbus client instance talking Modbus TCP
     DEVICE_IFACE_ID_COUNT,
 } device_iface_id_t;
 
@@ -46,6 +51,9 @@ typedef struct device_ifaces
     ciot_sys_t sys;
     ciot_uart_t uart;
     ciot_mbus_client_t mbus_client;
+    ciot_wifi_t wifi_sta;
+    ciot_socket_t mbus_socket;
+    ciot_mbus_client_t mbus_client_tcp;
     ciot_iface_t *list[DEVICE_IFACE_ID_COUNT];
     ciot_msg_data_t *cfgs[DEVICE_IFACE_ID_COUNT];
 } device_ifaces_t;
@@ -60,6 +68,7 @@ typedef struct device
 {
     device_ifaces_t ifaces;
     uint64_t timer;
+    uint64_t timer_tcp;
     bool uart_started;
 } device_t;
 
