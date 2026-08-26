@@ -1,7 +1,9 @@
 /**
  * @file ciot_socket.c
  * @author your name (you@domain.com)
- * @brief
+ * @brief ESP32 (lwIP) driver for ciot_socket: a generic raw TCP byte-stream
+ *        transport. Not specific to any protocol carried over it (e.g. Modbus
+ *        TCP) - it only moves bytes, framing/parsing is the caller's job.
  * @version 0.1
  * @date 2026-08-24
  *
@@ -105,7 +107,7 @@ ciot_err_t ciot_socket_start_server(ciot_socket_t self, uint16_t port, int32_t t
 
     self->base.status.state = CIOT_SOCKET_STATE_LISTENING;
     self->base.status.error = CIOT_ERR_OK;
-    CIOT_LOGI(TAG, "Listening for Modbus TCP connections on port %d", (int)port);
+    CIOT_LOGI(TAG, "Listening for TCP connections on port %d", (int)port);
 
     return CIOT_ERR_OK;
 }
@@ -154,7 +156,7 @@ ciot_err_t ciot_socket_start_client(ciot_socket_t self, const uint8_t ip[4], uin
 
     self->base.status.state = CIOT_SOCKET_STATE_CONNECTED;
     self->base.status.error = CIOT_ERR_OK;
-    CIOT_LOGI(TAG, "Connected to Modbus TCP server %d.%d.%d.%d:%d", ip[0], ip[1], ip[2], ip[3], (int)port);
+    CIOT_LOGI(TAG, "Connected to TCP server %d.%d.%d.%d:%d", ip[0], ip[1], ip[2], ip[3], (int)port);
     ciot_iface_send_event_type(&self->base.iface, CIOT_EVENT_TYPE_STARTED);
 
     return CIOT_ERR_OK;
@@ -198,6 +200,12 @@ ciot_err_t ciot_socket_task(ciot_socket_t self)
     return CIOT_ERR_OK;
 }
 
+/**
+ * Same all-or-nothing contract as ciot_uart_send_bytes(): returns CIOT_ERR_OK only
+ * when all `size` bytes were sent within the connection's timeout, CIOT_ERR_TIMEOUT
+ * otherwise. This is what ciot_iface_send_bytes() (and any caller of it, not just
+ * Modbus) expects from a ciot_iface_t transport.
+ */
 ciot_err_t ciot_socket_send_bytes(ciot_socket_t self, uint8_t *data, int size)
 {
     CIOT_ERR_NULL_CHECK(self);
@@ -216,7 +224,7 @@ ciot_err_t ciot_socket_send_bytes(ciot_socket_t self, uint8_t *data, int size)
         {
             if (n < 0 && (errno == EWOULDBLOCK || errno == EAGAIN))
             {
-                break; // byte timeout expired; nanomodbus treats a partial transfer as a timeout
+                break; // byte timeout expired; fall through to the all-or-nothing check below
             }
             CIOT_LOGW(TAG, "send() failed: errno %d", errno);
             ciot_socket_on_disconnect(self);
@@ -228,6 +236,12 @@ ciot_err_t ciot_socket_send_bytes(ciot_socket_t self, uint8_t *data, int size)
     return sent == size ? CIOT_ERR_OK : CIOT_ERR_TIMEOUT;
 }
 
+/**
+ * Same all-or-nothing contract as ciot_uart_read_bytes(): returns CIOT_ERR_OK only
+ * when all `size` bytes were received within the connection's timeout, CIOT_ERR_TIMEOUT
+ * otherwise. This is what ciot_iface_read_bytes() (and any caller of it, not just
+ * Modbus) expects from a ciot_iface_t transport.
+ */
 ciot_err_t ciot_socket_read_bytes(ciot_socket_t self, uint8_t *data, int size)
 {
     CIOT_ERR_NULL_CHECK(self);
@@ -252,7 +266,7 @@ ciot_err_t ciot_socket_read_bytes(ciot_socket_t self, uint8_t *data, int size)
         {
             if (errno == EWOULDBLOCK || errno == EAGAIN)
             {
-                break; // byte timeout expired; nanomodbus treats a partial transfer as a timeout
+                break; // byte timeout expired; fall through to the all-or-nothing check below
             }
             CIOT_LOGW(TAG, "recv() failed: errno %d", errno);
             ciot_socket_on_disconnect(self);
@@ -293,7 +307,7 @@ static void ciot_socket_accept(ciot_socket_t self)
     self->conn_fd = fd;
     self->base.status.state = CIOT_SOCKET_STATE_CONNECTED;
     self->base.status.error = CIOT_ERR_OK;
-    CIOT_LOGI(TAG, "Modbus TCP client connected");
+    CIOT_LOGI(TAG, "TCP client connected");
     ciot_iface_send_event_type(&self->base.iface, CIOT_EVENT_TYPE_STARTED);
 }
 
