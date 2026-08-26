@@ -57,9 +57,6 @@ ciot_msg_data_t mbus_client_cfg = {
 #define WIFI_STA_SSID "CIOT ESP32 AP"
 #define WIFI_STA_PASSWORD "admin123"
 
-/* Server IP address for the Modbus TCP client demo below (edit for your network). */
-static uint8_t mbus_client_tcp_server_ip[4] = {192, 168, 1, 50};
-
 ciot_msg_data_t wifi_sta_cfg = {
     .which_type = CIOT_MSG_DATA_WIFI_TAG,
     .wifi = {
@@ -71,6 +68,13 @@ ciot_msg_data_t wifi_sta_cfg = {
         },
     },
 };
+
+#endif // CIOT_PLATFORM_ESP32
+
+#if defined(CIOT_PLATFORM_ESP32) || defined(CIOT_PLATFORM_MONGOOSE)
+
+/* Server IP address for the Modbus TCP client demo below (edit for your network). */
+static uint8_t mbus_client_tcp_server_ip[4] = {192, 168, 1, 50};
 
 ciot_msg_data_t mbus_client_tcp_cfg = {
     .which_type = CIOT_MSG_DATA_MBUS_CLIENT_TAG,
@@ -87,7 +91,7 @@ ciot_msg_data_t mbus_client_tcp_cfg = {
     },
 };
 
-#endif // CIOT_PLATFORM_ESP32
+#endif // CIOT_PLATFORM_ESP32 || CIOT_PLATFORM_MONGOOSE
 
 static const char *TAG = "main";
 
@@ -112,10 +116,14 @@ static void device_start()
     self.ifaces.cfgs[DEVICE_IFACE_ID_MBUS_CLIENT] = &mbus_client_cfg;
 
 #if defined(CIOT_PLATFORM_ESP32)
+    // WiFi needs to be brought up before the Modbus TCP socket below can be reached
     self.ifaces.wifi_sta = ciot_wifi_new(CIOT_WIFI_TYPE_STA);
     self.ifaces.list[DEVICE_IFACE_ID_WIFI_STA] = (ciot_iface_t *)self.ifaces.wifi_sta;
     self.ifaces.cfgs[DEVICE_IFACE_ID_WIFI_STA] = &wifi_sta_cfg;
+#endif
 
+#if defined(CIOT_PLATFORM_ESP32) || defined(CIOT_PLATFORM_MONGOOSE)
+    // Modbus TCP client: ciot_socket picks its backend (ESP32/lwIP or Mongoose) at build time
     self.ifaces.mbus_socket = ciot_socket_new(CIOT_HANDLE);
     self.ifaces.list[DEVICE_IFACE_ID_MBUS_SOCKET] = (ciot_iface_t *)self.ifaces.mbus_socket;
     self.ifaces.cfgs[DEVICE_IFACE_ID_MBUS_SOCKET] = NULL; // started internally by mbus_client_tcp, not through generic config
@@ -150,7 +158,7 @@ static void mbus_read_data_task()
     }
 }
 
-#if defined(CIOT_PLATFORM_ESP32)
+#if defined(CIOT_PLATFORM_ESP32) || defined(CIOT_PLATFORM_MONGOOSE)
 static void mbus_read_data_tcp_task()
 {
     if (ciot_timer_compare(&self.timer_tcp, 1))
@@ -172,7 +180,7 @@ static void device_task()
     ciot_task(self.ifaces.ciot);
     ciot_sys_task(self.ifaces.sys);
     mbus_read_data_task();
-#if defined(CIOT_PLATFORM_ESP32)
+#if defined(CIOT_PLATFORM_ESP32) || defined(CIOT_PLATFORM_MONGOOSE)
     mbus_read_data_tcp_task();
 #endif
 }

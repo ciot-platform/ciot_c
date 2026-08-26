@@ -33,9 +33,9 @@ typedef enum device_iface_id
     DEVICE_IFACE_ID_SYS,
     DEVICE_IFACE_ID_UART,
     DEVICE_IFACE_ID_MBUS_CLIENT,
-    DEVICE_IFACE_ID_WIFI_STA,        ///< CIOT_PLATFORM_ESP32 only, needed to reach the Modbus TCP server
-    DEVICE_IFACE_ID_MBUS_SOCKET,     ///< CIOT_PLATFORM_ESP32 only, raw TCP transport for DEVICE_IFACE_ID_MBUS_CLIENT_TCP
-    DEVICE_IFACE_ID_MBUS_CLIENT_TCP, ///< CIOT_PLATFORM_ESP32 only, second Modbus client instance talking Modbus TCP
+    DEVICE_IFACE_ID_WIFI_STA,        ///< CIOT_PLATFORM_ESP32 only, needed to reach the Modbus TCP server over WiFi
+    DEVICE_IFACE_ID_MBUS_SOCKET,     ///< ESP32 or Mongoose (Win32/Linux), raw TCP transport for DEVICE_IFACE_ID_MBUS_CLIENT_TCP
+    DEVICE_IFACE_ID_MBUS_CLIENT_TCP, ///< ESP32 or Mongoose (Win32/Linux), second Modbus client instance talking Modbus TCP
     DEVICE_IFACE_ID_COUNT,
 } device_iface_id_t;
 
