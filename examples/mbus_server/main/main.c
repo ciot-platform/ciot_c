@@ -21,18 +21,20 @@ ciot_msg_data_t sys_cfg = {};
 ciot_msg_data_t uart_cfg = TARGET_RS485_CFG;
 
 ciot_msg_data_t mbus_server_cfg = TARGET_MBUS_SERVER_CFG;
+ciot_msg_data_t mbus_server_tcp_cfg = TARGET_MBUS_SERVER_TCP_CFG;
 
 #ifdef TARGET_ESP32
 ciot_msg_data_t wifi_sta_cfg = TARGET_WIFI_STA_CFG;
-ciot_msg_data_t mbus_server_tcp_cfg = TARGET_MBUS_SERVER_TCP_CFG;
 #endif
 
 static const char *TAG = "main";
 
-static ciot_err_t event_handler(ciot_iface_t *sender, ciot_event_t *event, void *args);
+// static ciot_err_t event_handler(ciot_iface_t *sender, ciot_event_t *event, void *args);
 
 static void device_start()
 {
+    self.ifaces.storage = ciot_storage_new();
+
     self.ifaces.ciot = ciot_new();
     self.ifaces.list[DEVICE_IFACE_ID_CIOT] = (ciot_iface_t *)self.ifaces.ciot;
     self.ifaces.cfgs[DEVICE_IFACE_ID_CIOT] = NULL;
@@ -56,10 +58,14 @@ static void device_start()
     self.ifaces.cfgs[DEVICE_IFACE_ID_MBUS_SERVER] = &mbus_server_cfg;
 
 #ifdef TARGET_ESP32
+    // WiFi needs to be brought up before the Modbus TCP socket below can be reached
     self.ifaces.wifi_sta = ciot_wifi_new(CIOT_WIFI_TYPE_STA);
     self.ifaces.list[DEVICE_IFACE_ID_WIFI_STA] = (ciot_iface_t *)self.ifaces.wifi_sta;
     self.ifaces.cfgs[DEVICE_IFACE_ID_WIFI_STA] = &wifi_sta_cfg;
+#endif
 
+#if defined(TARGET_ESP32) || defined(CIOT_PLATFORM_MONGOOSE)
+    // Modbus TCP server: ciot_socket picks its backend (ESP32/lwIP or Mongoose) at build time
     self.ifaces.mbus_socket = ciot_socket_new(CIOT_HANDLE);
     self.ifaces.list[DEVICE_IFACE_ID_MBUS_SOCKET] = (ciot_iface_t *)self.ifaces.mbus_socket;
     self.ifaces.cfgs[DEVICE_IFACE_ID_MBUS_SOCKET] = NULL; // started internally by mbus_server_tcp, not through generic config
@@ -84,7 +90,7 @@ static void device_task()
     ciot_task(self.ifaces.ciot);
     ciot_sys_task(self.ifaces.sys);
     ciot_mbus_server_task(self.ifaces.mbus_server);
-#ifdef TARGET_ESP32
+#if defined(TARGET_ESP32) || defined(CIOT_PLATFORM_MONGOOSE)
     ciot_mbus_server_task(self.ifaces.mbus_server_tcp);
 #endif
 }
