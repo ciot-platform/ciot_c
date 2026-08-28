@@ -175,6 +175,17 @@ ciot_err_t ciot_mbus_server_task(ciot_mbus_server_t self)
         if(self->base.cfg.which_type == CIOT_MBUS_SERVER_CFG_RTU_TAG && ciot_uart_available((ciot_uart_t)self->base.conn) == 0) {
             return CIOT_ERR_OK;
         }
+        /*
+         * Same reasoning as the RTU guard above: nmbs_server_poll() blocks (via the
+         * platform read callback's byte/read timeout) waiting for the first byte of a
+         * new request when nothing is pending. Without this check, every task() tick
+         * on an idle-but-connected TCP client would stall the caller's loop for up to
+         * CIOT_MBUS_SERVER_READ_TIMEOUT_MS - e.g. starving other work like a BLE
+         * advertisement queue drained from the same loop.
+         */
+        if(self->base.cfg.which_type == CIOT_MBUS_SERVER_CFG_TCP_TAG && ciot_socket_available((ciot_socket_t)self->base.conn) == 0) {
+            return CIOT_ERR_OK;
+        }
         nmbs_error err = nmbs_server_poll(&self->nmbs);
         self->base.status.error = ciot_mbus_get_error(err);
         self->base.status.last_poll = ciot_timer_now();
