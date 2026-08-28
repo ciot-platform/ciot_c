@@ -278,6 +278,43 @@ ciot_err_t ciot_socket_read_bytes(ciot_socket_t self, uint8_t *data, int size)
     return received == size ? CIOT_ERR_OK : CIOT_ERR_TIMEOUT;
 }
 
+/**
+ * Non-blocking check for "is there something worth reading right now", mirroring
+ * ciot_uart_available(). Callers (ciot_mbus_server_task()) use this to avoid calling
+ * into a blocking read (with its byte/read timeout) when there is nothing to read yet
+ * - without it, polling an idle connection would stall the caller's loop for a full
+ * timeout on every tick.
+ *
+ * Deliberately uses select() rather than ioctl(fd, FIONREAD, ...): FIONREAD's numeric
+ * request code must come from lwip/sockets.h, not the toolchain's <sys/ioctl.h> - the
+ * two can disagree, in which case lwip_ioctl() doesn't recognize the request and fails
+ * with ENOSYS on every call. select() has no such header pitfall, and - unlike
+ * FIONREAD, which reports 0 once a gracefully-closed peer has no more buffered data -
+ * it correctly reports the socket as readable when EOF is pending, which is what lets
+ * the read path below run recv() and notice the disconnect via ciot_socket_on_disconnect().
+ */
+size_t ciot_socket_available(ciot_socket_t self)
+{
+    if (self == NULL || self->conn_fd < 0 || self->base.status.state != CIOT_SOCKET_STATE_CONNECTED)
+    {
+        return 0;
+    }
+
+    fd_set readfds;
+    FD_ZERO(&readfds);
+    FD_SET(self->conn_fd, &readfds);
+    struct timeval tv = {0, 0};
+
+    int rc = select(self->conn_fd + 1, &readfds, NULL, NULL, &tv);
+    if (rc < 0)
+    {
+        CIOT_LOGW(TAG, "select() failed: errno %d", errno);
+        return 0;
+    }
+
+    return (rc > 0 && FD_ISSET(self->conn_fd, &readfds)) ? 1 : 0;
+}
+
 static void ciot_socket_apply_timeout(int fd, int32_t timeout_ms)
 {
     struct timeval tv = {
