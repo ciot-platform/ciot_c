@@ -49,14 +49,38 @@ ciot_mbus_server_t ciot_mbus_server_new(void *handle, ciot_mbus_data_t *data, ci
     ciot_mbus_server_init(self);
     self->base.data = *data;
     self->base.conn = conn;
+    self->base.rtu_conn = conn;
     return self;
+}
+
+ciot_err_t ciot_mbus_server_set_tcp_conn(ciot_mbus_server_t self, ciot_iface_t *tcp_conn)
+{
+    CIOT_ERR_NULL_CHECK(self);
+    CIOT_ERR_NULL_CHECK(tcp_conn);
+    self->base.tcp_conn = tcp_conn;
+    return CIOT_ERR_OK;
 }
 
 ciot_err_t ciot_mbus_server_start(ciot_mbus_server_t self, ciot_mbus_server_cfg_t *cfg)
 {
     CIOT_ERR_NULL_CHECK(self);
     CIOT_ERR_NULL_CHECK(cfg);
-    
+
+    /*
+     * Reusing the same iface for both transports (e.g. hg_tcp, where RTU and TCP are
+     * mutually exclusive modes of a single MBUS_SERVER iface) means switching
+     * which_type at runtime must tear down whichever transport was active before
+     * bringing up the new one - otherwise both could end up started at once, or the
+     * old one's resources (UART peripheral, listening socket) would leak.
+     * Same-transport reconfigures (e.g. a new baud rate or a new TCP port) keep the
+     * existing restart-in-place behavior below.
+     */
+    if (self->base.status.state == CIOT_MBUS_SERVER_STATE_STARTED &&
+        self->base.cfg.which_type != cfg->which_type)
+    {
+        ciot_mbus_server_stop(self);
+    }
+
     self->base.cfg = *cfg;
 
     nmbs_platform_conf platform_conf;
@@ -80,12 +104,16 @@ ciot_err_t ciot_mbus_server_start(ciot_mbus_server_t self, ciot_mbus_server_cfg_
     switch (cfg->which_type)
     {
     case CIOT_MBUS_SERVER_CFG_RTU_TAG:
+        self->base.conn = self->base.rtu_conn;
+        CIOT_ERR_NULL_CHECK(self->base.conn);
         platform_conf.transport = NMBS_TRANSPORT_RTU;
         if(cfg->rtu.has_uart) {
             CIOT_ERR_RETURN(ciot_uart_start((ciot_uart_t)self->base.conn, &cfg->rtu.uart));
         }
         break;
     case CIOT_MBUS_SERVER_CFG_TCP_TAG:
+        self->base.conn = self->base.tcp_conn;
+        CIOT_ERR_NULL_CHECK(self->base.conn);
         platform_conf.transport = NMBS_TRANSPORT_TCP;
         if (cfg->tcp.max_connections > 1)
         {
@@ -100,6 +128,7 @@ ciot_err_t ciot_mbus_server_start(ciot_mbus_server_t self, ciot_mbus_server_cfg_
     err = nmbs_server_create(&self->nmbs, cfg->rtu.server_id, &platform_conf, &callbacks);
     if (err == NMBS_ERROR_NONE)
     {
+        self->nmbs_initialized = true;
         self->base.status.state = CIOT_MBUS_SERVER_STATE_STARTED;
         ciot_iface_send_event_type(&self->base.iface, CIOT_EVENT_TYPE_STARTED);
     }
