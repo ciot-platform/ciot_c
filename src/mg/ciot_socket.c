@@ -258,6 +258,24 @@ static uint64_t ciot_socket_deadline(ciot_socket_t self)
     return mg_millis() + (uint64_t)timeout_ms;
 }
 
+/**
+ * Non-blocking peek at how many bytes are already buffered for this connection,
+ * mirroring ciot_uart_available(). Callers (ciot_mbus_server_task()) use this to
+ * avoid entering ciot_socket_read_bytes()'s polling loop - and its timeout - when
+ * there is nothing to read yet. Mongoose already accumulates arrived bytes into
+ * c->recv asynchronously via the shared mg_mgr_poll(), so this is a plain field read,
+ * no extra polling needed.
+ */
+size_t ciot_socket_available(ciot_socket_t self)
+{
+    if (self == NULL || self->conn == NULL || self->base.status.state != CIOT_SOCKET_STATE_CONNECTED)
+    {
+        return 0;
+    }
+
+    return self->conn->recv.len;
+}
+
 static void ciot_socket_event_handler(struct mg_connection *c, int ev, void *ev_data)
 {
     ciot_socket_t self = (ciot_socket_t)c->fn_data;
