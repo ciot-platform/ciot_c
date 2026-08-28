@@ -58,6 +58,11 @@ ciot_err_t ciot_socket_task(ciot_socket_t self);
 ciot_err_t ciot_socket_get_status(ciot_socket_t self, ciot_socket_status_t *status);
 ciot_err_t ciot_socket_send_bytes(ciot_socket_t self, uint8_t *data, int size);
 ciot_err_t ciot_socket_read_bytes(ciot_socket_t self, uint8_t *data, int size);
+// Non-blocking "is there something worth reading right now" check (data pending, or
+// the peer closed the connection). Treat the result as boolean (0 vs > 0), not an
+// exact byte count - backends differ (e.g. the Mongoose one does return an exact
+// count, the ESP32/lwIP one doesn't).
+size_t ciot_socket_available(ciot_socket_t self);
 
 #ifdef __cplusplus
 }
