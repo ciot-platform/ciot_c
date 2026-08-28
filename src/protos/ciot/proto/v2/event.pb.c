@@ -6,9 +6,6 @@
 #error Regenerate this file with the current version of nanopb generator.
 #endif
 
-PB_BIND(CIOT_EVENT_INTERNAL, ciot_event_internal_t, AUTO)
-
-
 PB_BIND(CIOT_EVENT, ciot_event_t, 2)
 
 
