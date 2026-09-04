@@ -66,6 +66,8 @@ ciot_err_t ciot_mbus_server_start(ciot_mbus_server_t self, ciot_mbus_server_cfg_
     CIOT_ERR_NULL_CHECK(self);
     CIOT_ERR_NULL_CHECK(cfg);
 
+    self->base.cfg = *cfg;
+
     /*
      * Reusing the same iface for both transports (e.g. hg_tcp, where RTU and TCP are
      * mutually exclusive modes of a single MBUS_SERVER iface) means switching
@@ -80,8 +82,6 @@ ciot_err_t ciot_mbus_server_start(ciot_mbus_server_t self, ciot_mbus_server_cfg_
     {
         ciot_mbus_server_stop(self);
     }
-
-    self->base.cfg = *cfg;
 
     nmbs_platform_conf platform_conf;
     nmbs_platform_conf_create(&platform_conf);
