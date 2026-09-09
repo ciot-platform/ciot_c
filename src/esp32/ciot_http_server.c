@@ -44,6 +44,8 @@ static esp_err_t ciot_http_server_api_handler(httpd_req_t *req);
 static esp_err_t ciot_http_server_file_handler(httpd_req_t *req);
 static const char *get_mime_type(const char *filename);
 static esp_err_t ciot_http_server_custom_api_handler(httpd_req_t *req);
+static esp_err_t ciot_http_server_upload_handler(httpd_req_t *req);
+static httpd_method_t http_method_from_str(const char *method);
 
 ciot_http_server_t ciot_http_server_new(void *handle)
 {
@@ -64,7 +66,7 @@ ciot_err_t ciot_http_server_start(ciot_http_server_t self, ciot_http_server_cfg_
 
     httpd_config_t httpd_config = HTTPD_DEFAULT_CONFIG();
     httpd_config.server_port = cfg->port;
-    httpd_config.max_uri_handlers = 3;
+    httpd_config.max_uri_handlers = 4;
     httpd_config.uri_match_fn = httpd_uri_match_wildcard;
     httpd_config.stack_size = 8192;
 
@@ -127,6 +129,23 @@ static ciot_err_t ciot_https_register_routes(ciot_http_server_t self)
             .user_ctx = self,
         };
         esp_err_t err = httpd_register_uri_handler(self->handle, &post_uri);
+        if (err)
+        {
+            CIOT_LOGE(TAG, "Register uri error: %s", esp_err_to_name(err));
+            return CIOT_ERR_FAIL;
+        }
+    }
+
+    if (self->base.upload_api.enabled && self->base.upload_api.handler != NULL)
+    {
+        CIOT_LOGI(TAG, "Registering route: %s", self->base.upload_api.uri);
+        httpd_uri_t upload_uri = {
+            .uri = self->base.upload_api.uri,
+            .handler = ciot_http_server_upload_handler,
+            .method = http_method_from_str(self->base.upload_api.method),
+            .user_ctx = self,
+        };
+        esp_err_t err = httpd_register_uri_handler(self->handle, &upload_uri);
         if (err)
         {
             CIOT_LOGE(TAG, "Register uri error: %s", esp_err_to_name(err));
@@ -401,6 +420,87 @@ static esp_err_t ciot_http_server_custom_api_handler(httpd_req_t *req)
     }
 
     return CIOT_ERR_OK;
+}
+
+static httpd_method_t http_method_from_str(const char *method)
+{
+    if (method == NULL)
+    {
+        return HTTP_POST;
+    }
+    if (strcmp(method, "GET") == 0) return HTTP_GET;
+    if (strcmp(method, "PUT") == 0) return HTTP_PUT;
+    if (strcmp(method, "DELETE") == 0) return HTTP_DELETE;
+    if (strcmp(method, "PATCH") == 0) return HTTP_PATCH;
+    if (strcmp(method, "HEAD") == 0) return HTTP_HEAD;
+    if (strcmp(method, "OPTIONS") == 0) return HTTP_OPTIONS;
+    return HTTP_POST;
+}
+
+static esp_err_t ciot_http_server_upload_handler(httpd_req_t *req)
+{
+    ciot_http_server_t self = (ciot_http_server_t)req->user_ctx;
+
+    if (self == NULL)
+    {
+        CIOT_LOGE(TAG, "Null context");
+        return ESP_FAIL;
+    }
+
+    ciot_http_server_upload_api_t *upload_api = &self->base.upload_api;
+
+    size_t remaining = req->content_len;
+    if (remaining == 0 || remaining > upload_api->max_size)
+    {
+        CIOT_LOGW(TAG, "Upload rejected: content_len %d, max %d", (int)remaining, (int)upload_api->max_size);
+        httpd_resp_send_err(req, HTTPD_400_BAD_REQUEST, "Invalid content length");
+        return ESP_OK;
+    }
+
+    uint8_t *buf = malloc(remaining);
+    if (buf == NULL)
+    {
+        CIOT_LOGE(TAG, "Failed to allocate %d bytes for upload", (int)remaining);
+        httpd_resp_send_500(req);
+        return ESP_OK;
+    }
+
+    size_t received = 0;
+    while (received < remaining)
+    {
+        int ret = httpd_req_recv(req, (char *)(buf + received), remaining - received);
+        if (ret <= 0)
+        {
+            CIOT_LOGE(TAG, "Failed to read upload body: %d", ret);
+            free(buf);
+            if (ret == HTTPD_SOCK_ERR_TIMEOUT)
+            {
+                httpd_resp_send_408(req);
+            }
+            else
+            {
+                httpd_resp_send_500(req);
+            }
+            return ESP_OK;
+        }
+        received += ret;
+    }
+
+    ciot_err_t err = upload_api->handler(upload_api->args, buf, received);
+    free(buf);
+
+    if (err == CIOT_ERR_OK)
+    {
+        httpd_resp_set_status(req, HTTPD_200);
+        httpd_resp_send(req, NULL, 0);
+    }
+    else
+    {
+        CIOT_LOGW(TAG, "Upload handler rejected payload: %s", ciot_err_to_message(err));
+        httpd_resp_send_err(req, HTTPD_400_BAD_REQUEST, ciot_err_to_message(err));
+    }
+
+    return ESP_OK;
 }
 
 #endif //! CIOT_CONFIG_FEATURE_HTTP_SERVER == 1
