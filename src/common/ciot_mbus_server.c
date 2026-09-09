@@ -22,6 +22,7 @@ struct ciot_mbus_server
 {
     ciot_mbus_server_base_t base;
     nmbs_t nmbs;
+    bool nmbs_initialized;
 };
 
 static const char *TAG = "ciot_mbus_server";
@@ -54,7 +55,7 @@ ciot_err_t ciot_mbus_server_start(ciot_mbus_server_t self, ciot_mbus_server_cfg_
 {
     CIOT_ERR_NULL_CHECK(self);
     CIOT_ERR_NULL_CHECK(cfg);
-
+    
     self->base.cfg = *cfg;
 
     nmbs_platform_conf platform_conf;
@@ -71,13 +72,16 @@ ciot_err_t ciot_mbus_server_start(ciot_mbus_server_t self, ciot_mbus_server_cfg_
     callbacks.read_holding_registers = ciot_mbus_server_read_holding_registers;
     callbacks.write_multiple_registers = ciot_mbus_server_write_multiple_registers;
 
+    nmbs_set_read_timeout(&self->nmbs, CIOT_MBUS_SERVER_READ_TIMEOUT_MS);
+    nmbs_set_byte_timeout(&self->nmbs, CIOT_MBUS_SERVER_BYTE_TIMEOUT_MS);
+
     nmbs_error err = 0;
     switch (cfg->which_type)
     {
     case CIOT_MBUS_SERVER_CFG_RTU_TAG:
         platform_conf.transport = NMBS_TRANSPORT_RTU;
         if(cfg->rtu.has_uart) {
-            ciot_uart_start((ciot_uart_t)self->base.conn, &cfg->rtu.uart);
+            CIOT_ERR_RETURN(ciot_uart_start((ciot_uart_t)self->base.conn, &cfg->rtu.uart));
         }
         break;
     case CIOT_MBUS_SERVER_CFG_TCP_TAG:
@@ -104,8 +108,20 @@ ciot_err_t ciot_mbus_server_start(ciot_mbus_server_t self, ciot_mbus_server_cfg_
 
 ciot_err_t ciot_mbus_server_stop(ciot_mbus_server_t self)
 {
-    CIOT_ERR_NULL_CHECK(self);
-    return CIOT_ERR_NOT_IMPLEMENTED;
+     CIOT_ERR_NULL_CHECK(self);
+     ciot_err_t uart_err = CIOT_ERR_OK;
+     if (self->nmbs_initialized &&
+         self->base.cfg.which_type == CIOT_MBUS_SERVER_CFG_RTU_TAG &&
+         self->base.cfg.rtu.has_uart)
+     {
+         uart_err = ciot_uart_stop((ciot_uart_t)self->base.conn);
+     }
+     memset(&self->nmbs, 0, sizeof(self->nmbs));
+     self->nmbs_initialized = false;
+     self->base.status.state = CIOT_MBUS_SERVER_STATE_STOPPED;
+     self->base.status.error = uart_err;
+     ciot_iface_send_event_type(&self->base.iface, CIOT_EVENT_TYPE_STOPPED);
+     return uart_err;
 }
 
 ciot_err_t ciot_mbus_server_task(ciot_mbus_server_t self)

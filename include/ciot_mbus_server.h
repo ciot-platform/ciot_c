@@ -18,6 +18,14 @@
 #include "ciot_mbus.h"
 #include "nanomodbus.h"
 
+#ifndef CIOT_MBUS_SERVER_READ_TIMEOUT_MS
+#define CIOT_MBUS_SERVER_READ_TIMEOUT_MS 250
+#endif
+
+#ifndef CIOT_MBUS_SERVER_BYTE_TIMEOUT_MS
+#define CIOT_MBUS_SERVER_BYTE_TIMEOUT_MS 250
+#endif
+
 typedef struct ciot_mbus_server *ciot_mbus_server_t;
 
 typedef struct ciot_mbus_server_base
