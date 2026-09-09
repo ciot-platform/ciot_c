@@ -68,21 +68,6 @@ ciot_err_t ciot_mbus_server_start(ciot_mbus_server_t self, ciot_mbus_server_cfg_
 
     self->base.cfg = *cfg;
 
-    /*
-     * Reusing the same iface for both transports (e.g. hg_tcp, where RTU and TCP are
-     * mutually exclusive modes of a single MBUS_SERVER iface) means switching
-     * which_type at runtime must tear down whichever transport was active before
-     * bringing up the new one - otherwise both could end up started at once, or the
-     * old one's resources (UART peripheral, listening socket) would leak.
-     * Same-transport reconfigures (e.g. a new baud rate or a new TCP port) keep the
-     * existing restart-in-place behavior below.
-     */
-    if (self->base.status.state == CIOT_MBUS_SERVER_STATE_STARTED &&
-        self->base.cfg.which_type != cfg->which_type)
-    {
-        ciot_mbus_server_stop(self);
-    }
-
     nmbs_platform_conf platform_conf;
     nmbs_platform_conf_create(&platform_conf);
     platform_conf.read = ciot_mbus_server_read;
