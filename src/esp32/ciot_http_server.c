@@ -424,10 +424,16 @@ static esp_err_t ciot_http_server_custom_api_handler(httpd_req_t *req)
 
 static httpd_method_t http_method_from_str(const char *method)
 {
-    if (method != NULL && strcmp(method, "PUT") == 0)
+    if (method == NULL)
     {
-        return HTTP_PUT;
+        return HTTP_POST;
     }
+    if (strcmp(method, "GET") == 0) return HTTP_GET;
+    if (strcmp(method, "PUT") == 0) return HTTP_PUT;
+    if (strcmp(method, "DELETE") == 0) return HTTP_DELETE;
+    if (strcmp(method, "PATCH") == 0) return HTTP_PATCH;
+    if (strcmp(method, "HEAD") == 0) return HTTP_HEAD;
+    if (strcmp(method, "OPTIONS") == 0) return HTTP_OPTIONS;
     return HTTP_POST;
 }
 
@@ -470,6 +476,10 @@ static esp_err_t ciot_http_server_upload_handler(httpd_req_t *req)
             if (ret == HTTPD_SOCK_ERR_TIMEOUT)
             {
                 httpd_resp_send_408(req);
+            }
+            else
+            {
+                httpd_resp_send_500(req);
             }
             return ESP_OK;
         }
