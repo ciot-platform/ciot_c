@@ -60,6 +60,13 @@ ciot_err_t ciot_http_server_set_upload_api(ciot_http_server_t self, ciot_http_se
 {
     CIOT_ERR_NULL_CHECK(self);
     CIOT_ERR_NULL_CHECK(upload_api);
+    if (upload_api->enabled)
+    {
+        CIOT_ERR_NULL_CHECK(upload_api->uri);
+        CIOT_ERR_NULL_CHECK(upload_api->method);
+        CIOT_ERR_NULL_CHECK(upload_api->handler);
+        CIOT_ERR_SIZE_CHECK(upload_api->max_size, 0);
+    }
     ciot_http_server_base_t *base = (ciot_http_server_base_t *)self;
     base->upload_api = *upload_api;
     return CIOT_ERR_OK;
