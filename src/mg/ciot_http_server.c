@@ -87,7 +87,8 @@ ciot_err_t ciot_http_server_send_bytes(ciot_http_server_t self, uint8_t *data, i
 
 static bool check_method(struct mg_http_message *hm, const char *method)
 {
-    return strncmp(hm->method.buf, method, hm->method.len) == 0;
+    size_t len = strlen(method);
+    return hm->method.len == len && strncmp(hm->method.buf, method, len) == 0;
 }
 
 static void ciot_http_server_event_handler(struct mg_connection *c, int ev, void *ev_data)
