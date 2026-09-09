@@ -140,6 +140,27 @@ static void ciot_http_server_event_handler(struct mg_connection *c, int ev, void
         {
             self->base.custom_api.handler(self, hm->uri.buf, hm->uri.len, hm->method.buf, (uint8_t *)hm->body.buf, hm->body.len, self->base.custom_api.args);
         }
+        else if (self->base.upload_api.enabled && mg_match(hm->uri, mg_str(self->base.upload_api.uri), NULL) && check_method(hm, self->base.upload_api.method))
+        {
+            if (hm->body.len == 0 || hm->body.len > self->base.upload_api.max_size)
+            {
+                CIOT_LOGW(TAG, "Upload rejected: body.len %d, max %d", (int)hm->body.len, (int)self->base.upload_api.max_size);
+                mg_printf(self->conn_tx, "HTTP/1.0 400 Bad Request\r\nContent-Length: 0\r\n\r\n");
+            }
+            else
+            {
+                ciot_err_t err = self->base.upload_api.handler(self->base.upload_api.args, (uint8_t *)hm->body.buf, hm->body.len);
+                if (err == CIOT_ERR_OK)
+                {
+                    mg_printf(self->conn_tx, "HTTP/1.0 200 OK\r\nContent-Length: 0\r\n\r\n");
+                }
+                else
+                {
+                    const char *msg = ciot_err_to_message(err);
+                    mg_printf(self->conn_tx, "HTTP/1.0 400 Bad Request\r\nContent-Length: %d\r\n\r\n%s", (int)strlen(msg), msg);
+                }
+            }
+        }
         else if (mg_match(hm->uri, mg_str("/"), NULL) && check_method(hm, "GET") && base->homepage.size > 0)
         {
             mg_printf(self->conn_tx,
