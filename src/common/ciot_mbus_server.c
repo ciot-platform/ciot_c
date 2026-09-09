@@ -16,6 +16,7 @@
 #include "ciot_mbus_server.h"
 #include "ciot_timer.h"
 #include "ciot_uart.h"
+#include "ciot_socket.h"
 #include <stdlib.h>
 
 struct ciot_mbus_server
@@ -48,14 +49,23 @@ ciot_mbus_server_t ciot_mbus_server_new(void *handle, ciot_mbus_data_t *data, ci
     ciot_mbus_server_init(self);
     self->base.data = *data;
     self->base.conn = conn;
+    self->base.rtu_conn = conn;
     return self;
+}
+
+ciot_err_t ciot_mbus_server_set_tcp_conn(ciot_mbus_server_t self, ciot_iface_t *tcp_conn)
+{
+    CIOT_ERR_NULL_CHECK(self);
+    CIOT_ERR_NULL_CHECK(tcp_conn);
+    self->base.tcp_conn = tcp_conn;
+    return CIOT_ERR_OK;
 }
 
 ciot_err_t ciot_mbus_server_start(ciot_mbus_server_t self, ciot_mbus_server_cfg_t *cfg)
 {
     CIOT_ERR_NULL_CHECK(self);
     CIOT_ERR_NULL_CHECK(cfg);
-    
+
     self->base.cfg = *cfg;
 
     nmbs_platform_conf platform_conf;
@@ -79,13 +89,22 @@ ciot_err_t ciot_mbus_server_start(ciot_mbus_server_t self, ciot_mbus_server_cfg_
     switch (cfg->which_type)
     {
     case CIOT_MBUS_SERVER_CFG_RTU_TAG:
+        self->base.conn = self->base.rtu_conn;
+        CIOT_ERR_NULL_CHECK(self->base.conn);
         platform_conf.transport = NMBS_TRANSPORT_RTU;
         if(cfg->rtu.has_uart) {
             CIOT_ERR_RETURN(ciot_uart_start((ciot_uart_t)self->base.conn, &cfg->rtu.uart));
         }
         break;
     case CIOT_MBUS_SERVER_CFG_TCP_TAG:
+        self->base.conn = self->base.tcp_conn;
+        CIOT_ERR_NULL_CHECK(self->base.conn);
         platform_conf.transport = NMBS_TRANSPORT_TCP;
+        if (cfg->tcp.max_connections > 1)
+        {
+            CIOT_LOGW(TAG, "max_connections=%lu not supported yet, serving 1 connection at a time", (long unsigned int)cfg->tcp.max_connections);
+        }
+        CIOT_ERR_RETURN(ciot_socket_start_server((ciot_socket_t)self->base.conn, cfg->tcp.port, CIOT_MBUS_SERVER_BYTE_TIMEOUT_MS));
         break;
     default:
         return CIOT_ERR_INVALID_ARG;
@@ -94,6 +113,7 @@ ciot_err_t ciot_mbus_server_start(ciot_mbus_server_t self, ciot_mbus_server_cfg_
     err = nmbs_server_create(&self->nmbs, cfg->rtu.server_id, &platform_conf, &callbacks);
     if (err == NMBS_ERROR_NONE)
     {
+        self->nmbs_initialized = true;
         self->base.status.state = CIOT_MBUS_SERVER_STATE_STARTED;
         ciot_iface_send_event_type(&self->base.iface, CIOT_EVENT_TYPE_STARTED);
     }
@@ -109,27 +129,46 @@ ciot_err_t ciot_mbus_server_start(ciot_mbus_server_t self, ciot_mbus_server_cfg_
 ciot_err_t ciot_mbus_server_stop(ciot_mbus_server_t self)
 {
      CIOT_ERR_NULL_CHECK(self);
-     ciot_err_t uart_err = CIOT_ERR_OK;
+     ciot_err_t conn_err = CIOT_ERR_OK;
      if (self->nmbs_initialized &&
          self->base.cfg.which_type == CIOT_MBUS_SERVER_CFG_RTU_TAG &&
          self->base.cfg.rtu.has_uart)
      {
-         uart_err = ciot_uart_stop((ciot_uart_t)self->base.conn);
+         conn_err = ciot_uart_stop((ciot_uart_t)self->base.conn);
+     }
+     else if (self->base.cfg.which_type == CIOT_MBUS_SERVER_CFG_TCP_TAG)
+     {
+         conn_err = ciot_socket_stop((ciot_socket_t)self->base.conn);
      }
      memset(&self->nmbs, 0, sizeof(self->nmbs));
      self->nmbs_initialized = false;
      self->base.status.state = CIOT_MBUS_SERVER_STATE_STOPPED;
-     self->base.status.error = uart_err;
+     self->base.status.error = conn_err;
      ciot_iface_send_event_type(&self->base.iface, CIOT_EVENT_TYPE_STOPPED);
-     return uart_err;
+     return conn_err;
 }
 
 ciot_err_t ciot_mbus_server_task(ciot_mbus_server_t self)
 {
     CIOT_ERR_NULL_CHECK(self);
+    if (self->base.cfg.which_type == CIOT_MBUS_SERVER_CFG_TCP_TAG)
+    {
+        ciot_socket_task((ciot_socket_t)self->base.conn);
+    }
     if (self->base.status.state == CIOT_MBUS_SERVER_STATE_STARTED && self->base.conn->state == CIOT_IFACE_STATE_STARTED)
     {
         if(self->base.cfg.which_type == CIOT_MBUS_SERVER_CFG_RTU_TAG && ciot_uart_available((ciot_uart_t)self->base.conn) == 0) {
+            return CIOT_ERR_OK;
+        }
+        /*
+         * Same reasoning as the RTU guard above: nmbs_server_poll() blocks (via the
+         * platform read callback's byte/read timeout) waiting for the first byte of a
+         * new request when nothing is pending. Without this check, every task() tick
+         * on an idle-but-connected TCP client would stall the caller's loop for up to
+         * CIOT_MBUS_SERVER_READ_TIMEOUT_MS - e.g. starving other work like a BLE
+         * advertisement queue drained from the same loop.
+         */
+        if(self->base.cfg.which_type == CIOT_MBUS_SERVER_CFG_TCP_TAG && ciot_socket_available((ciot_socket_t)self->base.conn) == 0) {
             return CIOT_ERR_OK;
         }
         nmbs_error err = nmbs_server_poll(&self->nmbs);

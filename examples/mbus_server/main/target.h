@@ -59,4 +59,41 @@
         },                                                  \
     }
 
+/**
+ * @brief Modbus TCP server configuration. Supported on ESP32 (over WiFi, see
+ * TARGET_WIFI_STA_CFG below) and on any Mongoose-backed target (Win32/Linux,
+ * or a future Mongoose-capable MCU port).
+ */
+#define TARGET_MBUS_SERVER_TCP_CFG                          \
+    {                                                       \
+        .which_type = CIOT_MSG_DATA_MBUS_SERVER_TAG,        \
+        .mbus_server = {                                    \
+            .which_type = CIOT_MBUS_SERVER_DATA_CONFIG_TAG, \
+            .config = {                                     \
+                .which_type = CIOT_MBUS_SERVER_CFG_TCP_TAG, \
+                .tcp = {                                    \
+                    .port = TARGET_MBUS_SERVER_TCP_PORT,    \
+                    .max_connections = 1,                   \
+                },                                          \
+            },                                              \
+        },                                                  \
+    }
+
+#ifdef TARGET_ESP32
+
+#define TARGET_WIFI_STA_CFG                          \
+    {                                                 \
+        .which_type = CIOT_MSG_DATA_WIFI_TAG,        \
+        .wifi = {                                    \
+            .which_type = CIOT_WIFI_DATA_CONFIG_TAG, \
+            .config = {                              \
+                .type = CIOT_WIFI_TYPE_STA,           \
+                .ssid = TARGET_WIFI_STA_SSID,         \
+                .password = TARGET_WIFI_STA_PASSWORD, \
+            },                                        \
+        },                                            \
+    }
+
+#endif //!TARGET_ESP32
+
 #endif //!__TARGET__H__

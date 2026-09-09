@@ -215,7 +215,17 @@ static esp_err_t ciot_http_server_file_handler(httpd_req_t *req)
     httpd_resp_set_hdr(req, "Access-Control-Allow-Origin", CIOT_CONFIG_HTTP_SERVER_ALLOW_ORIGIN);
 #endif
 
-    if (((strcmp(req->uri, "/") == 0) || (strcmp(req->uri, "/index.html") == 0)) && self->base.homepage.size > 0)
+    /* req->uri includes the query string (e.g. "/?username=wesley"), unlike
+     * the mongoose backend's hm->uri - strip it before any path matching. */
+    char uri_path[36];
+    const char *query = strchr(req->uri, '?');
+    size_t uri_len = query ? (size_t)(query - req->uri) : strlen(req->uri);
+    if (uri_len >= sizeof(uri_path))
+        uri_len = sizeof(uri_path) - 1;
+    memcpy(uri_path, req->uri, uri_len);
+    uri_path[uri_len] = '\0';
+
+    if (((strcmp(uri_path, "/") == 0) || (strcmp(uri_path, "/index.html") == 0)) && self->base.homepage.size > 0)
     {
         if (self->base.homepage.gz)
         {
@@ -231,10 +241,10 @@ static esp_err_t ciot_http_server_file_handler(httpd_req_t *req)
     }
 
     char filepath[36];
-    snprintf(filepath, sizeof(filepath), "/fs%.*s", (int)(sizeof(filepath) - 4), req->uri);
+    snprintf(filepath, sizeof(filepath), "/fs%.*s", (int)(sizeof(filepath) - 4), uri_path);
 
     // Verificar se a URI é "/", servir "index.html"
-    if (strcmp(req->uri, "/") == 0)
+    if (strcmp(uri_path, "/") == 0)
     {
         CIOT_LOGI(TAG, "Serving fs html");
         strcpy(filepath, "/fs/index.html");
