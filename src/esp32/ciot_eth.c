@@ -116,6 +116,7 @@ static esp_err_t ciot_eth_hw_init(ciot_eth_t self)
     emac_conf.smi_gpio.mdc_num = CIOT_CONFIG_ETH_GPIO_MDC;
     emac_conf.smi_gpio.mdio_num = CIOT_CONFIG_ETH_GPIO_MDIO;
 
+    esp_eth_netif_glue_handle_t glue = NULL;
     esp_eth_mac_t *mac = esp_eth_mac_new_esp32(&emac_conf, &mac_conf);
     esp_eth_phy_t *phy = CIOT_CONFIG_ETH_PHY_NEW(phy_conf);
     esp_eth_config_t eth_conf = ETH_DEFAULT_CONFIG(mac, phy);
@@ -123,18 +124,29 @@ static esp_err_t ciot_eth_hw_init(ciot_eth_t self)
     if(mac == NULL || phy == NULL || esp_eth_driver_install(&eth_conf, &self->eth) != ESP_OK)
     {
         CIOT_LOGE(TAG, "Failed to install eth driver");
-        if(mac != NULL) mac->del(mac);
-        if(phy != NULL) phy->del(phy);
-        self->eth = NULL;
-        esp_event_handler_unregister(ETH_EVENT, ESP_EVENT_ANY_ID, ciot_eth_event_handler);
-        return CIOT_ERR_FAIL;
+        goto fail;
     }
 
-    CIOT_ERR_RETURN(esp_netif_attach((esp_netif_t*)ciot_tcp_get_netif(self->base.tcp), esp_eth_new_netif_glue(self->eth)));
+    glue = esp_eth_new_netif_glue(self->eth);
+    if(glue == NULL || esp_netif_attach((esp_netif_t*)ciot_tcp_get_netif(self->base.tcp), glue) != ESP_OK)
+    {
+        CIOT_LOGE(TAG, "Failed to attach eth netif");
+        goto fail;
+    }
 
     self->hw_init = true;
 
     return CIOT_ERR_OK;
+
+fail:
+    // The glue holds a driver reference, so it must be deleted before uninstalling the driver
+    if(glue != NULL) esp_eth_del_netif_glue(glue);
+    if(self->eth != NULL) esp_eth_driver_uninstall(self->eth);
+    if(mac != NULL) mac->del(mac);
+    if(phy != NULL) phy->del(phy);
+    self->eth = NULL;
+    esp_event_handler_unregister(ETH_EVENT, ESP_EVENT_ANY_ID, ciot_eth_event_handler);
+    return CIOT_ERR_FAIL;
 }
 
 static void ciot_eth_event_handler(void *handler_args, esp_event_base_t event_base, int32_t event_id, void *event_data)
