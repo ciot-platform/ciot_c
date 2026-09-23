@@ -37,6 +37,7 @@ struct ciot_eth
     ciot_eth_base_t base;
     esp_eth_handle_t eth;
     bool hw_init;
+    bool started;
 };
 
 static void ciot_eth_event_handler(void *handler_args, esp_event_base_t event_base, int32_t event_id, void *event_data);
@@ -58,49 +59,50 @@ ciot_err_t ciot_eth_start(ciot_eth_t self, ciot_tcp_cfg_t *cfg)
     CIOT_ERR_NULL_CHECK(self);
     CIOT_ERR_NULL_CHECK(cfg);
 
-    ciot_tcp_base_t *tcp = (ciot_tcp_base_t*)self->base.tcp;
-
     if(cfg->disabled)
     {
         return ciot_eth_stop(self);
     }
 
-    if(!self->hw_init)
-    {
-        ESP_ERROR_CHECK(ciot_eth_hw_init(self));
-    }
+    CIOT_ERR_RETURN(ciot_eth_hw_init(self));
 
-    if(tcp->status->state == CIOT_TCP_STATE_STARTED)
+    // The netif is reused: stop the driver, apply the new ip config and start it again
+    if(self->started)
     {
         CIOT_ERR_RETURN(esp_eth_stop(self->eth));
+        self->started = false;
     }
 
     CIOT_ERR_RETURN(ciot_tcp_set_cfg(self->base.tcp, cfg));
     CIOT_ERR_RETURN(ciot_tcp_start(self->base.tcp));
     CIOT_ERR_RETURN(esp_eth_start(self->eth));
+    self->started = true;
 
-    return CIOT_ERR_NOT_IMPLEMENTED;
+    return CIOT_ERR_OK;
 }
 
 ciot_err_t ciot_eth_stop(ciot_eth_t self)
 {
-    ciot_tcp_base_t *tcp = (ciot_tcp_base_t*)self->base.tcp;
-    if(tcp->status->state == CIOT_TCP_STATE_STOPPED)
+    CIOT_ERR_NULL_CHECK(self);
+    if(!self->started)
     {
         return ciot_iface_send_event_type(&self->base.iface, CIOT_EVENT_TYPE_STOPPED);
     }
-    if(tcp->status->state == CIOT_TCP_STATE_STARTED)
-    {
-        CIOT_ERR_RETURN(esp_eth_stop(self->eth));
-    }
+    CIOT_ERR_RETURN(esp_eth_stop(self->eth));
+    self->started = false;
     return CIOT_ERR_OK;
 }
 
 static esp_err_t ciot_eth_hw_init(ciot_eth_t self)
 {
+    if(self->hw_init)
+    {
+        return CIOT_ERR_OK;
+    }
+
     ciot_eth_base_t *base = &self->base;
 
-    ciot_tcp_init_netif(base->tcp);
+    CIOT_ERR_RETURN(ciot_tcp_init_netif(base->tcp));
 
     eth_mac_config_t mac_conf = ETH_MAC_DEFAULT_CONFIG();
     eth_phy_config_t phy_conf = ETH_PHY_DEFAULT_CONFIG();
@@ -118,8 +120,19 @@ static esp_err_t ciot_eth_hw_init(ciot_eth_t self)
     esp_eth_phy_t *phy = CIOT_CONFIG_ETH_PHY_NEW(phy_conf);
     esp_eth_config_t eth_conf = ETH_DEFAULT_CONFIG(mac, phy);
 
-    CIOT_ERR_RETURN(esp_eth_driver_install(&eth_conf, &self->eth));
+    if(mac == NULL || phy == NULL || esp_eth_driver_install(&eth_conf, &self->eth) != ESP_OK)
+    {
+        CIOT_LOGE(TAG, "Failed to install eth driver");
+        if(mac != NULL) mac->del(mac);
+        if(phy != NULL) phy->del(phy);
+        self->eth = NULL;
+        esp_event_handler_unregister(ETH_EVENT, ESP_EVENT_ANY_ID, ciot_eth_event_handler);
+        return CIOT_ERR_FAIL;
+    }
+
     CIOT_ERR_RETURN(esp_netif_attach((esp_netif_t*)ciot_tcp_get_netif(self->base.tcp), esp_eth_new_netif_glue(self->eth)));
+
+    self->hw_init = true;
 
     return CIOT_ERR_OK;
 }
@@ -134,16 +147,19 @@ static void ciot_eth_event_handler(void *handler_args, esp_event_base_t event_ba
     {
     case ETHERNET_EVENT_START:
         ESP_LOGI(TAG, "ETHERNET_EVENT_START");
+        tcp->status->state = CIOT_TCP_STATE_STARTED;
         CIOT_ERR_PRINT(TAG, esp_read_mac(tcp->info->mac, ESP_MAC_ETH));
         break;
     case ETHERNET_EVENT_STOP:
         ESP_LOGI(TAG, "ETHERNET_EVENT_STOP");
+        tcp->status->state = CIOT_TCP_STATE_STOPPED;
         break;
     case ETHERNET_EVENT_CONNECTED:
         ESP_LOGI(TAG, "ETHERNET_EVENT_CONNECTED");
         break;
     case ETHERNET_EVENT_DISCONNECTED:
         ESP_LOGI(TAG, "ETHERNET_EVENT_DISCONNECTED");
+        tcp->status->state = CIOT_TCP_STATE_DISCONNECTED;
         break;
     default:
         break;
