@@ -37,3 +37,13 @@
 **Mongoose backend implementation:**
 
 * Added logic to the event handler to process upload endpoints, enforcing the maximum size and invoking the registered handler, returning HTTP 200 or 400 as appropriate.
+
+**Ethernet interface improvements:**
+
+* Added a `started` boolean flag to the `ciot_eth` struct to explicitly track the Ethernet interface's runtime state, improving clarity and reliability in start/stop logic.
+* Refactored the `ciot_eth_start` and `ciot_eth_stop` functions to use the new `started` flag, ensuring that the driver is only started or stopped when appropriate, and that hardware initialization is always checked and handled robustly.
+* Enhanced the hardware initialization (`ciot_eth_hw_init`) to check for previous initialization, handle errors during driver installation, and clean up resources on failure, preventing resource leaks and improving error reporting.
+
+**TCP state synchronization:**
+
+* Updated the Ethernet event handler to synchronize the TCP state (`tcp->status->state`) with Ethernet events, ensuring the reported state accurately reflects the interface's status.
