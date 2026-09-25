@@ -34,6 +34,9 @@ static const char *TAG = "ciot_uart";
 static void ciot_uart_process_error(ciot_uart_t self, DWORD error);
 static ciot_err_t ciot_uart_process_status(ciot_uart_t self, COMSTAT *status);
 static void ciot_uart_flush(ciot_uart_t self);
+static ciot_err_t ciot_uart_get_byte_size(ciot_uart_data_bits_t data_bits, BYTE *byte_size);
+static ciot_err_t ciot_uart_get_stop_bits(ciot_uart_stop_bits_t stop_bits, BYTE *win_stop_bits);
+static ciot_err_t ciot_uart_set_params(ciot_uart_t self, const ciot_uart_cfg_t *cfg);
 
 ciot_uart_t ciot_uart_new(void *handle)
 {
@@ -48,10 +51,24 @@ ciot_err_t ciot_uart_start(ciot_uart_t self, ciot_uart_cfg_t *cfg)
     CIOT_ERR_NULL_CHECK(cfg);
     ciot_uart_base_t *base = &self->base;
 
+    BYTE byte_size;
+    BYTE stop_bits;
+    CIOT_ERR_RETURN(ciot_uart_get_byte_size(cfg->data_bits, &byte_size));
+    CIOT_ERR_RETURN(ciot_uart_get_stop_bits(cfg->stop_bits, &stop_bits));
+
     if(base->status.state == CIOT_UART_STATE_STARTED &&
        base->cfg.num == cfg->num)
     {
-        CIOT_LOGW(TAG, "Port COM%d already started", base->cfg.num);
+        // Port already open: apply the new parameters to it.
+        ciot_err_t err = ciot_uart_set_params(self, cfg);
+        if(err != CIOT_ERR_OK)
+        {
+            ciot_uart_set_params(self, &base->cfg);
+            return err;
+        }
+        base->cfg = *cfg;
+        CIOT_LOGI(TAG, "Port COM%d reconfigured", base->cfg.num);
+        ciot_iface_send_event_type(&base->iface, CIOT_EVENT_TYPE_STARTED);
         return CIOT_ERR_OK;
     }
 
@@ -80,28 +97,8 @@ ciot_err_t ciot_uart_start(ciot_uart_t self, ciot_uart_cfg_t *cfg)
         return CIOT_ERR_FAIL;
     }
 
-    self->params.BaudRate = base->cfg.baud_rate;
-    self->params.ByteSize = 8;
-    self->params.StopBits = ONESTOPBIT;
-    self->params.Parity = base->cfg.parity;
-    self->params.fDtrControl = base->cfg.dtr;
-    if(!SetCommState(self->handle, &self->params))
+    if(ciot_uart_set_params(self, &base->cfg) != CIOT_ERR_OK)
     {
-        CIOT_LOGE(TAG, "SetCommState error at COM%d", base->cfg.num);
-        base->status.state = CIOT_UART_STATE_INTERNAL_ERROR;
-        base->status.error = CIOT_UART_ERROR_OPEN;
-        ciot_iface_send_event_type(&base->iface, CIOT_EVENT_TYPE_STOPPED);
-        return CIOT_ERR_FAIL;
-    }
-
-    self->timeouts.ReadIntervalTimeout = base->cfg.read_timeout;
-    self->timeouts.ReadTotalTimeoutConstant = base->cfg.read_timeout;
-    self->timeouts.ReadTotalTimeoutMultiplier = 1;
-    self->timeouts.WriteTotalTimeoutConstant = base->cfg.write_timeout;
-    self->timeouts.WriteTotalTimeoutMultiplier = 1;
-    if(!SetCommTimeouts(self->handle, &self->timeouts))
-    {
-        CIOT_LOGE(TAG, "SetCommTimeouts error at CO%d", base->cfg.num);
         base->status.state = CIOT_UART_STATE_INTERNAL_ERROR;
         base->status.error = CIOT_UART_ERROR_OPEN;
         ciot_iface_send_event_type(&base->iface, CIOT_EVENT_TYPE_STOPPED);
@@ -110,6 +107,39 @@ ciot_err_t ciot_uart_start(ciot_uart_t self, ciot_uart_cfg_t *cfg)
 
     ciot_uart_flush(self);
     return ciot_uart_task(self);
+}
+
+/* Applies the line parameters and timeouts of cfg to the open port. */
+static ciot_err_t ciot_uart_set_params(ciot_uart_t self, const ciot_uart_cfg_t *cfg)
+{
+    BYTE byte_size;
+    BYTE stop_bits;
+    CIOT_ERR_RETURN(ciot_uart_get_byte_size(cfg->data_bits, &byte_size));
+    CIOT_ERR_RETURN(ciot_uart_get_stop_bits(cfg->stop_bits, &stop_bits));
+
+    self->params.BaudRate = cfg->baud_rate;
+    self->params.ByteSize = byte_size;
+    self->params.StopBits = stop_bits;
+    self->params.Parity = cfg->parity;
+    self->params.fDtrControl = cfg->dtr;
+    if(!SetCommState(self->handle, &self->params))
+    {
+        CIOT_LOGE(TAG, "SetCommState error at COM%d", cfg->num);
+        return CIOT_ERR_INVALID_ARG;
+    }
+
+    self->timeouts.ReadIntervalTimeout = cfg->read_timeout;
+    self->timeouts.ReadTotalTimeoutConstant = cfg->read_timeout;
+    self->timeouts.ReadTotalTimeoutMultiplier = 1;
+    self->timeouts.WriteTotalTimeoutConstant = cfg->write_timeout;
+    self->timeouts.WriteTotalTimeoutMultiplier = 1;
+    if(!SetCommTimeouts(self->handle, &self->timeouts))
+    {
+        CIOT_LOGE(TAG, "SetCommTimeouts error at COM%d", cfg->num);
+        return CIOT_ERR_INVALID_ARG;
+    }
+
+    return CIOT_ERR_OK;
 }
 
 ciot_err_t ciot_uart_stop(ciot_uart_t self)
@@ -240,6 +270,47 @@ static void ciot_uart_flush(ciot_uart_t self)
     {
         uint8_t bytes[status.cbInQue];
         ReadFile(self->handle, &bytes, status.cbInQue, &self->bytes_read, NULL);
+    }
+}
+
+static ciot_err_t ciot_uart_get_byte_size(ciot_uart_data_bits_t data_bits, BYTE *byte_size)
+{
+    switch (data_bits)
+    {
+    case CIOT_UART_DATA_BITS_8:
+        *byte_size = 8;
+        return CIOT_ERR_OK;
+    case CIOT_UART_DATA_BITS_7:
+        *byte_size = 7;
+        return CIOT_ERR_OK;
+    case CIOT_UART_DATA_BITS_6:
+        *byte_size = 6;
+        return CIOT_ERR_OK;
+    case CIOT_UART_DATA_BITS_5:
+        *byte_size = 5;
+        return CIOT_ERR_OK;
+    default:
+        CIOT_LOGE(TAG, "Invalid data bits: %d", (int)data_bits);
+        return CIOT_ERR_INVALID_ARG;
+    }
+}
+
+static ciot_err_t ciot_uart_get_stop_bits(ciot_uart_stop_bits_t stop_bits, BYTE *win_stop_bits)
+{
+    switch (stop_bits)
+    {
+    case CIOT_UART_STOP_BITS_1:
+        *win_stop_bits = ONESTOPBIT;
+        return CIOT_ERR_OK;
+    case CIOT_UART_STOP_BITS_1_5:
+        *win_stop_bits = ONE5STOPBITS;
+        return CIOT_ERR_OK;
+    case CIOT_UART_STOP_BITS_2:
+        *win_stop_bits = TWOSTOPBITS;
+        return CIOT_ERR_OK;
+    default:
+        CIOT_LOGE(TAG, "Invalid stop bits: %d", (int)stop_bits);
+        return CIOT_ERR_INVALID_ARG;
     }
 }
 

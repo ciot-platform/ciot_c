@@ -210,7 +210,7 @@ extern const pb_msgdesc_t ciot_mbus_client_data_t_msg;
 /* Ciot_MbusClientData_size depends on runtime parameters */
 #define CIOT_CIOT_PROTO_V2_MBUS_CLIENT_PB_H_MAX_SIZE CIOT_MBUS_CLIENT_REQ_SIZE
 #define CIOT_MBUS_CLIENT_REQ_SIZE                221
-#define CIOT_MBUS_CLIENT_RTU_CFG_SIZE            74
+#define CIOT_MBUS_CLIENT_RTU_CFG_SIZE            78
 #define CIOT_MBUS_CLIENT_STATUS_SIZE             16
 #define CIOT_MBUS_CLIENT_STOP_SIZE               0
 

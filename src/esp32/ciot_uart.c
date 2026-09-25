@@ -18,6 +18,7 @@
 #include "ciot_err.h"
 
 #include "driver/uart.h"
+#include "soc/soc_caps.h"
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
 #include "freertos/queue.h"
@@ -60,6 +61,10 @@ static void ciot_uart0_task(void *args);
 static void ciot_uart1_task(void *args);
 static void ciot_uart2_task(void *args);
 static void ciot_uart_event_handler(ciot_uart_t self, uart_event_t *event);
+static ciot_err_t ciot_uart_get_word_length(ciot_uart_data_bits_t data_bits, uart_word_length_t *word_length);
+static ciot_err_t ciot_uart_get_stop_bits(ciot_uart_stop_bits_t stop_bits, uart_stop_bits_t *esp_stop_bits);
+static ciot_err_t ciot_uart_check_cfg(const ciot_uart_cfg_t *cfg);
+static ciot_err_t ciot_uart_param_config(int num, const ciot_uart_cfg_t *cfg);
 
 ciot_uart_t ciot_uart_new(void *handle)
 {
@@ -84,6 +89,10 @@ ciot_err_t ciot_uart_start(ciot_uart_t self, ciot_uart_cfg_t *cfg)
 
     CIOT_LOGI(TAG, "num: %d", (int)cfg->num);
 
+    // Reject what the driver can't take before touching the UART: a failed
+    // uart_param_config still applies part of the config.
+    CIOT_ERR_RETURN(ciot_uart_check_cfg(cfg));
+
     if (cfg->has_gpio == false || base->status.state == CIOT_UART_STATE_STARTED)
     {
         if(base->status.state == CIOT_UART_STATE_STARTED)
@@ -93,20 +102,21 @@ ciot_err_t ciot_uart_start(ciot_uart_t self, ciot_uart_cfg_t *cfg)
         cfg->has_gpio = base->cfg.has_gpio;
         cfg->gpio = base->cfg.gpio;
     }
+
+    int num = cfg->num;
+    ciot_err_t err = ciot_uart_param_config(num, cfg);
+    if (err != CIOT_ERR_OK)
+    {
+        // Still unreachable baud rates (e.g. below the clock divider range)
+        // end up here. Put a running UART back on the config it had.
+        if (base->status.state == CIOT_UART_STATE_STARTED)
+        {
+            ciot_uart_param_config(num, &base->cfg);
+        }
+        return err;
+    }
     base->cfg = *cfg;
 
-    int num = base->cfg.num;
-    const uart_config_t uart_cfg = {
-        .flow_ctrl = cfg->flow_control,
-        .parity = cfg->parity,
-        .baud_rate = cfg->baud_rate,
-        .data_bits = UART_DATA_8_BITS,
-        .stop_bits = UART_STOP_BITS_1,
-        .source_clk = UART_SCLK_DEFAULT,
-    };
-
-    ESP_ERROR_CHECK(uart_param_config(num, &uart_cfg));
-    
     if (base->status.state == CIOT_UART_STATE_STARTED)
     {
         CIOT_LOGI(TAG, "UART already started");
@@ -227,6 +237,87 @@ static void ciot_uart2_task(void *args)
         {
             ciot_uart_event_handler(self, &self->event);
         }
+    }
+}
+
+static ciot_err_t ciot_uart_check_cfg(const ciot_uart_cfg_t *cfg)
+{
+    if (cfg->baud_rate == 0 || cfg->baud_rate > SOC_UART_BITRATE_MAX)
+    {
+        CIOT_LOGE(TAG, "Invalid baud rate: %u (max %u)", (unsigned)cfg->baud_rate, (unsigned)SOC_UART_BITRATE_MAX);
+        return CIOT_ERR_INVALID_ARG;
+    }
+
+    uart_word_length_t word_length;
+    uart_stop_bits_t stop_bits;
+    CIOT_ERR_RETURN(ciot_uart_get_word_length(cfg->data_bits, &word_length));
+    CIOT_ERR_RETURN(ciot_uart_get_stop_bits(cfg->stop_bits, &stop_bits));
+    return CIOT_ERR_OK;
+}
+
+static ciot_err_t ciot_uart_param_config(int num, const ciot_uart_cfg_t *cfg)
+{
+    uart_word_length_t word_length;
+    uart_stop_bits_t stop_bits;
+    CIOT_ERR_RETURN(ciot_uart_get_word_length(cfg->data_bits, &word_length));
+    CIOT_ERR_RETURN(ciot_uart_get_stop_bits(cfg->stop_bits, &stop_bits));
+
+    const uart_config_t uart_cfg = {
+        .flow_ctrl = cfg->flow_control,
+        .parity = cfg->parity,
+        .baud_rate = cfg->baud_rate,
+        .data_bits = word_length,
+        .stop_bits = stop_bits,
+        .source_clk = UART_SCLK_DEFAULT,
+    };
+
+    esp_err_t err = uart_param_config(num, &uart_cfg);
+    if (err != ESP_OK)
+    {
+        CIOT_LOGE(TAG, "uart_param_config failed: %s", esp_err_to_name(err));
+        return CIOT_ERR_INVALID_ARG;
+    }
+    return CIOT_ERR_OK;
+}
+
+static ciot_err_t ciot_uart_get_word_length(ciot_uart_data_bits_t data_bits, uart_word_length_t *word_length)
+{
+    switch (data_bits)
+    {
+    case CIOT_UART_DATA_BITS_8:
+        *word_length = UART_DATA_8_BITS;
+        return CIOT_ERR_OK;
+    case CIOT_UART_DATA_BITS_7:
+        *word_length = UART_DATA_7_BITS;
+        return CIOT_ERR_OK;
+    case CIOT_UART_DATA_BITS_6:
+        *word_length = UART_DATA_6_BITS;
+        return CIOT_ERR_OK;
+    case CIOT_UART_DATA_BITS_5:
+        *word_length = UART_DATA_5_BITS;
+        return CIOT_ERR_OK;
+    default:
+        CIOT_LOGE(TAG, "Invalid data bits: %d", (int)data_bits);
+        return CIOT_ERR_INVALID_ARG;
+    }
+}
+
+static ciot_err_t ciot_uart_get_stop_bits(ciot_uart_stop_bits_t stop_bits, uart_stop_bits_t *esp_stop_bits)
+{
+    switch (stop_bits)
+    {
+    case CIOT_UART_STOP_BITS_1:
+        *esp_stop_bits = UART_STOP_BITS_1;
+        return CIOT_ERR_OK;
+    case CIOT_UART_STOP_BITS_1_5:
+        *esp_stop_bits = UART_STOP_BITS_1_5;
+        return CIOT_ERR_OK;
+    case CIOT_UART_STOP_BITS_2:
+        *esp_stop_bits = UART_STOP_BITS_2;
+        return CIOT_ERR_OK;
+    default:
+        CIOT_LOGE(TAG, "Invalid stop bits: %d", (int)stop_bits);
+        return CIOT_ERR_INVALID_ARG;
     }
 }
 

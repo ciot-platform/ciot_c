@@ -2,6 +2,18 @@
 
 ### Changes
 
+**UART configuration enhancements:**
+
+* Added `ciot_uart_data_bits_t` and `ciot_uart_stop_bits_t` enums, and included `data_bits` and `stop_bits` fields in `ciot_uart_cfg_t` to allow configurable UART frame format. Updated protocol buffer tags, macros, and default initializers accordingly. [[1]](diffhunk://#diff-75f714e563b81ee4365627f7f13e6da4ff540570a419f65b14ae753f8db924e1R41-R55) [[2]](diffhunk://#diff-75f714e563b81ee4365627f7f13e6da4ff540570a419f65b14ae753f8db924e1R81-R82) [[3]](diffhunk://#diff-75f714e563b81ee4365627f7f13e6da4ff540570a419f65b14ae753f8db924e1R145-R163) [[4]](diffhunk://#diff-75f714e563b81ee4365627f7f13e6da4ff540570a419f65b14ae753f8db924e1L140-R180) [[5]](diffhunk://#diff-75f714e563b81ee4365627f7f13e6da4ff540570a419f65b14ae753f8db924e1R199-R200) [[6]](diffhunk://#diff-75f714e563b81ee4365627f7f13e6da4ff540570a419f65b14ae753f8db924e1L196-R234)
+
+* Updated maximum encoded size constants for UART, Modbus client, and Modbus server protocol messages to account for the new configuration fields. [[1]](diffhunk://#diff-75f714e563b81ee4365627f7f13e6da4ff540570a419f65b14ae753f8db924e1L241-R279) [[2]](diffhunk://#diff-6bf44a776dd28cd8ec06193fb80a558c71c3f9214b21e0596abb4a124d546fd1L213-R213) [[3]](diffhunk://#diff-2879311ce531e391c9c16a7e6a20f966629ea88f91d30ecbf7f0844f3ed63f0aL215-R218)
+
+**Platform-specific UART implementation updates:**
+
+* On ESP32 (`src/esp32/ciot_uart.c`): Added validation for baud rate, data bits, and stop bits in `ciot_uart_start`. Introduced helper functions to map protocol enums to ESP-IDF UART driver values, and updated UART configuration accordingly. [[1]](diffhunk://#diff-c8a5a36ea012ff34598ad0ee6f74aaf1c434a0083acbc5a0c877c116db5bcceaR63-R64) [[2]](diffhunk://#diff-c8a5a36ea012ff34598ad0ee6f74aaf1c434a0083acbc5a0c877c116db5bcceaR89-R101) [[3]](diffhunk://#diff-c8a5a36ea012ff34598ad0ee6f74aaf1c434a0083acbc5a0c877c116db5bcceaL103-R119) [[4]](diffhunk://#diff-c8a5a36ea012ff34598ad0ee6f74aaf1c434a0083acbc5a0c877c116db5bcceaR248-R288)
+
+* On Windows (`src/win/ciot_uart.c`): Added functions to convert protocol enums to Windows API values for byte size and stop bits. Updated UART initialization to use these values and handle invalid arguments. [[1]](diffhunk://#diff-63972ff7c01e2e6d441e83c0332b572d8442cca850beecff8f5a82296a80448fR37-R38) [[2]](diffhunk://#diff-63972ff7c01e2e6d441e83c0332b572d8442cca850beecff8f5a82296a80448fR60-R64) [[3]](diffhunk://#diff-63972ff7c01e2e6d441e83c0332b572d8442cca850beecff8f5a82296a80448fL84-R92) [[4]](diffhunk://#diff-63972ff7c01e2e6d441e83c0332b572d8442cca850beecff8f5a82296a80448fR253-R293)
+
 ### Modbus TCP over Raw Sockets
 
 * Added a new generic TCP socket interface (`ciot_socket`) to provide raw TCP byte-stream transport for Modbus TCP communication, with APIs for client/server roles, status, and data transfer (`include/ciot_socket.h`, `src/common/ciot_mbus_client.c`). [[1]](diffhunk://#diff-6108660ddaac73c6497a3fca463709f73f84db9439a0b71fa64065710344ffb7R1-R71) [[2]](diffhunk://#diff-3902ca8296f5f13e0b494219ee7accbede4d5edf43a7b2e8c2ff31b2764dedc3R17) [[3]](diffhunk://#diff-3902ca8296f5f13e0b494219ee7accbede4d5edf43a7b2e8c2ff31b2764dedc3R27-R31)
