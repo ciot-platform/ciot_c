@@ -34,6 +34,8 @@ static const char *TAG = "ciot_uart";
 static void ciot_uart_process_error(ciot_uart_t self, DWORD error);
 static ciot_err_t ciot_uart_process_status(ciot_uart_t self, COMSTAT *status);
 static void ciot_uart_flush(ciot_uart_t self);
+static ciot_err_t ciot_uart_get_byte_size(ciot_uart_data_bits_t data_bits, BYTE *byte_size);
+static ciot_err_t ciot_uart_get_stop_bits(ciot_uart_stop_bits_t stop_bits, BYTE *win_stop_bits);
 
 ciot_uart_t ciot_uart_new(void *handle)
 {
@@ -54,6 +56,11 @@ ciot_err_t ciot_uart_start(ciot_uart_t self, ciot_uart_cfg_t *cfg)
         CIOT_LOGW(TAG, "Port COM%d already started", base->cfg.num);
         return CIOT_ERR_OK;
     }
+
+    BYTE byte_size;
+    BYTE stop_bits;
+    CIOT_ERR_RETURN(ciot_uart_get_byte_size(cfg->data_bits, &byte_size));
+    CIOT_ERR_RETURN(ciot_uart_get_stop_bits(cfg->stop_bits, &stop_bits));
 
     base->cfg = *cfg;
     base->status.error = CIOT_UART_ERROR_NONE;
@@ -81,8 +88,8 @@ ciot_err_t ciot_uart_start(ciot_uart_t self, ciot_uart_cfg_t *cfg)
     }
 
     self->params.BaudRate = base->cfg.baud_rate;
-    self->params.ByteSize = 8;
-    self->params.StopBits = ONESTOPBIT;
+    self->params.ByteSize = byte_size;
+    self->params.StopBits = stop_bits;
     self->params.Parity = base->cfg.parity;
     self->params.fDtrControl = base->cfg.dtr;
     if(!SetCommState(self->handle, &self->params))
@@ -240,6 +247,47 @@ static void ciot_uart_flush(ciot_uart_t self)
     {
         uint8_t bytes[status.cbInQue];
         ReadFile(self->handle, &bytes, status.cbInQue, &self->bytes_read, NULL);
+    }
+}
+
+static ciot_err_t ciot_uart_get_byte_size(ciot_uart_data_bits_t data_bits, BYTE *byte_size)
+{
+    switch (data_bits)
+    {
+    case CIOT_UART_DATA_BITS_8:
+        *byte_size = 8;
+        return CIOT_ERR_OK;
+    case CIOT_UART_DATA_BITS_7:
+        *byte_size = 7;
+        return CIOT_ERR_OK;
+    case CIOT_UART_DATA_BITS_6:
+        *byte_size = 6;
+        return CIOT_ERR_OK;
+    case CIOT_UART_DATA_BITS_5:
+        *byte_size = 5;
+        return CIOT_ERR_OK;
+    default:
+        CIOT_LOGE(TAG, "Invalid data bits: %d", (int)data_bits);
+        return CIOT_ERR_INVALID_ARG;
+    }
+}
+
+static ciot_err_t ciot_uart_get_stop_bits(ciot_uart_stop_bits_t stop_bits, BYTE *win_stop_bits)
+{
+    switch (stop_bits)
+    {
+    case CIOT_UART_STOP_BITS_1:
+        *win_stop_bits = ONESTOPBIT;
+        return CIOT_ERR_OK;
+    case CIOT_UART_STOP_BITS_1_5:
+        *win_stop_bits = ONE5STOPBITS;
+        return CIOT_ERR_OK;
+    case CIOT_UART_STOP_BITS_2:
+        *win_stop_bits = TWOSTOPBITS;
+        return CIOT_ERR_OK;
+    default:
+        CIOT_LOGE(TAG, "Invalid stop bits: %d", (int)stop_bits);
+        return CIOT_ERR_INVALID_ARG;
     }
 }
 
