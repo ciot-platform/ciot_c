@@ -23,6 +23,44 @@ typedef struct ciot_http_server *ciot_http_server_t;
 
 typedef ciot_err_t (ciot_http_server_custom_api_handler_fn)(ciot_http_server_t self, const char *uri, size_t uri_len, char *method, uint8_t *data, size_t size, void *args);
 
+#ifndef CIOT_HTTP_SERVER_MAX_RESPONSE_HEADERS
+#define CIOT_HTTP_SERVER_MAX_RESPONSE_HEADERS 4
+#endif
+
+typedef struct ciot_http_server_request ciot_http_server_request_t;
+
+typedef bool (ciot_http_server_get_header_fn)(const ciot_http_server_request_t *request, const char *name, char *value, size_t value_size);
+
+struct ciot_http_server_request
+{
+    const char *method;
+    size_t method_len;
+    const char *uri;
+    size_t uri_len;
+    char local_address[48];
+    char remote_address[48];
+    ciot_http_server_get_header_fn *get_header;
+    void *context;
+};
+
+typedef struct ciot_http_server_header
+{
+    const char *name;
+    const char *value;
+} ciot_http_server_header_t;
+
+typedef struct ciot_http_server_response
+{
+    uint16_t status_code;
+    const char *content_type;
+    const uint8_t *body;
+    size_t body_size;
+    ciot_http_server_header_t headers[CIOT_HTTP_SERVER_MAX_RESPONSE_HEADERS];
+    size_t headers_count;
+} ciot_http_server_response_t;
+
+typedef bool (ciot_http_server_request_interceptor_fn)(ciot_http_server_t self, const ciot_http_server_request_t *request, ciot_http_server_response_t *response, void *args);
+
 #ifndef CIOT_CONFIG_URL_SIZE
 #define CIOT_CONFIG_URL_SIZE 48
 #endif
@@ -81,6 +119,8 @@ typedef struct ciot_http_server_base
     ciot_http_server_homepage_cfg_t homepage;
     ciot_http_server_custom_api_t custom_api;
     ciot_http_server_upload_api_t upload_api;
+    ciot_http_server_request_interceptor_fn *request_interceptor;
+    void *request_interceptor_args;
 } ciot_http_server_base_t;
 
 ciot_http_server_t ciot_http_server_new(void *handle);
@@ -91,9 +131,11 @@ ciot_err_t ciot_http_server_process_req(ciot_http_server_t self, ciot_http_serve
 ciot_err_t ciot_http_server_get_cfg(ciot_http_server_t self, ciot_http_server_cfg_t *cfg);
 ciot_err_t ciot_http_server_get_status(ciot_http_server_t self, ciot_http_server_status_t *status);
 ciot_err_t ciot_http_server_send_bytes(ciot_http_server_t self, uint8_t *data, int size);
+ciot_err_t ciot_http_server_send_response(ciot_http_server_t self, const ciot_http_server_response_t *response);
 ciot_err_t ciot_http_server_set_homepage(ciot_http_server_t self, ciot_http_server_homepage_cfg_t *homepage);
 ciot_err_t ciot_http_server_set_custom_api(ciot_http_server_t self, ciot_http_server_custom_api_t *custom_api);
 ciot_err_t ciot_http_server_set_upload_api(ciot_http_server_t self, ciot_http_server_upload_api_t *upload_api);
+ciot_err_t ciot_http_server_set_request_interceptor(ciot_http_server_t self, ciot_http_server_request_interceptor_fn *interceptor, void *args);
 
 #ifdef __cplusplus
 }
