@@ -212,10 +212,10 @@ extern const pb_msgdesc_t ciot_mbus_server_data_t_msg;
 
 /* Maximum encoded size of messages (where known) */
 #define CIOT_CIOT_PROTO_V2_MBUS_SERVER_PB_H_MAX_SIZE CIOT_MBUS_SERVER_DATA_SIZE
-#define CIOT_MBUS_SERVER_CFG_SIZE                76
+#define CIOT_MBUS_SERVER_CFG_SIZE                80
 #define CIOT_MBUS_SERVER_DATA_SIZE               224
 #define CIOT_MBUS_SERVER_REQ_SIZE                221
-#define CIOT_MBUS_SERVER_RTU_CFG_SIZE            74
+#define CIOT_MBUS_SERVER_RTU_CFG_SIZE            78
 #define CIOT_MBUS_SERVER_STATUS_SIZE             49
 #define CIOT_MBUS_SERVER_STOP_SIZE               0
 #define CIOT_MBUS_SERVER_TCP_CFG_SIZE            12
