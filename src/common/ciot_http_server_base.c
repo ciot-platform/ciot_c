@@ -30,6 +30,17 @@ ciot_err_t ciot_http_server_init(ciot_http_server_t self)
     base->iface.info.type = CIOT_IFACE_TYPE_HTTP_SERVER;
     base->custom_api.enabled = false;
     base->upload_api.enabled = false;
+    base->request_interceptor = NULL;
+    base->request_interceptor_args = NULL;
+    return CIOT_ERR_OK;
+}
+
+ciot_err_t ciot_http_server_set_request_interceptor(ciot_http_server_t self, ciot_http_server_request_interceptor_fn *interceptor, void *args)
+{
+    CIOT_ERR_NULL_CHECK(self);
+    ciot_http_server_base_t *base = (ciot_http_server_base_t *)self;
+    base->request_interceptor = interceptor;
+    base->request_interceptor_args = args;
     return CIOT_ERR_OK;
 }
 
