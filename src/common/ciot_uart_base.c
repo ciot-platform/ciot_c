@@ -15,6 +15,11 @@
 
 #include "ciot_uart.h"
 #include "ciot_types.h"
+#include "ciot_log.h"
+
+#ifdef CIOT_CONFIG_UART_READ_TIMEOUT_MAX
+static const char *TAG = "ciot_uart_base";
+#endif
 
 static ciot_err_t ciot_uart_process_data(ciot_iface_t *iface, ciot_msg_data_t *data);
 static ciot_err_t ciot_uart_get_data(ciot_iface_t *iface, ciot_msg_data_t *data);
@@ -54,6 +59,16 @@ static ciot_err_t ciot_uart_process_data(ciot_iface_t *iface, ciot_msg_data_t *d
     case CIOT_UART_DATA_STOP_TAG:
         return ciot_uart_stop(self);
     case CIOT_UART_DATA_CONFIG_TAG:
+#ifdef CIOT_CONFIG_UART_READ_TIMEOUT_MAX
+        // A read blocks its caller for up to read_timeout; the application may
+        // cap it (e.g. to fit a task watchdog). Clamped rather than rejected so
+        // a config saved with a larger value still starts the UART at boot.
+        if (uart->config.read_timeout > CIOT_CONFIG_UART_READ_TIMEOUT_MAX)
+        {
+            CIOT_LOGW(TAG, "read_timeout %u ms clamped to %u ms", (unsigned)uart->config.read_timeout, (unsigned)CIOT_CONFIG_UART_READ_TIMEOUT_MAX);
+            uart->config.read_timeout = CIOT_CONFIG_UART_READ_TIMEOUT_MAX;
+        }
+#endif
         return ciot_uart_start(self, &uart->config);
     case CIOT_UART_DATA_REQUEST_TAG:
         return ciot_uart_process_req(self, &uart->request);
