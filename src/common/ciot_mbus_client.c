@@ -42,6 +42,7 @@ ciot_err_t ciot_mbus_client_start(ciot_mbus_client_t self, ciot_mbus_client_cfg_
 {
     CIOT_ERR_NULL_CHECK(self);
     CIOT_ERR_NULL_CHECK(cfg);
+    ciot_mbus_client_cfg_apply_limits(cfg);
 
     self->base.cfg = *cfg;
 

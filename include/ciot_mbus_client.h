@@ -33,6 +33,7 @@ typedef struct ciot_mbus_client_base
 
 ciot_mbus_client_t ciot_mbus_client_new(void *handle, ciot_iface_t *iface);
 ciot_err_t ciot_mbus_client_init(ciot_mbus_client_t self);
+void ciot_mbus_client_cfg_apply_limits(ciot_mbus_client_cfg_t *cfg);
 ciot_err_t ciot_mbus_client_start(ciot_mbus_client_t self, ciot_mbus_client_cfg_t *cfg);
 ciot_err_t ciot_mbus_client_stop(ciot_mbus_client_t self);
 ciot_err_t ciot_mbus_client_process_req(ciot_mbus_client_t self, ciot_mbus_client_req_t *req);
