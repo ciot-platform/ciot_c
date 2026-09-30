@@ -16,6 +16,11 @@
 
 #include "ciot_mbus_client.h"
 #include "ciot_types.h"
+#include "ciot_log.h"
+
+#ifdef CIOT_CONFIG_MBUS_CLIENT_TIMEOUT_MAX
+static const char *TAG = "ciot_mbus_client_base";
+#endif
 
 static ciot_err_t ciot_mbus_client_process_data(ciot_iface_t *iface, ciot_msg_data_t *data);
 static ciot_err_t ciot_mbus_client_get_data(ciot_iface_t *iface, ciot_msg_data_t *data);
@@ -59,6 +64,16 @@ static ciot_err_t ciot_mbus_client_process_data(ciot_iface_t *iface, ciot_msg_da
     case CIOT_MBUS_CLIENT_DATA_STOP_TAG:
         return ciot_mbus_client_stop(self);
     case CIOT_MBUS_CLIENT_DATA_CONFIG_TAG:
+#ifdef CIOT_CONFIG_MBUS_CLIENT_TIMEOUT_MAX
+        // A request blocks its caller for up to timeout; the application may
+        // cap it (e.g. to fit a task watchdog). Clamped rather than rejected so
+        // a config saved with a larger value still starts the client at boot.
+        if (mbus_client->config.timeout > CIOT_CONFIG_MBUS_CLIENT_TIMEOUT_MAX)
+        {
+            CIOT_LOGW(TAG, "timeout %u ms clamped to %u ms", (unsigned)mbus_client->config.timeout, (unsigned)CIOT_CONFIG_MBUS_CLIENT_TIMEOUT_MAX);
+            mbus_client->config.timeout = CIOT_CONFIG_MBUS_CLIENT_TIMEOUT_MAX;
+        }
+#endif
         return ciot_mbus_client_start(self, &mbus_client->config);
     case CIOT_MBUS_CLIENT_DATA_REQUEST_TAG:
         return ciot_mbus_client_process_req(self, &mbus_client->request);
