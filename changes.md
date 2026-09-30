@@ -14,6 +14,18 @@
 
 * On Windows (`src/win/ciot_uart.c`): Added functions to convert protocol enums to Windows API values for byte size and stop bits. Updated UART initialization to use these values and handle invalid arguments. [[1]](diffhunk://#diff-63972ff7c01e2e6d441e83c0332b572d8442cca850beecff8f5a82296a80448fR37-R38) [[2]](diffhunk://#diff-63972ff7c01e2e6d441e83c0332b572d8442cca850beecff8f5a82296a80448fR60-R64) [[3]](diffhunk://#diff-63972ff7c01e2e6d441e83c0332b572d8442cca850beecff8f5a82296a80448fL84-R92) [[4]](diffhunk://#diff-63972ff7c01e2e6d441e83c0332b572d8442cca850beecff8f5a82296a80448fR253-R293)
 
+* On ESP32, the baud rate is also checked against `SOC_UART_BITRATE_MAX`, and a `uart_param_config` failure (e.g. an unreachable baud rate) is returned as `CIOT_ERR_INVALID_ARG` instead of aborting on `ESP_ERROR_CHECK`; a running UART is put back on its previous configuration (`src/esp32/ciot_uart.c`).
+
+* On Windows, starting an already open port with the same number now applies the new baud rate, frame format and timeouts and reports `STARTED`, instead of returning without applying them; a rejected configuration restores the previous one (`src/win/ciot_uart.c`).
+
+**Optional timeout caps:**
+
+* Added optional `CIOT_CONFIG_UART_READ_TIMEOUT_MAX` and `CIOT_CONFIG_MBUS_CLIENT_TIMEOUT_MAX`. When defined, a UART `read_timeout` / Modbus client `timeout` above the limit is clamped (with a warning) before the interface starts, e.g. to keep a blocking request within a task watchdog. Clamped rather than rejected, so a configuration saved with a larger value still starts at boot. Undefined by default: no change in behavior (`src/common/ciot_uart_base.c`, `src/common/ciot_mbus_client_base.c`).
+
+**Python bindings:**
+
+* Regenerated `scripts/ciot/proto/v2/uart_pb2.py` and `uart_pb2.pyi` with the new `UartDataBits` / `UartStopBits` fields (protoc 30.0 / mypy-protobuf 3.6.0, matching the other bindings).
+
 ### Modbus TCP over Raw Sockets
 
 * Added a new generic TCP socket interface (`ciot_socket`) to provide raw TCP byte-stream transport for Modbus TCP communication, with APIs for client/server roles, status, and data transfer (`include/ciot_socket.h`, `src/common/ciot_mbus_client.c`). [[1]](diffhunk://#diff-6108660ddaac73c6497a3fca463709f73f84db9439a0b71fa64065710344ffb7R1-R71) [[2]](diffhunk://#diff-3902ca8296f5f13e0b494219ee7accbede4d5edf43a7b2e8c2ff31b2764dedc3R17) [[3]](diffhunk://#diff-3902ca8296f5f13e0b494219ee7accbede4d5edf43a7b2e8c2ff31b2764dedc3R27-R31)
