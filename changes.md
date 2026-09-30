@@ -20,7 +20,7 @@
 
 **Optional timeout caps:**
 
-* Added optional `CIOT_CONFIG_UART_READ_TIMEOUT_MAX` and `CIOT_CONFIG_MBUS_CLIENT_TIMEOUT_MAX`. When defined, a UART `read_timeout` / Modbus client `timeout` above the limit is clamped (with a warning) before the interface starts, e.g. to keep a blocking request within a task watchdog. Clamped rather than rejected, so a configuration saved with a larger value still starts at boot. Undefined by default: no change in behavior (`src/common/ciot_uart_base.c`, `src/common/ciot_mbus_client_base.c`).
+* Added optional `CIOT_CONFIG_UART_READ_TIMEOUT_MAX` and `CIOT_CONFIG_MBUS_CLIENT_TIMEOUT_MAX`. When defined, a UART `read_timeout` / Modbus client `timeout` above the limit is clamped (with a warning) by the public start API, e.g. to keep a blocking request within a task watchdog. Clamped rather than rejected, so a configuration saved with a larger value still starts at boot. Undefined by default: no change in behavior (`src/common/ciot_uart_base.c`, `src/common/ciot_mbus_client_base.c`).
 
 **Python bindings:**
 
