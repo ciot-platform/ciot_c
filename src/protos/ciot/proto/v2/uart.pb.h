@@ -38,6 +38,21 @@ typedef enum ciot_uart_error {
     CIOT_UART_ERROR_UNKNOWN = 9 /* Unknown UART event error. */
 } ciot_uart_error_t;
 
+/* Enum representing the number of data bits per UART frame. */
+typedef enum ciot_uart_data_bits {
+    CIOT_UART_DATA_BITS_8 = 0, /* 8 data bits (default). */
+    CIOT_UART_DATA_BITS_7 = 1, /* 7 data bits. */
+    CIOT_UART_DATA_BITS_6 = 2, /* 6 data bits. */
+    CIOT_UART_DATA_BITS_5 = 3 /* 5 data bits. */
+} ciot_uart_data_bits_t;
+
+/* Enum representing the number of stop bits per UART frame. */
+typedef enum ciot_uart_stop_bits {
+    CIOT_UART_STOP_BITS_1 = 0, /* 1 stop bit (default). */
+    CIOT_UART_STOP_BITS_1_5 = 1, /* 1.5 stop bits. */
+    CIOT_UART_STOP_BITS_2 = 2 /* 2 stop bits. */
+} ciot_uart_stop_bits_t;
+
 /* Struct definitions */
 /* Message used to stop uart interface */
 typedef struct ciot_uart_stop {
@@ -63,6 +78,8 @@ typedef struct ciot_uart_cfg {
     uint32_t mode; /* UART mode (used to enable rs485 mode on some mcus). */
     uint32_t read_timeout; /* UART read timeout */
     uint32_t write_timeout; /* UART write timeout */
+    ciot_uart_data_bits_t data_bits; /* Data bits per frame. */
+    ciot_uart_stop_bits_t stop_bits; /* Stop bits per frame. */
 } ciot_uart_cfg_t;
 
 /* Message representing status for the UART module. */
@@ -125,8 +142,25 @@ extern "C" {
 #define CIOT_UART_ERROR_UART_ERROR_OPEN CIOT_UART_ERROR_OPEN
 #define CIOT_UART_ERROR_UART_ERROR_UNKNOWN CIOT_UART_ERROR_UNKNOWN
 
+#define _CIOT_UART_DATA_BITS_MIN CIOT_UART_DATA_BITS_8
+#define _CIOT_UART_DATA_BITS_MAX CIOT_UART_DATA_BITS_5
+#define _CIOT_UART_DATA_BITS_ARRAYSIZE ((ciot_uart_data_bits_t)(CIOT_UART_DATA_BITS_5+1))
+#define CIOT_UART_DATA_BITS_UART_DATA_BITS_8 CIOT_UART_DATA_BITS_8
+#define CIOT_UART_DATA_BITS_UART_DATA_BITS_7 CIOT_UART_DATA_BITS_7
+#define CIOT_UART_DATA_BITS_UART_DATA_BITS_6 CIOT_UART_DATA_BITS_6
+#define CIOT_UART_DATA_BITS_UART_DATA_BITS_5 CIOT_UART_DATA_BITS_5
+
+#define _CIOT_UART_STOP_BITS_MIN CIOT_UART_STOP_BITS_1
+#define _CIOT_UART_STOP_BITS_MAX CIOT_UART_STOP_BITS_2
+#define _CIOT_UART_STOP_BITS_ARRAYSIZE ((ciot_uart_stop_bits_t)(CIOT_UART_STOP_BITS_2+1))
+#define CIOT_UART_STOP_BITS_UART_STOP_BITS_1 CIOT_UART_STOP_BITS_1
+#define CIOT_UART_STOP_BITS_UART_STOP_BITS_1_5 CIOT_UART_STOP_BITS_1_5
+#define CIOT_UART_STOP_BITS_UART_STOP_BITS_2 CIOT_UART_STOP_BITS_2
 
 
+
+#define ciot_uart_cfg_t_data_bits_ENUMTYPE ciot_uart_data_bits_t
+#define ciot_uart_cfg_t_stop_bits_ENUMTYPE ciot_uart_stop_bits_t
 
 #define ciot_uart_status_t_state_ENUMTYPE ciot_uart_state_t
 #define ciot_uart_status_t_error_ENUMTYPE ciot_uart_error_t
@@ -137,13 +171,13 @@ extern "C" {
 /* Initializer values for message structs */
 #define CIOT_UART_STOP_INIT_DEFAULT              {0}
 #define CIOT_UART_GPIO_CFG_INIT_DEFAULT          {0, 0, 0, 0}
-#define CIOT_UART_CFG_INIT_DEFAULT               {0, 0, false, CIOT_UART_GPIO_CFG_INIT_DEFAULT, 0, 0, 0, 0, 0, 0}
+#define CIOT_UART_CFG_INIT_DEFAULT               {0, 0, false, CIOT_UART_GPIO_CFG_INIT_DEFAULT, 0, 0, 0, 0, 0, 0, _CIOT_UART_DATA_BITS_MIN, _CIOT_UART_STOP_BITS_MIN}
 #define CIOT_UART_STATUS_INIT_DEFAULT            {_CIOT_UART_STATE_MIN, _CIOT_UART_ERROR_MIN}
 #define CIOT_UART_REQ_INIT_DEFAULT               {0, {{0, {0}}}}
 #define CIOT_UART_DATA_INIT_DEFAULT              {0, {CIOT_UART_STOP_INIT_DEFAULT}}
 #define CIOT_UART_STOP_INIT_ZERO                 {0}
 #define CIOT_UART_GPIO_CFG_INIT_ZERO             {0, 0, 0, 0}
-#define CIOT_UART_CFG_INIT_ZERO                  {0, 0, false, CIOT_UART_GPIO_CFG_INIT_ZERO, 0, 0, 0, 0, 0, 0}
+#define CIOT_UART_CFG_INIT_ZERO                  {0, 0, false, CIOT_UART_GPIO_CFG_INIT_ZERO, 0, 0, 0, 0, 0, 0, _CIOT_UART_DATA_BITS_MIN, _CIOT_UART_STOP_BITS_MIN}
 #define CIOT_UART_STATUS_INIT_ZERO               {_CIOT_UART_STATE_MIN, _CIOT_UART_ERROR_MIN}
 #define CIOT_UART_REQ_INIT_ZERO                  {0, {{0, {0}}}}
 #define CIOT_UART_DATA_INIT_ZERO                 {0, {CIOT_UART_STOP_INIT_ZERO}}
@@ -162,6 +196,8 @@ extern "C" {
 #define CIOT_UART_CFG_MODE_TAG                   7
 #define CIOT_UART_CFG_READ_TIMEOUT_TAG           8
 #define CIOT_UART_CFG_WRITE_TIMEOUT_TAG          9
+#define CIOT_UART_CFG_DATA_BITS_TAG              10
+#define CIOT_UART_CFG_STOP_BITS_TAG              11
 #define CIOT_UART_STATUS_STATE_TAG               1
 #define CIOT_UART_STATUS_ERROR_TAG               2
 #define CIOT_UART_REQ_SEND_DATA_TAG              1
@@ -193,7 +229,9 @@ X(a, STATIC,   SINGULAR, BOOL,     flow_control,      5) \
 X(a, STATIC,   SINGULAR, BOOL,     dtr,               6) \
 X(a, STATIC,   SINGULAR, UINT32,   mode,              7) \
 X(a, STATIC,   SINGULAR, UINT32,   read_timeout,      8) \
-X(a, STATIC,   SINGULAR, UINT32,   write_timeout,     9)
+X(a, STATIC,   SINGULAR, UINT32,   write_timeout,     9) \
+X(a, STATIC,   SINGULAR, UENUM,    data_bits,        10) \
+X(a, STATIC,   SINGULAR, UENUM,    stop_bits,        11)
 #define CIOT_UART_CFG_CALLBACK NULL
 #define CIOT_UART_CFG_DEFAULT NULL
 #define ciot_uart_cfg_t_gpio_MSGTYPE ciot_uart_gpio_cfg_t
@@ -238,7 +276,7 @@ extern const pb_msgdesc_t ciot_uart_data_t_msg;
 
 /* Maximum encoded size of messages (where known) */
 #define CIOT_CIOT_PROTO_V2_UART_PB_H_MAX_SIZE    CIOT_UART_DATA_SIZE
-#define CIOT_UART_CFG_SIZE                       66
+#define CIOT_UART_CFG_SIZE                       70
 #define CIOT_UART_DATA_SIZE                      134
 #define CIOT_UART_GPIO_CFG_SIZE                  24
 #define CIOT_UART_REQ_SIZE                       131

@@ -95,7 +95,7 @@ void test_ciot_queue_starting_discards_unexpected_event_and_continues(void)
 
     TEST_ASSERT_EQUAL(CIOT_ERR_OK, ciot_task(g_ciot));
     TEST_ASSERT_TRUE(g_ciot->starter.waiting_result);
-    TEST_ASSERT_EQUAL_UINT8(0, g_ciot->receiver.queue.count);
+    TEST_ASSERT_EQUAL(CIOT_STATE_STARTING, g_ciot->status.state);
 
     ciot_event_t unexpected = { 0 };
     unexpected.type = CIOT_EVENT_TYPE_DATA;
@@ -104,11 +104,11 @@ void test_ciot_queue_starting_discards_unexpected_event_and_continues(void)
     unexpected.raw.bytes[0] = 0xAA;
 
     TEST_ASSERT_EQUAL(CIOT_ERR_OK, ciot_iface_send_event(&g_iface_1, &unexpected));
-    TEST_ASSERT_EQUAL_UINT8(1, g_ciot->receiver.queue.count);
+    TEST_ASSERT_EQUAL(CIOT_STATE_STARTING, g_ciot->status.state);
 
     TEST_ASSERT_EQUAL(CIOT_ERR_OK, ciot_task(g_ciot));
     TEST_ASSERT_TRUE(g_ciot->starter.waiting_result);
-    TEST_ASSERT_EQUAL_UINT8(0, g_ciot->receiver.queue.count);
+    TEST_ASSERT_EQUAL(CIOT_STATE_STARTING, g_ciot->status.state);
     TEST_ASSERT_EQUAL_UINT32(1, g_ciot->starter.iface_id);
 
     ciot_event_t expected_ack = { 0 };
@@ -116,11 +116,10 @@ void test_ciot_queue_starting_discards_unexpected_event_and_continues(void)
     expected_ack.which_data = CIOT_EVENT_MSG_TAG;
 
     TEST_ASSERT_EQUAL(CIOT_ERR_OK, ciot_iface_send_event(&g_iface_1, &expected_ack));
-    TEST_ASSERT_EQUAL_UINT8(1, g_ciot->receiver.queue.count);
+    TEST_ASSERT_EQUAL(CIOT_STATE_STARTING, g_ciot->status.state);
 
     TEST_ASSERT_EQUAL(CIOT_ERR_OK, ciot_task(g_ciot));
     TEST_ASSERT_EQUAL(CIOT_STATE_STARTED, g_ciot->status.state);
-    TEST_ASSERT_EQUAL_UINT8(0, g_ciot->receiver.queue.count);
 
     queue_test_cleanup_common();
 }
@@ -148,22 +147,32 @@ void test_ciot_queue_custom_msg_handler_error_does_not_leave_dead_item(void)
 
     g_app_handler_ret = CIOT_ERR_INVALID_STATE;
 
-    ciot_event_t custom_msg = { 0 };
-    custom_msg.type = CIOT_EVENT_TYPE_MSG;
-    custom_msg.which_data = CIOT_EVENT_MSG_TAG;
-    custom_msg.msg.type = CIOT_MSG_TYPE_REQUEST;
-    custom_msg.msg.error = CIOT_ERR_OK;
-    custom_msg.msg.has_iface = true;
-    custom_msg.msg.iface.type = CIOT_IFACE_TYPE_CUSTOM;
-    custom_msg.msg.iface.id = g_iface_1.info.id;
-    custom_msg.msg.has_proxy = false;
-    custom_msg.msg.has_data = true;
-    custom_msg.msg.data.which_type = CIOT_MSG_DATA_GET_DATA_TAG;
+    ciot_msg_t custom_msg = { 0 };
+    custom_msg.type = CIOT_MSG_TYPE_REQUEST;
+    custom_msg.error = CIOT_ERR_OK;
+    custom_msg.has_iface = true;
+    custom_msg.iface.type = CIOT_IFACE_TYPE_CUSTOM;
+    custom_msg.iface.id = g_iface_1.info.id;
+    custom_msg.has_proxy = false;
+    custom_msg.has_data = true;
+    custom_msg.data.which_type = CIOT_MSG_DATA_GET_DATA_TAG;
 
-    TEST_ASSERT_EQUAL(CIOT_ERR_OK, ciot_iface_send_event(&g_iface_1, &custom_msg));
-    TEST_ASSERT_EQUAL_UINT8(0, g_ciot->receiver.queue.count);
+    ciot_event_t custom_event = { 0 };
+    custom_event.type = CIOT_EVENT_TYPE_MSG;
+    custom_event.which_data = CIOT_EVENT_RAW_TAG;
+    custom_event.raw.size = ciot_serializer_to_bytes(custom_event.raw.bytes, sizeof(custom_event.raw.bytes), &custom_msg, CIOT_MSG_FIELDS);
+    TEST_ASSERT_GREATER_THAN(0, custom_event.raw.size);
+
+    TEST_ASSERT_EQUAL(CIOT_ERR_OK, ciot_iface_send_event(&g_iface_1, &custom_event));
+    TEST_ASSERT_EQUAL(CIOT_STATE_STARTED, g_ciot->status.state);
     TEST_ASSERT_EQUAL_INT(1, g_app_handler_calls);
     TEST_ASSERT_TRUE(g_sender_send_calls > 0);
+
+    int sender_send_calls = g_sender_send_calls;
+    TEST_ASSERT_EQUAL(CIOT_ERR_OK, ciot_iface_send_event(&g_iface_1, &custom_event));
+    TEST_ASSERT_EQUAL(CIOT_STATE_STARTED, g_ciot->status.state);
+    TEST_ASSERT_EQUAL_INT(2, g_app_handler_calls);
+    TEST_ASSERT_TRUE(g_sender_send_calls > sender_send_calls);
 
     queue_test_cleanup_common();
 }
