@@ -84,6 +84,8 @@ ciot_err_t ciot_eth_start(ciot_eth_t self, ciot_tcp_cfg_t *cfg)
 ciot_err_t ciot_eth_stop(ciot_eth_t self)
 {
     CIOT_ERR_NULL_CHECK(self);
+    // Keep the stored cfg in sync so a later save persists the disabled state
+    self->base.cfg.disabled = true;
     if(!self->started)
     {
         return ciot_iface_send_event_type(&self->base.iface, CIOT_EVENT_TYPE_STOPPED);
