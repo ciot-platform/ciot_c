@@ -47,6 +47,7 @@ typedef struct ciot_wifi_cfg {
     ciot_wifi_type_t type; /* Type of Wi-Fi connection. */
     bool has_tcp;
     ciot_tcp_cfg_t tcp; /* TCP configuration for Wi-Fi communication. */
+    bool ssid_hidden; /* Hide SSID beacon when running in AP mode. */
 } ciot_wifi_cfg_t;
 
 /* Message representing status for the Wi-Fi interface. */
@@ -139,7 +140,7 @@ extern "C" {
 /* Initializer values for message structs */
 #define CIOT_WIFI_AP_INFO_INIT_DEFAULT           {{0}, "", 0, 0}
 #define CIOT_WIFI_STOP_INIT_DEFAULT              {0}
-#define CIOT_WIFI_CFG_INIT_DEFAULT               {0, "", "", _CIOT_WIFI_TYPE_MIN, false, CIOT_TCP_CFG_INIT_DEFAULT}
+#define CIOT_WIFI_CFG_INIT_DEFAULT               {0, "", "", _CIOT_WIFI_TYPE_MIN, false, CIOT_TCP_CFG_INIT_DEFAULT, 0}
 #define CIOT_WIFI_STATUS_INIT_DEFAULT            {0, false, CIOT_TCP_STATUS_INIT_DEFAULT, _CIOT_WIFI_SCAN_STATE_MIN, 0}
 #define CIOT_WIFI_INFO_INIT_DEFAULT              {false, CIOT_TCP_INFO_INIT_DEFAULT, false, CIOT_WIFI_AP_INFO_INIT_DEFAULT}
 #define CIOT_WIFI_REQ_SCAN_INIT_DEFAULT          {0}
@@ -149,7 +150,7 @@ extern "C" {
 #define CIOT_WIFI_DATA_INIT_DEFAULT              {0, {CIOT_WIFI_STOP_INIT_DEFAULT}}
 #define CIOT_WIFI_AP_INFO_INIT_ZERO              {{0}, "", 0, 0}
 #define CIOT_WIFI_STOP_INIT_ZERO                 {0}
-#define CIOT_WIFI_CFG_INIT_ZERO                  {0, "", "", _CIOT_WIFI_TYPE_MIN, false, CIOT_TCP_CFG_INIT_ZERO}
+#define CIOT_WIFI_CFG_INIT_ZERO                  {0, "", "", _CIOT_WIFI_TYPE_MIN, false, CIOT_TCP_CFG_INIT_ZERO, 0}
 #define CIOT_WIFI_STATUS_INIT_ZERO               {0, false, CIOT_TCP_STATUS_INIT_ZERO, _CIOT_WIFI_SCAN_STATE_MIN, 0}
 #define CIOT_WIFI_INFO_INIT_ZERO                 {false, CIOT_TCP_INFO_INIT_ZERO, false, CIOT_WIFI_AP_INFO_INIT_ZERO}
 #define CIOT_WIFI_REQ_SCAN_INIT_ZERO             {0}
@@ -168,6 +169,7 @@ extern "C" {
 #define CIOT_WIFI_CFG_PASSWORD_TAG               3
 #define CIOT_WIFI_CFG_TYPE_TAG                   4
 #define CIOT_WIFI_CFG_TCP_TAG                    5
+#define CIOT_WIFI_CFG_SSID_HIDDEN_TAG            6
 #define CIOT_WIFI_STATUS_DISCONNECT_REASON_TAG   1
 #define CIOT_WIFI_STATUS_TCP_TAG                 2
 #define CIOT_WIFI_STATUS_SCAN_STATE_TAG          3
@@ -205,7 +207,8 @@ X(a, STATIC,   SINGULAR, BOOL,     disabled,          1) \
 X(a, STATIC,   SINGULAR, STRING,   ssid,              2) \
 X(a, STATIC,   SINGULAR, STRING,   password,          3) \
 X(a, STATIC,   SINGULAR, UENUM,    type,              4) \
-X(a, STATIC,   OPTIONAL, MESSAGE,  tcp,               5)
+X(a, STATIC,   OPTIONAL, MESSAGE,  tcp,               5) \
+X(a, STATIC,   SINGULAR, BOOL,     ssid_hidden,       6)
 #define CIOT_WIFI_CFG_CALLBACK NULL
 #define CIOT_WIFI_CFG_DEFAULT NULL
 #define ciot_wifi_cfg_t_tcp_MSGTYPE ciot_tcp_cfg_t
@@ -294,8 +297,8 @@ extern const pb_msgdesc_t ciot_wifi_data_t_msg;
 /* Maximum encoded size of messages (where known) */
 #define CIOT_CIOT_PROTO_V2_WIFI_PB_H_MAX_SIZE    CIOT_WIFI_DATA_SIZE
 #define CIOT_WIFI_AP_INFO_SIZE                   63
-#define CIOT_WIFI_CFG_SIZE                       132
-#define CIOT_WIFI_DATA_SIZE                      135
+#define CIOT_WIFI_CFG_SIZE                       134
+#define CIOT_WIFI_DATA_SIZE                      137
 #define CIOT_WIFI_INFO_SIZE                      81
 #define CIOT_WIFI_REQ_GET_AP_SIZE                6
 #define CIOT_WIFI_REQ_SCAN_RESULT_SIZE           6

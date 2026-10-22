@@ -117,6 +117,58 @@ UART_ERROR_UNKNOWN: UartError.ValueType  # 9
 """Unknown UART event error."""
 global___UartError = UartError
 
+class _UartDataBits:
+    ValueType = typing.NewType("ValueType", builtins.int)
+    V: typing_extensions.TypeAlias = ValueType
+
+class _UartDataBitsEnumTypeWrapper(google.protobuf.internal.enum_type_wrapper._EnumTypeWrapper[_UartDataBits.ValueType], builtins.type):
+    DESCRIPTOR: google.protobuf.descriptor.EnumDescriptor
+    UART_DATA_BITS_8: _UartDataBits.ValueType  # 0
+    """8 data bits (default)."""
+    UART_DATA_BITS_7: _UartDataBits.ValueType  # 1
+    """7 data bits."""
+    UART_DATA_BITS_6: _UartDataBits.ValueType  # 2
+    """6 data bits."""
+    UART_DATA_BITS_5: _UartDataBits.ValueType  # 3
+    """5 data bits."""
+
+class UartDataBits(_UartDataBits, metaclass=_UartDataBitsEnumTypeWrapper):
+    """Enum representing the number of data bits per UART frame."""
+
+UART_DATA_BITS_8: UartDataBits.ValueType  # 0
+"""8 data bits (default)."""
+UART_DATA_BITS_7: UartDataBits.ValueType  # 1
+"""7 data bits."""
+UART_DATA_BITS_6: UartDataBits.ValueType  # 2
+"""6 data bits."""
+UART_DATA_BITS_5: UartDataBits.ValueType  # 3
+"""5 data bits."""
+global___UartDataBits = UartDataBits
+
+class _UartStopBits:
+    ValueType = typing.NewType("ValueType", builtins.int)
+    V: typing_extensions.TypeAlias = ValueType
+
+class _UartStopBitsEnumTypeWrapper(google.protobuf.internal.enum_type_wrapper._EnumTypeWrapper[_UartStopBits.ValueType], builtins.type):
+    DESCRIPTOR: google.protobuf.descriptor.EnumDescriptor
+    UART_STOP_BITS_1: _UartStopBits.ValueType  # 0
+    """1 stop bit (default)."""
+    UART_STOP_BITS_1_5: _UartStopBits.ValueType  # 1
+    """1.5 stop bits."""
+    UART_STOP_BITS_2: _UartStopBits.ValueType  # 2
+    """2 stop bits."""
+
+class UartStopBits(_UartStopBits, metaclass=_UartStopBitsEnumTypeWrapper):
+    """Enum representing the number of stop bits per UART frame."""
+
+UART_STOP_BITS_1: UartStopBits.ValueType  # 0
+"""1 stop bit (default)."""
+UART_STOP_BITS_1_5: UartStopBits.ValueType  # 1
+"""1.5 stop bits."""
+UART_STOP_BITS_2: UartStopBits.ValueType  # 2
+"""2 stop bits."""
+global___UartStopBits = UartStopBits
+
 @typing.final
 class UartStop(google.protobuf.message.Message):
     """Message used to stop uart interface"""
@@ -172,6 +224,8 @@ class UartCfg(google.protobuf.message.Message):
     MODE_FIELD_NUMBER: builtins.int
     READ_TIMEOUT_FIELD_NUMBER: builtins.int
     WRITE_TIMEOUT_FIELD_NUMBER: builtins.int
+    DATA_BITS_FIELD_NUMBER: builtins.int
+    STOP_BITS_FIELD_NUMBER: builtins.int
     baud_rate: builtins.int
     """Baud rate for UART."""
     num: builtins.int
@@ -188,6 +242,10 @@ class UartCfg(google.protobuf.message.Message):
     """UART read timeout"""
     write_timeout: builtins.int
     """UART write timeout"""
+    data_bits: global___UartDataBits.ValueType
+    """Data bits per frame."""
+    stop_bits: global___UartStopBits.ValueType
+    """Stop bits per frame."""
     @property
     def gpio(self) -> global___UartGpioCfg:
         """GPIO configuration for UART."""
@@ -204,9 +262,11 @@ class UartCfg(google.protobuf.message.Message):
         mode: builtins.int = ...,
         read_timeout: builtins.int = ...,
         write_timeout: builtins.int = ...,
+        data_bits: global___UartDataBits.ValueType = ...,
+        stop_bits: global___UartStopBits.ValueType = ...,
     ) -> None: ...
     def HasField(self, field_name: typing.Literal["gpio", b"gpio"]) -> builtins.bool: ...
-    def ClearField(self, field_name: typing.Literal["baud_rate", b"baud_rate", "dtr", b"dtr", "flow_control", b"flow_control", "gpio", b"gpio", "mode", b"mode", "num", b"num", "parity", b"parity", "read_timeout", b"read_timeout", "write_timeout", b"write_timeout"]) -> None: ...
+    def ClearField(self, field_name: typing.Literal["baud_rate", b"baud_rate", "data_bits", b"data_bits", "dtr", b"dtr", "flow_control", b"flow_control", "gpio", b"gpio", "mode", b"mode", "num", b"num", "parity", b"parity", "read_timeout", b"read_timeout", "stop_bits", b"stop_bits", "write_timeout", b"write_timeout"]) -> None: ...
 
 global___UartCfg = UartCfg
 

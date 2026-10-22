@@ -35,6 +35,7 @@ ciot_err_t ciot_uart_start(ciot_uart_t self, ciot_uart_cfg_t *cfg)
 {
     CIOT_ERR_NULL_CHECK(self);
     CIOT_ERR_NULL_CHECK(cfg);
+    ciot_uart_cfg_apply_limits(cfg);
     return CIOT_ERR_NOT_IMPLEMENTED;
 }
 

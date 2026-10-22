@@ -15,7 +15,6 @@
 
 #include <stdlib.h>
 #include <string.h>
-#include "app_util_platform.h"
 #include "ciot_log.h"
 #include "ciot_ble_scn.h"
 #include "ciot_config.h"

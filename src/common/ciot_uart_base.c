@@ -15,6 +15,11 @@
 
 #include "ciot_uart.h"
 #include "ciot_types.h"
+#include "ciot_log.h"
+
+#ifdef CIOT_CONFIG_UART_READ_TIMEOUT_MAX
+static const char *TAG = "ciot_uart_base";
+#endif
 
 static ciot_err_t ciot_uart_process_data(ciot_iface_t *iface, ciot_msg_data_t *data);
 static ciot_err_t ciot_uart_get_data(ciot_iface_t *iface, ciot_msg_data_t *data);
@@ -33,6 +38,19 @@ ciot_err_t ciot_uart_init(ciot_uart_t self)
     base->iface.info.type = CIOT_IFACE_TYPE_UART;
     
     return CIOT_ERR_OK;
+}
+
+void ciot_uart_cfg_apply_limits(ciot_uart_cfg_t *cfg)
+{
+#ifdef CIOT_CONFIG_UART_READ_TIMEOUT_MAX
+    if (cfg->read_timeout > CIOT_CONFIG_UART_READ_TIMEOUT_MAX)
+    {
+        CIOT_LOGW(TAG, "read_timeout %u ms clamped to %u ms", (unsigned)cfg->read_timeout, (unsigned)CIOT_CONFIG_UART_READ_TIMEOUT_MAX);
+        cfg->read_timeout = CIOT_CONFIG_UART_READ_TIMEOUT_MAX;
+    }
+#else
+    (void)cfg;
+#endif
 }
 
 ciot_err_t ciot_uart_process_req(ciot_uart_t self, ciot_uart_req_t *req)

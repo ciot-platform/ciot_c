@@ -16,6 +16,11 @@
 
 #include "ciot_mbus_client.h"
 #include "ciot_types.h"
+#include "ciot_log.h"
+
+#ifdef CIOT_CONFIG_MBUS_CLIENT_TIMEOUT_MAX
+static const char *TAG = "ciot_mbus_client_base";
+#endif
 
 static ciot_err_t ciot_mbus_client_process_data(ciot_iface_t *iface, ciot_msg_data_t *data);
 static ciot_err_t ciot_mbus_client_get_data(ciot_iface_t *iface, ciot_msg_data_t *data);
@@ -29,6 +34,19 @@ ciot_err_t ciot_mbus_client_init(ciot_mbus_client_t self)
     base->iface.get_data = ciot_mbus_client_get_data;
     base->iface.info.type = CIOT_IFACE_TYPE_MBUS_CLIENT;
     return CIOT_ERR_OK;
+}
+
+void ciot_mbus_client_cfg_apply_limits(ciot_mbus_client_cfg_t *cfg)
+{
+#ifdef CIOT_CONFIG_MBUS_CLIENT_TIMEOUT_MAX
+    if (cfg->timeout > CIOT_CONFIG_MBUS_CLIENT_TIMEOUT_MAX)
+    {
+        CIOT_LOGW(TAG, "timeout %u ms clamped to %u ms", (unsigned)cfg->timeout, (unsigned)CIOT_CONFIG_MBUS_CLIENT_TIMEOUT_MAX);
+        cfg->timeout = CIOT_CONFIG_MBUS_CLIENT_TIMEOUT_MAX;
+    }
+#else
+    (void)cfg;
+#endif
 }
 
 ciot_err_t ciot_mbus_client_process_req(ciot_mbus_client_t self, ciot_mbus_client_req_t *req)

@@ -34,11 +34,14 @@ typedef struct ciot_mbus_server_base
     ciot_mbus_server_cfg_t cfg;
     ciot_mbus_server_status_t status;
     ciot_mbus_data_t data;
-    ciot_iface_t *conn;
+    ciot_iface_t *conn;     // transport currently active (rtu_conn or tcp_conn, selected in _start() from cfg->which_type)
+    ciot_iface_t *rtu_conn; // transport passed to ciot_mbus_server_new(), used for CIOT_MBUS_SERVER_CFG_RTU_TAG
+    ciot_iface_t *tcp_conn; // transport set via ciot_mbus_server_set_tcp_conn(), used for CIOT_MBUS_SERVER_CFG_TCP_TAG
 } ciot_mbus_server_base_t;
 
 ciot_mbus_server_t ciot_mbus_server_new(void *handle, ciot_mbus_data_t *data, ciot_iface_t *conn);
 ciot_err_t ciot_mbus_server_init(ciot_mbus_server_t self);
+ciot_err_t ciot_mbus_server_set_tcp_conn(ciot_mbus_server_t self, ciot_iface_t *tcp_conn);
 ciot_err_t ciot_mbus_server_start(ciot_mbus_server_t self, ciot_mbus_server_cfg_t *cfg);
 ciot_err_t ciot_mbus_server_stop(ciot_mbus_server_t self);
 ciot_err_t ciot_mbus_server_task(ciot_mbus_server_t self);

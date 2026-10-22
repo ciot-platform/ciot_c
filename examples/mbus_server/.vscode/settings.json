@@ -1,6 +1,6 @@
 {
   "idf.flashType": "UART",
-  "idf.portWin": "COM1",
+  "idf.portWin": "COM45",
   "idf.buildPathWin": "${workspaceFolder}/build/esp32",
   "cmake.buildDirectory": "${workspaceFolder}/build/win32",
   "files.associations": {
@@ -8,7 +8,7 @@
     "list": "c",
     "ranges": "c"
   },
-  "idf.currentSetup": "C:\\esp\\v6.0\\esp-idf",
+  "idf.currentSetup": "C:\\esp\\v5.5.4\\esp-idf",
   "idf.customExtraVars": {
     "OPENOCD_SCRIPTS": "C:\\Users\\Strea\\.espressif\\tools\\openocd-esp32\\v0.12.0-esp32-20240821/openocd-esp32/share/openocd/scripts",
     "IDF_CCACHE_ENABLE": "1",

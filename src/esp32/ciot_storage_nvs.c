@@ -49,7 +49,13 @@ ciot_err_t ciot_storage_nvs_delete(ciot_storage_t self, char *path)
 
     nvs_handle_t handle;
     CIOT_ERR_RETURN(nvs_open(CIOT_STORAGE_NVS_NS, NVS_READWRITE, &handle));
-    return nvs_erase_key(handle, path);
+    esp_err_t err = nvs_erase_key(handle, path);
+    if (err == ESP_OK)
+    {
+        err = nvs_commit(handle);
+    }
+    nvs_close(handle);
+    return err;
 }
 
 ciot_err_t ciot_storage_nvs_write_bytes(ciot_storage_t self, char *path, uint8_t *bytes, int size)
@@ -88,14 +94,17 @@ ciot_err_t ciot_storage_nvs_read_bytes(ciot_storage_t self, char *path, uint8_t 
     err = nvs_get_blob(handle, path, bytes, (size_t*)size);
     if(err == ESP_ERR_NVS_NOT_FOUND)
     {
+        nvs_close(handle);
         return CIOT_ERR_NOT_FOUND;
     }
     else if(err != ESP_OK)
     {
         CIOT_LOGE(TAG, "nvs get blob error: %s", esp_err_to_name(err));
+        nvs_close(handle);
         return CIOT_ERR_FAIL;
     }
 
+    nvs_close(handle);
     return CIOT_ERR_OK;
 }
 

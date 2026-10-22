@@ -31,6 +31,7 @@ typedef struct ciot_uart_base
 
 ciot_uart_t ciot_uart_new(void *handle);
 ciot_err_t ciot_uart_init(ciot_uart_t self);
+void ciot_uart_cfg_apply_limits(ciot_uart_cfg_t *cfg);
 ciot_err_t ciot_uart_start(ciot_uart_t self, ciot_uart_cfg_t *cfg);
 ciot_err_t ciot_uart_stop(ciot_uart_t self);
 ciot_err_t ciot_uart_task(ciot_uart_t self);

@@ -37,5 +37,6 @@
 #define TARGET_MBUS_SERVER_ID 1                           ///< Modbus server ID
 #define TARGET_MBUS_COILS_COUNT 128                        ///< Modbus coils count
 #define TARGET_MBUS_REGS_COUNT 128                         ///< Modbus registers count
+#define TARGET_MBUS_SERVER_TCP_PORT 502                   ///< Modbus TCP server port
 
 #endif  //!__TARGET_WIN32__H__

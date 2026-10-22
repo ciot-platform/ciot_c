@@ -2,31 +2,72 @@
 
 ### Changes
 
-**BLE SCN Advertisement FIFO Improvements:**
+**UART configuration enhancements:**
 
-* Introduced a new `ciot_ble_scn_adv_fifo_slot_t` struct with a `locked` flag for each FIFO slot, and updated the FIFO to use this structure for improved thread-safety. (`include/ciot_ble_scn.h`, `src/common/ciot_ble_scn_base.c`) [[1]](diffhunk://#diff-9cc3ff9f4c60d80c2855302798490b054d719bbcb6706bb5179002e28506ccbaR40-R50) [[2]](diffhunk://#diff-1d56b9dfd453aa5d1584b74b104467528a195ea593194e1b200838f769b93ea2L128-L196)
-* Added new public API functions for the FIFO: `ciot_ble_scn_adv_fifo_pop`, `ciot_ble_scn_adv_fifo_count`, and `ciot_ble_scn_adv_fifo_lost`. These provide safe access and monitoring of the FIFO state. (`include/ciot_ble_scn.h`, `src/common/ciot_ble_scn_base.c`) [[1]](diffhunk://#diff-9cc3ff9f4c60d80c2855302798490b054d719bbcb6706bb5179002e28506ccbaR87-R92) [[2]](diffhunk://#diff-1d56b9dfd453aa5d1584b74b104467528a195ea593194e1b200838f769b93ea2L128-L196)
-* Refactored and improved FIFO push/pop logic to handle contention, overflow, and error reporting, and to track lost advertisements. (`src/common/ciot_ble_scn_base.c`)
-* Changed configuration macros from `CIOT_CONFIG_BLE_SCN_ADV_FIFO_SIZE` to `CIOT_CONFIG_BLE_SCN_ADV_FIFO_ENABLED` for better feature toggling. (`src/common/ciot_ble_scn_base.c`) [[1]](diffhunk://#diff-1d56b9dfd453aa5d1584b74b104467528a195ea593194e1b200838f769b93ea2R19-R35) [[2]](diffhunk://#diff-1d56b9dfd453aa5d1584b74b104467528a195ea593194e1b200838f769b93ea2L42-R48) [[3]](diffhunk://#diff-1d56b9dfd453aa5d1584b74b104467528a195ea593194e1b200838f769b93ea2L218-R283)
+* Added `ciot_uart_data_bits_t` and `ciot_uart_stop_bits_t` enums, and included `data_bits` and `stop_bits` fields in `ciot_uart_cfg_t` to allow configurable UART frame format. Updated protocol buffer tags, macros, and default initializers accordingly. [[1]](diffhunk://#diff-75f714e563b81ee4365627f7f13e6da4ff540570a419f65b14ae753f8db924e1R41-R55) [[2]](diffhunk://#diff-75f714e563b81ee4365627f7f13e6da4ff540570a419f65b14ae753f8db924e1R81-R82) [[3]](diffhunk://#diff-75f714e563b81ee4365627f7f13e6da4ff540570a419f65b14ae753f8db924e1R145-R163) [[4]](diffhunk://#diff-75f714e563b81ee4365627f7f13e6da4ff540570a419f65b14ae753f8db924e1L140-R180) [[5]](diffhunk://#diff-75f714e563b81ee4365627f7f13e6da4ff540570a419f65b14ae753f8db924e1R199-R200) [[6]](diffhunk://#diff-75f714e563b81ee4365627f7f13e6da4ff540570a419f65b14ae753f8db924e1L196-R234)
 
-**NRF UART Refactor:**
+* Updated maximum encoded size constants for UART, Modbus client, and Modbus server protocol messages to account for the new configuration fields. [[1]](diffhunk://#diff-75f714e563b81ee4365627f7f13e6da4ff540570a419f65b14ae753f8db924e1L241-R279) [[2]](diffhunk://#diff-6bf44a776dd28cd8ec06193fb80a558c71c3f9214b21e0596abb4a124d546fd1L213-R213) [[3]](diffhunk://#diff-2879311ce531e391c9c16a7e6a20f966629ea88f91d30ecbf7f0844f3ed63f0aL215-R218)
 
-* Refactored the NRF UART implementation to use the higher-level `app_uart` driver, removing custom FIFO management and direct use of `nrf_drv_uart`. (`src/nrf/ciot_uart.c`) [[1]](diffhunk://#diff-ffccc2f85616dfd12ec2dbc6a3a71126f30eb2c9fdd873a1d71ee6f6fb46885fL16-R29) [[2]](diffhunk://#diff-ffccc2f85616dfd12ec2dbc6a3a71126f30eb2c9fdd873a1d71ee6f6fb46885fR43-R48) [[3]](diffhunk://#diff-ffccc2f85616dfd12ec2dbc6a3a71126f30eb2c9fdd873a1d71ee6f6fb46885fL74-L121) [[4]](diffhunk://#diff-ffccc2f85616dfd12ec2dbc6a3a71126f30eb2c9fdd873a1d71ee6f6fb46885fL132-R98) [[5]](diffhunk://#diff-ffccc2f85616dfd12ec2dbc6a3a71126f30eb2c9fdd873a1d71ee6f6fb46885fL143-R135)
-* Simplified UART event handling and error reporting by using `app_uart_evt_t` events and global instance management. (`src/nrf/ciot_uart.c`)
+**Platform-specific UART implementation updates:**
 
-**Modbus Server Improvements:**
+* On ESP32 (`src/esp32/ciot_uart.c`): Added validation for baud rate, data bits, and stop bits in `ciot_uart_start`. Introduced helper functions to map protocol enums to ESP-IDF UART driver values, and updated UART configuration accordingly. [[1]](diffhunk://#diff-c8a5a36ea012ff34598ad0ee6f74aaf1c434a0083acbc5a0c877c116db5bcceaR63-R64) [[2]](diffhunk://#diff-c8a5a36ea012ff34598ad0ee6f74aaf1c434a0083acbc5a0c877c116db5bcceaR89-R101) [[3]](diffhunk://#diff-c8a5a36ea012ff34598ad0ee6f74aaf1c434a0083acbc5a0c877c116db5bcceaL103-R119) [[4]](diffhunk://#diff-c8a5a36ea012ff34598ad0ee6f74aaf1c434a0083acbc5a0c877c116db5bcceaR248-R288)
 
-* Added configurable timeout macros for Modbus server read and byte timeouts in `ciot_mbus_server.h`, allowing easier adjustment of communication timeouts.
-* Added an `nmbs_initialized` flag to the `ciot_mbus_server` struct to track initialization state, supporting safer resource management.
-* Updated the `ciot_mbus_server_start` function to return errors from `ciot_uart_start` using `CIOT_ERR_RETURN`, improving error propagation.
-* Implemented the `ciot_mbus_server_stop` function to properly stop the UART connection, reset the Modbus server state, and send a stopped event, replacing the previous "not implemented" stub.
+* On Windows (`src/win/ciot_uart.c`): Added functions to convert protocol enums to Windows API values for byte size and stop bits. Updated UART initialization to use these values and handle invalid arguments. [[1]](diffhunk://#diff-63972ff7c01e2e6d441e83c0332b572d8442cca850beecff8f5a82296a80448fR37-R38) [[2]](diffhunk://#diff-63972ff7c01e2e6d441e83c0332b572d8442cca850beecff8f5a82296a80448fR60-R64) [[3]](diffhunk://#diff-63972ff7c01e2e6d441e83c0332b572d8442cca850beecff8f5a82296a80448fL84-R92) [[4]](diffhunk://#diff-63972ff7c01e2e6d441e83c0332b572d8442cca850beecff8f5a82296a80448fR253-R293)
 
-**UART Handling and Logging:**
+* On ESP32, the baud rate is also checked against `SOC_UART_BITRATE_MAX`, and a `uart_param_config` failure (e.g. an unreachable baud rate) is returned as `CIOT_ERR_INVALID_ARG` instead of aborting on `ESP_ERROR_CHECK`; a running UART is put back on its previous configuration (`src/esp32/ciot_uart.c`).
 
-* Improved UART buffer full event logging in `ciot_uart_event_handler` to include both the event size and the actual RX buffer usage, aiding in debugging buffer overflows.
-* Added a local `rx_buffer_used` variable in the UART event handler to support the improved logging.
-* Changed the `log_buffer` in `ciot_logger.c` from global to static scope for better encapsulation and to avoid namespace pollution.
+* On Windows, starting an already open port with the same number now applies the new baud rate, frame format and timeouts and reports `STARTED`, instead of returning without applying them; a rejected configuration restores the previous one (`src/win/ciot_uart.c`).
 
-**Core event handling improvements:**
+**Optional timeout caps:**
 
-* [`src/core/ciot.c`](diffhunk://#diff-ac3505c8e7850d45dfcfdd990afb140a041683f93b640fc2b17a8e05bdd30c10R593-L603): Moved the check for `CIOT_EVENT_TYPE_MSG` and the core's started state earlier in the `ciot_iface_event_handler` function, replacing a previous error log with a debug log and ensuring the function returns early with `CIOT_ERR_BUSY` if the core is not started. This prevents further processing of message events when the core is not ready.
+* Added optional `CIOT_CONFIG_UART_READ_TIMEOUT_MAX` and `CIOT_CONFIG_MBUS_CLIENT_TIMEOUT_MAX`. When defined, a UART `read_timeout` / Modbus client `timeout` above the limit is clamped (with a warning) by the public start API, e.g. to keep a blocking request within a task watchdog. Clamped rather than rejected, so a configuration saved with a larger value still starts at boot. Undefined by default: no change in behavior (`src/common/ciot_uart_base.c`, `src/common/ciot_mbus_client_base.c`).
+
+**Python bindings:**
+
+* Regenerated `scripts/ciot/proto/v2/uart_pb2.py` and `uart_pb2.pyi` with the new `UartDataBits` / `UartStopBits` fields (protoc 30.0 / mypy-protobuf 3.6.0, matching the other bindings).
+
+### Modbus TCP over Raw Sockets
+
+* Added a new generic TCP socket interface (`ciot_socket`) to provide raw TCP byte-stream transport for Modbus TCP communication, with APIs for client/server roles, status, and data transfer (`include/ciot_socket.h`, `src/common/ciot_mbus_client.c`). [[1]](diffhunk://#diff-6108660ddaac73c6497a3fca463709f73f84db9439a0b71fa64065710344ffb7R1-R71) [[2]](diffhunk://#diff-3902ca8296f5f13e0b494219ee7accbede4d5edf43a7b2e8c2ff31b2764dedc3R17) [[3]](diffhunk://#diff-3902ca8296f5f13e0b494219ee7accbede4d5edf43a7b2e8c2ff31b2764dedc3R27-R31)
+* Refactored Modbus client and server examples to support both RTU (serial) and TCP (socket) transports, including new configuration and initialization logic for TCP-based communication (`examples/mbus_client/main/main.c`, `examples/mbus_server/main/main.c`). [[1]](diffhunk://#diff-3e64b6f6c4c7d4d417e0b83dd9dd23c33146f7a585ffb978a6b2e60ebe434233R55-R95) [[2]](diffhunk://#diff-3e64b6f6c4c7d4d417e0b83dd9dd23c33146f7a585ffb978a6b2e60ebe434233R118-R135) [[3]](diffhunk://#diff-3e64b6f6c4c7d4d417e0b83dd9dd23c33146f7a585ffb978a6b2e60ebe434233R161-R185) [[4]](diffhunk://#diff-717c8555120faf298ae429af6061d31a4313a0a8784cbee63a548ed318a32bedR24-R37) [[5]](diffhunk://#diff-717c8555120faf298ae429af6061d31a4313a0a8784cbee63a548ed318a32bedR60-R77) [[6]](diffhunk://#diff-717c8555120faf298ae429af6061d31a4313a0a8784cbee63a548ed318a32bedR93-R95)
+
+### Device Interface and Configuration Updates
+
+* Extended device interface enums and structures to include new interface types for WiFi STA, Modbus TCP socket, and Modbus TCP client/server, and updated configuration management to support these (`examples/mbus_client/main/main.h`, `examples/mbus_server/main/main.h`). [[1]](diffhunk://#diff-80255e78f181c18eb0a9f6c948ba6842cef695922ce783f6da9f35f81b262cc3R36-R38) [[2]](diffhunk://#diff-80255e78f181c18eb0a9f6c948ba6842cef695922ce783f6da9f35f81b262cc3R54-R56) [[3]](diffhunk://#diff-80255e78f181c18eb0a9f6c948ba6842cef695922ce783f6da9f35f81b262cc3R71) [[4]](diffhunk://#diff-e01decc571909ceb22eb5964a250ce38a9dd4ead856172ba0829fc6e642c803bR40-R42) [[5]](diffhunk://#diff-e01decc571909ceb22eb5964a250ce38a9dd4ead856172ba0829fc6e642c803bR54-R61)
+* Added WiFi STA configuration for ESP32 to enable network connectivity for Modbus TCP operation (`examples/mbus_client/main/main.c`, `examples/mbus_server/main/main.c`, `examples/mbus_server/main/target.h`, `examples/mbus_server/main/target_esp32.h`). [[1]](diffhunk://#diff-3e64b6f6c4c7d4d417e0b83dd9dd23c33146f7a585ffb978a6b2e60ebe434233R55-R95) [[2]](diffhunk://#diff-717c8555120faf298ae429af6061d31a4313a0a8784cbee63a548ed318a32bedR24-R37) [[3]](diffhunk://#diff-3c6aa96a6b44e3664f82a95b821bb2cf8b31c933e7a07b8a20b79e647b3b11b6R62-R98) [[4]](diffhunk://#diff-33481545503a2907ce2d465579555748e86444f4c5f0f2378022e2bd5e3bc9d4R42-R49)
+
+### Modbus Server API Enhancements
+
+* Updated the Modbus server API and base structure to support both RTU and TCP transports, including a new method to set the TCP connection and fields to track active and available transports (`include/ciot_mbus_server.h`).
+
+### Platform and Build System Updates
+
+* Updated target configuration headers for ESP32 and Win32 to define TCP port and WiFi credentials for Modbus TCP operation (`examples/mbus_server/main/target_esp32.h`, `examples/mbus_server/main/target_win32.h`). [[1]](diffhunk://#diff-33481545503a2907ce2d465579555748e86444f4c5f0f2378022e2bd5e3bc9d4R42-R49) [[2]](diffhunk://#diff-78816beef3a985853692f5d9beafe713a585459ede5cc8225ea39c394f31c013R40)
+* Enabled the socket feature in the global configuration (`include/ciot_config.h`).
+* Bumped the CIOT version to 0.26.0.0 to reflect the new features (`include/ciot.h`).
+
+**New upload API support:**
+
+* Introduced `ciot_http_server_upload_api_t` struct and associated handler type to define upload endpoints, including URI, method, max payload size, and callback handler. This struct is added to the main HTTP server base struct (`ciot_http_server_base_t`).
+* Added `ciot_http_server_set_upload_api()` function to allow registration of upload endpoints at runtime. [[1]](diffhunk://#diff-30be0adb0cad3dca9597199fc8e81a0da02c60e787a149fc2f378b9ea209fc1cR96) [[2]](diffhunk://#diff-c177ce0c72f538dbaee642d82ed4a16a68060a6fc05da2b6932c167920cea1f7R59-R67)
+* Ensured the upload API is initialized as disabled by default in the HTTP server init routine.
+
+**ESP32 backend implementation:**
+
+* Registered the upload route during server startup if enabled, using the provided URI and method, and added a handler to receive, validate size, and process the upload payload. [[1]](diffhunk://#diff-fa8c3f4021f791ed328fcccd28ee915b3f4373dabba5ef1756aca492c007b692R139-R155) [[2]](diffhunk://#diff-fa8c3f4021f791ed328fcccd28ee915b3f4373dabba5ef1756aca492c007b692R47-R48)
+* Implemented `ciot_http_server_upload_handler` to receive the entire request body, enforce the size limit, and invoke the user-provided handler, returning appropriate HTTP status codes.
+* Increased the maximum number of URI handlers to accommodate the new upload endpoint.
+
+**Mongoose backend implementation:**
+
+* Added logic to the event handler to process upload endpoints, enforcing the maximum size and invoking the registered handler, returning HTTP 200 or 400 as appropriate.
+
+**Ethernet interface improvements:**
+
+* Added a `started` boolean flag to the `ciot_eth` struct to explicitly track the Ethernet interface's runtime state, improving clarity and reliability in start/stop logic.
+* Refactored the `ciot_eth_start` and `ciot_eth_stop` functions to use the new `started` flag, ensuring that the driver is only started or stopped when appropriate, and that hardware initialization is always checked and handled robustly.
+* Enhanced the hardware initialization (`ciot_eth_hw_init`) to check for previous initialization, handle errors during driver installation, and clean up resources on failure, preventing resource leaks and improving error reporting.
+
+**TCP state synchronization:**
+
+* Updated the Ethernet event handler to synchronize the TCP state (`tcp->status->state`) with Ethernet events, ensuring the reported state accurately reflects the interface's status.
