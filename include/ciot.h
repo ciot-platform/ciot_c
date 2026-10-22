@@ -93,6 +93,8 @@ struct ciot
     ciot_receiver_t receiver;
     ciot_err_t error;
     ciot_storage_t storage;
+    ciot_iface_event_handler_fn *busy_handler;
+    void *busy_args;
 };
 
 ciot_t ciot_new(void);
@@ -112,5 +114,13 @@ ciot_err_t ciot_delete_all(ciot_t self);
 bool ciot_cfg_exists(ciot_t self, uint8_t iface_id);
 const char *ciot_event_to_str(ciot_event_t *event);
 ciot_iface_state_t ciot_iface_get_state(ciot_t self, uint16_t iface_id);
+/**
+ * @brief Register a handler called when ciot core rejects an event because it is busy.
+ *
+ * The event is forwarded exactly as received from the sender iface (MSG events are still raw),
+ * so the application can decode it and notify the requester. The handler runs in the sender's
+ * context, which may be a different task than the one running ciot_task.
+ */
+ciot_err_t ciot_set_busy_handler(ciot_t self, ciot_iface_event_handler_fn busy_handler, void *busy_args);
 
 #endif  //!__CIOT__H__
