@@ -31,6 +31,7 @@ static ciot_err_t ciot_busy_task(ciot_t self);
 static ciot_err_t ciot_set_iface_list(ciot_t self, ciot_iface_t *ifaces[], int count);
 static ciot_err_t ciot_bytes_received(ciot_t self, ciot_iface_t *sender, uint8_t *bytes, int size);
 static ciot_err_t ciot_iface_event_handler(ciot_iface_t *sender, ciot_event_t *event, void *event_args);
+static ciot_err_t ciot_reject_busy(ciot_t self, ciot_iface_t *sender, ciot_event_t *event);
 
 #ifdef CIOT_MG_ENABLED
 struct mg_mgr mg;
@@ -578,7 +579,8 @@ static ciot_err_t ciot_iface_event_handler(ciot_iface_t *sender, ciot_event_t *e
 
     if (self->status.state == CIOT_STATE_BUSY)
     {
-        if(ciot_iface_is_equal(&event->msg.iface, &receiver->event.msg.iface))
+        // Raw events (e.g. MSG) do not carry a decoded msg, so event->msg.iface is not valid for them
+        if(event->which_data == CIOT_EVENT_MSG_TAG && ciot_iface_is_equal(&event->msg.iface, &receiver->event.msg.iface))
         {
             CIOT_LOGI(TAG, "ciot busy but event from same iface. processing...");
             self->status.state = CIOT_STATE_PENDING_EVENT;
@@ -586,14 +588,14 @@ static ciot_err_t ciot_iface_event_handler(ciot_iface_t *sender, ciot_event_t *e
         else
         {
             CIOT_LOGE(TAG, "ciot busy. %s(%lu) evt:%s ignored", ciot_iface_to_str(sender), (long unsigned int)sender->info.id, ciot_event_to_str(event));
-            return CIOT_ERR_BUSY;
+            return ciot_reject_busy(self, sender, event);
         }
     }
 
     if (event->type == CIOT_EVENT_TYPE_MSG && self->status.state != CIOT_STATE_STARTED)
     {
-        CIOT_LOGD(TAG, "ciot core is not started");
-        return CIOT_ERR_BUSY;
+        CIOT_LOGE(TAG, "ciot core is not started. %s(%lu) evt:%s ignored", ciot_iface_to_str(sender), (long unsigned int)sender->info.id, ciot_event_to_str(event));
+        return ciot_reject_busy(self, sender, event);
     }
     
     receiver->event = *event;
@@ -648,6 +650,15 @@ static ciot_err_t ciot_iface_event_handler(ciot_iface_t *sender, ciot_event_t *e
     return CIOT_ERR_OK;
 }
 
+static ciot_err_t ciot_reject_busy(ciot_t self, ciot_iface_t *sender, ciot_event_t *event)
+{
+    if(self->busy_handler != NULL)
+    {
+        self->busy_handler(sender, event, self->busy_args);
+    }
+    return CIOT_ERR_BUSY;
+}
+
 static ciot_err_t ciot_bytes_received(ciot_t self, ciot_iface_t *sender, uint8_t *bytes, int size)
 {
     if(sender->serializer != NULL)
@@ -662,6 +673,14 @@ static ciot_err_t ciot_bytes_received(ciot_t self, ciot_iface_t *sender, uint8_t
         self->receiver.event.which_data = CIOT_EVENT_MSG_TAG;
         return CIOT_ERR_OK;
     }
+}
+
+ciot_err_t ciot_set_busy_handler(ciot_t self, ciot_iface_event_handler_fn busy_handler, void *busy_args)
+{
+    CIOT_ERR_NULL_CHECK(self);
+    self->busy_handler = busy_handler;
+    self->busy_args = busy_args;
+    return CIOT_ERR_OK;
 }
 
 ciot_iface_state_t ciot_iface_get_state(ciot_t self, uint16_t iface_id)
