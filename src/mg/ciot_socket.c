@@ -155,18 +155,21 @@ ciot_err_t ciot_socket_stop(ciot_socket_t self)
 {
     CIOT_ERR_NULL_CHECK(self);
 
+    /* Detach first so our own MG_EV_CLOSE handling below doesn't also fire a
+     * redundant STOPPED event for this same stop() call. Then let the next
+     * mg_mgr_poll() close them: mg_close_conn() only unlinks the connection
+     * from the manager and never closes the OS socket, which left the port
+     * bound (rebind failed with EADDRINUSE) and the listener still accepting. */
     if (self->conn != NULL)
     {
-        /* Detach first so our own MG_EV_CLOSE handling below doesn't also
-         * fire a redundant STOPPED event for this same stop() call. */
         self->conn->fn_data = NULL;
-        mg_close_conn(self->conn);
+        self->conn->is_closing = 1;
         self->conn = NULL;
     }
     if (self->listener != NULL)
     {
         self->listener->fn_data = NULL;
-        mg_close_conn(self->listener);
+        self->listener->is_closing = 1;
         self->listener = NULL;
     }
 
