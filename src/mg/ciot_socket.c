@@ -69,6 +69,9 @@ ciot_err_t ciot_socket_start_server(ciot_socket_t self, uint16_t port, int32_t t
     if (self->listener != NULL || self->conn != NULL)
     {
         ciot_socket_stop(self);
+        /* stop() only marks them is_closing: let mongoose close the OS sockets
+         * now, or binding the same port below fails with EADDRINUSE. */
+        mg_mgr_poll(self->mgr, 0);
     }
 
     self->port = port;
