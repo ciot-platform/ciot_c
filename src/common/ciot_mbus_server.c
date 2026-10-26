@@ -28,6 +28,7 @@ struct ciot_mbus_server
 
 static const char *TAG = "ciot_mbus_server";
 
+static ciot_err_t ciot_mbus_server_stop_conn(ciot_mbus_server_t self);
 static int32_t ciot_mbus_server_read(uint8_t *buf, uint16_t count, int32_t byte_timeout_ms, void *arg);
 static int32_t ciot_mbus_server_write(const uint8_t *buf, uint16_t count, int32_t byte_timeout_ms, void *arg);
 static nmbs_error ciot_mbus_server_read_coils(uint16_t address, uint16_t quantity, nmbs_bitfield coils_out, uint8_t unit_id, void *arg);
@@ -66,7 +67,19 @@ ciot_err_t ciot_mbus_server_start(ciot_mbus_server_t self, ciot_mbus_server_cfg_
     CIOT_ERR_NULL_CHECK(self);
     CIOT_ERR_NULL_CHECK(cfg);
 
+    /*
+     * RTU and TCP are mutually exclusive: switching between them must stop the
+     * transport that is running now (described by the old cfg), or the TCP listener
+     * stays open in RTU mode and the next switch to TCP reuses its stale backlog.
+     * A new config of the same type is applied by the transport start below, as before.
+     */
+    if (self->base.cfg.which_type != cfg->which_type)
+    {
+        ciot_mbus_server_stop_conn(self);
+    }
+
     self->base.cfg = *cfg;
+    self->base.status.error = CIOT_ERR_OK;
 
     nmbs_platform_conf platform_conf;
     nmbs_platform_conf_create(&platform_conf);
@@ -129,22 +142,34 @@ ciot_err_t ciot_mbus_server_start(ciot_mbus_server_t self, ciot_mbus_server_cfg_
 ciot_err_t ciot_mbus_server_stop(ciot_mbus_server_t self)
 {
      CIOT_ERR_NULL_CHECK(self);
+     ciot_err_t conn_err = ciot_mbus_server_stop_conn(self);
+     self->base.status.error = conn_err;
+     ciot_iface_send_event_type(&self->base.iface, CIOT_EVENT_TYPE_STOPPED);
+     return conn_err;
+}
+
+/*
+ * Stops the transport described by the current cfg, without sending the STOPPED
+ * event: ciot_mbus_server_start() also uses it when switching between RTU and TCP,
+ * and only reports the new state. The RTU UART is stopped only when the server
+ * started it (rtu.has_uart); otherwise it belongs to its own UART iface.
+ */
+static ciot_err_t ciot_mbus_server_stop_conn(ciot_mbus_server_t self)
+{
      ciot_err_t conn_err = CIOT_ERR_OK;
      if (self->nmbs_initialized &&
          self->base.cfg.which_type == CIOT_MBUS_SERVER_CFG_RTU_TAG &&
          self->base.cfg.rtu.has_uart)
      {
-         conn_err = ciot_uart_stop((ciot_uart_t)self->base.conn);
+         conn_err = ciot_uart_stop((ciot_uart_t)self->base.rtu_conn);
      }
-     else if (self->base.cfg.which_type == CIOT_MBUS_SERVER_CFG_TCP_TAG)
+     else if (self->base.cfg.which_type == CIOT_MBUS_SERVER_CFG_TCP_TAG && self->base.tcp_conn != NULL)
      {
-         conn_err = ciot_socket_stop((ciot_socket_t)self->base.conn);
+         conn_err = ciot_socket_stop((ciot_socket_t)self->base.tcp_conn);
      }
      memset(&self->nmbs, 0, sizeof(self->nmbs));
      self->nmbs_initialized = false;
      self->base.status.state = CIOT_MBUS_SERVER_STATE_STOPPED;
-     self->base.status.error = conn_err;
-     ciot_iface_send_event_type(&self->base.iface, CIOT_EVENT_TYPE_STOPPED);
      return conn_err;
 }
 
