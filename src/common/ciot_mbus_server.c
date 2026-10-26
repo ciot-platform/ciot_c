@@ -67,20 +67,6 @@ ciot_err_t ciot_mbus_server_start(ciot_mbus_server_t self, ciot_mbus_server_cfg_
     CIOT_ERR_NULL_CHECK(self);
     CIOT_ERR_NULL_CHECK(cfg);
 
-    /*
-     * RTU and TCP are mutually exclusive: switching between them must stop the
-     * transport that is running now (described by the old cfg), or the TCP listener
-     * stays open in RTU mode and the next switch to TCP reuses its stale backlog.
-     * A new config of the same type is applied by the transport start below, as before.
-     */
-    if (self->base.cfg.which_type != cfg->which_type)
-    {
-        ciot_mbus_server_stop_conn(self);
-    }
-
-    self->base.cfg = *cfg;
-    self->base.status.error = CIOT_ERR_OK;
-
     nmbs_platform_conf platform_conf;
     nmbs_platform_conf_create(&platform_conf);
     platform_conf.read = ciot_mbus_server_read;
@@ -98,32 +84,54 @@ ciot_err_t ciot_mbus_server_start(ciot_mbus_server_t self, ciot_mbus_server_cfg_
     nmbs_set_read_timeout(&self->nmbs, CIOT_MBUS_SERVER_READ_TIMEOUT_MS);
     nmbs_set_byte_timeout(&self->nmbs, CIOT_MBUS_SERVER_BYTE_TIMEOUT_MS);
 
-    nmbs_error err = 0;
+    ciot_iface_t *conn = NULL;
     switch (cfg->which_type)
     {
     case CIOT_MBUS_SERVER_CFG_RTU_TAG:
-        self->base.conn = self->base.rtu_conn;
-        CIOT_ERR_NULL_CHECK(self->base.conn);
+        // nmbs_server_create() rejects it; check before touching any transport
+        if (cfg->rtu.server_id == 0)
+        {
+            CIOT_LOGE(TAG, "Invalid RTU server_id 0");
+            return CIOT_ERR_INVALID_ARG;
+        }
+        conn = self->base.rtu_conn;
+        CIOT_ERR_NULL_CHECK(conn);
         platform_conf.transport = NMBS_TRANSPORT_RTU;
         if(cfg->rtu.has_uart) {
-            CIOT_ERR_RETURN(ciot_uart_start((ciot_uart_t)self->base.conn, &cfg->rtu.uart));
+            CIOT_ERR_RETURN(ciot_uart_start((ciot_uart_t)conn, &cfg->rtu.uart));
         }
         break;
     case CIOT_MBUS_SERVER_CFG_TCP_TAG:
-        self->base.conn = self->base.tcp_conn;
-        CIOT_ERR_NULL_CHECK(self->base.conn);
+        conn = self->base.tcp_conn;
+        CIOT_ERR_NULL_CHECK(conn);
         platform_conf.transport = NMBS_TRANSPORT_TCP;
         if (cfg->tcp.max_connections > 1)
         {
             CIOT_LOGW(TAG, "max_connections=%lu not supported yet, serving 1 connection at a time", (long unsigned int)cfg->tcp.max_connections);
         }
-        CIOT_ERR_RETURN(ciot_socket_start_server((ciot_socket_t)self->base.conn, cfg->tcp.port, CIOT_MBUS_SERVER_BYTE_TIMEOUT_MS));
+        CIOT_ERR_RETURN(ciot_socket_start_server((ciot_socket_t)conn, cfg->tcp.port, CIOT_MBUS_SERVER_BYTE_TIMEOUT_MS));
         break;
     default:
         return CIOT_ERR_INVALID_ARG;
     }
 
-    err = nmbs_server_create(&self->nmbs, cfg->rtu.server_id, &platform_conf, &callbacks);
+    /*
+     * RTU and TCP are mutually exclusive: once the new transport is up, a switch
+     * between them stops the one described by the old cfg, or the TCP listener stays
+     * open in RTU mode and the next switch to TCP reuses its stale backlog. If the new
+     * transport fails above, the running one and its cfg are kept, as for an invalid
+     * config of the same type.
+     */
+    if (self->base.cfg.which_type != cfg->which_type)
+    {
+        ciot_mbus_server_stop_conn(self);
+    }
+
+    self->base.cfg = *cfg;
+    self->base.conn = conn;
+
+    nmbs_error err = nmbs_server_create(&self->nmbs, cfg->rtu.server_id, &platform_conf, &callbacks);
+    self->base.status.error = ciot_mbus_get_error(err);
     if (err == NMBS_ERROR_NONE)
     {
         self->nmbs_initialized = true;
@@ -136,7 +144,7 @@ ciot_err_t ciot_mbus_server_start(ciot_mbus_server_t self, ciot_mbus_server_cfg_
         ciot_iface_send_event_type(&self->base.iface, CIOT_EVENT_TYPE_ERROR);
     }
 
-    return ciot_mbus_get_error(err);
+    return self->base.status.error;
 }
 
 ciot_err_t ciot_mbus_server_stop(ciot_mbus_server_t self)
@@ -157,8 +165,7 @@ ciot_err_t ciot_mbus_server_stop(ciot_mbus_server_t self)
 static ciot_err_t ciot_mbus_server_stop_conn(ciot_mbus_server_t self)
 {
      ciot_err_t conn_err = CIOT_ERR_OK;
-     if (self->nmbs_initialized &&
-         self->base.cfg.which_type == CIOT_MBUS_SERVER_CFG_RTU_TAG &&
+     if (self->base.cfg.which_type == CIOT_MBUS_SERVER_CFG_RTU_TAG &&
          self->base.cfg.rtu.has_uart)
      {
          conn_err = ciot_uart_stop((ciot_uart_t)self->base.rtu_conn);
