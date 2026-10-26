@@ -88,10 +88,11 @@ ciot_err_t ciot_mbus_server_start(ciot_mbus_server_t self, ciot_mbus_server_cfg_
     switch (cfg->which_type)
     {
     case CIOT_MBUS_SERVER_CFG_RTU_TAG:
-        // nmbs_server_create() rejects it; check before touching any transport
-        if (cfg->rtu.server_id == 0)
+        // nmbs_server_create() takes a nonzero uint8_t: check before touching any transport,
+        // so 0 is not rejected only after the switch and 256+ does not wrap to another address
+        if (cfg->rtu.server_id == 0 || cfg->rtu.server_id > UINT8_MAX)
         {
-            CIOT_LOGE(TAG, "Invalid RTU server_id 0");
+            CIOT_LOGE(TAG, "Invalid RTU server_id %lu", (long unsigned int)cfg->rtu.server_id);
             return CIOT_ERR_INVALID_ARG;
         }
         conn = self->base.rtu_conn;
