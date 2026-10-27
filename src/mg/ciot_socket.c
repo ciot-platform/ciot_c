@@ -43,6 +43,7 @@ struct ciot_socket
 };
 
 static void ciot_socket_event_handler(struct mg_connection *c, int ev, void *ev_data);
+static void ciot_socket_close_conn(struct mg_connection *c);
 static uint64_t ciot_socket_deadline(ciot_socket_t self);
 
 ciot_socket_t ciot_socket_new(void *handle)
@@ -157,16 +158,12 @@ ciot_err_t ciot_socket_stop(ciot_socket_t self)
 
     if (self->conn != NULL)
     {
-        /* Detach first so our own MG_EV_CLOSE handling below doesn't also
-         * fire a redundant STOPPED event for this same stop() call. */
-        self->conn->fn_data = NULL;
-        mg_close_conn(self->conn);
+        ciot_socket_close_conn(self->conn);
         self->conn = NULL;
     }
     if (self->listener != NULL)
     {
-        self->listener->fn_data = NULL;
-        mg_close_conn(self->listener);
+        ciot_socket_close_conn(self->listener);
         self->listener = NULL;
     }
 
@@ -250,6 +247,33 @@ ciot_err_t ciot_socket_read_bytes(ciot_socket_t self, uint8_t *data, int size)
     mg_iobuf_del(&self->conn->recv, 0, (size_t)size);
 
     return CIOT_ERR_OK;
+}
+
+/**
+ * Closes a connection for ciot_socket_stop(). It is detached first, so our own
+ * MG_EV_CLOSE handling doesn't fire a redundant STOPPED event for the same stop().
+ * The OS socket is closed right away, so the port is free as soon as stop()
+ * returns and a start on the same port can bind again. Mongoose frees the
+ * connection itself on its next mg_mgr_poll() (is_closing), skipping the
+ * socket it no longer owns.
+ *
+ * mg_close_conn() is not used: it only unlinks the connection from the manager
+ * and never closes the OS socket, which left the port bound and the listener
+ * still accepting. Nor is the shared manager polled here, which could re-enter
+ * mg_mgr_poll() when stop() runs from a mongoose callback.
+ */
+static void ciot_socket_close_conn(struct mg_connection *c)
+{
+    c->fn_data = NULL;
+#if MG_ENABLE_SOCKET && !MG_ENABLE_FREERTOS_TCP
+    MG_SOCKET_TYPE fd = (MG_SOCKET_TYPE)(size_t)c->fd;
+    if (fd != MG_INVALID_SOCKET)
+    {
+        closesocket(fd);
+        c->fd = (void *)(size_t)MG_INVALID_SOCKET;
+    }
+#endif
+    c->is_closing = 1;
 }
 
 static uint64_t ciot_socket_deadline(ciot_socket_t self)

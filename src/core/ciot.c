@@ -577,7 +577,9 @@ static ciot_err_t ciot_iface_event_handler(ciot_iface_t *sender, ciot_event_t *e
         return self->iface.event_handler(sender, event, self->iface.event_args);
     }
 
-    if (self->status.state == CIOT_STATE_BUSY)
+    // PENDING_EVENT holds the event that answers the current request until the next
+    // ciot_busy_task(); an event from another iface must not overwrite it either
+    if (self->status.state == CIOT_STATE_BUSY || self->status.state == CIOT_STATE_PENDING_EVENT)
     {
         // Raw events (e.g. MSG) do not carry a decoded msg, so event->msg.iface is not valid for them
         if(event->which_data == CIOT_EVENT_MSG_TAG && ciot_iface_is_equal(&event->msg.iface, &receiver->event.msg.iface))
