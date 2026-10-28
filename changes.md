@@ -24,8 +24,13 @@ Switching `mbus_server` between RTU and TCP without a reboot left the previous t
 * Mongoose: `ciot_socket_stop` marks the listener and the client connection `is_closing` instead of calling `mg_close_conn`. `mg_close_conn` only unlinks the connection from the manager and never closes the OS socket, so the port stayed bound, and starting the server again failed with `EADDRINUSE`. `stop` also closes the OS socket right away, so a start on the same port can bind as soon as `stop` returns, without waiting for a `mg_mgr_poll` (`src/mg/ciot_socket.c`).
 * ESP32: `ciot_uart_stop` no longer deletes the caller. A UART without a decoder (e.g. RS485) has no event task, and `vTaskDelete(NULL)` deleted the task calling `ciot_uart_stop`, the application's main loop, until the task watchdog reset the device. The event task, when it exists, is now deleted before `uart_driver_delete` frees the queue it waits on. When `ciot_uart_stop` runs in that task itself, the task is deleted last, as before (`src/esp32/ciot_uart.c`).
 
+**Linux build fix:**
+
+* `src/mg/ciot_socket.c` did not build on Linux in 0.27.0.2 (`call to undeclared function 'closesocket'`). `mongoose.h` declares `closesocket()` only for some architectures (Windows, FreeRTOS); on Unix, `mongoose.c` maps it to `close()` internally. `ciot_socket.c` now does the same when the macro is missing. Windows is unchanged.
+
 **Version:**
 
 * `CIOT_VER` bumped to `0.27.0.0`, opening the 0.27 alpha cycle after the v0.26.0.5 stable release.
 * `CIOT_VER` bumped to `0.27.0.1` (ethernet stop fix).
 * `CIOT_VER` bumped to `0.27.0.2` (Modbus server transport switch fix).
+* `CIOT_VER` bumped to `0.27.0.3` (Linux build fix).
