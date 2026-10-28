@@ -26,6 +26,13 @@
 #include "ciot_err.h"
 #include "mongoose.h"
 
+/* mongoose.h only declares closesocket() for some architectures (e.g. Windows,
+ * FreeRTOS); on Unix, mongoose.c maps it to close() internally, so do the same. */
+#if MG_ENABLE_SOCKET && !defined(closesocket)
+#include <unistd.h>
+#define closesocket(x) close(x)
+#endif
+
 #ifndef CIOT_CONFIG_SOCKET_DEFAULT_TIMEOUT_MS
 #define CIOT_CONFIG_SOCKET_DEFAULT_TIMEOUT_MS 1000
 #endif
