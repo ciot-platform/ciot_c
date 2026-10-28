@@ -223,7 +223,8 @@ ciot_err_t ciot_mbus_server_send_bytes(ciot_mbus_server_t self, uint8_t *data, i
 ciot_err_t ciot_mbus_server_set_reg(ciot_mbus_server_t self, uint16_t addr, void *data, uint16_t size)
 {
     CIOT_ERR_NULL_CHECK(self);
-    CIOT_ERR_UINDEX_CHECK(addr, self->base.data.regs.count - size);
+    // size is in bytes and regs are 16 bits: the access must end at or before the last reg
+    CIOT_ERR_UINDEX_CHECK(addr + (size + 1) / 2, self->base.data.regs.count);
     self->base.status.last_update = ciot_timer_now();
     memcpy(&self->base.data.regs.values[addr], data, size);
     return CIOT_ERR_OK;
@@ -232,7 +233,8 @@ ciot_err_t ciot_mbus_server_set_reg(ciot_mbus_server_t self, uint16_t addr, void
 ciot_err_t ciot_mbus_server_get_reg(ciot_mbus_server_t self, uint16_t addr, void *data, uint16_t size)
 {
     CIOT_ERR_NULL_CHECK(self);
-    CIOT_ERR_UINDEX_CHECK(addr, self->base.data.regs.count - size);
+    // size is in bytes and regs are 16 bits: the access must end at or before the last reg
+    CIOT_ERR_UINDEX_CHECK(addr + (size + 1) / 2, self->base.data.regs.count);
     memcpy(data, &self->base.data.regs.values[addr], size);
     return CIOT_ERR_OK;
 }
