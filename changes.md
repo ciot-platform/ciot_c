@@ -13,6 +13,7 @@
 * The "same iface" check in the `BUSY` state only runs for events that carry a decoded msg. For raw `MSG` events it read `event->msg.iface` from the union's raw bytes, and a false match could move the core to `PENDING_EVENT` and reprocess the previous event (`src/core/ciot.c`).
 * `MSG` events dropped because the core is not started are now logged at error level with the iface and event (`src/core/ciot.c`).
 * On ESP32, `ciot_eth_stop` now sets `cfg.disabled = true` on the stored config, as `ciot_wifi_stop` already does. A config saved after stopping ethernet now keeps it disabled; before, the saved config was still enabled and ethernet came back on at boot. The next start with an enabled config resets the flag (`src/esp32/ciot_eth.c`).
+* On nRF (S140), `ciot_ble_adv_send_bytes` advertises only the bytes of the message: it sets `adv_data.len` to the message size and reconfigures the stopped adv set before `sd_ble_gap_adv_start`. Before, the adv data always had 31 bytes and the buffer was not cleared, so a message shorter than the previous one went out with the tail of the previous one, which scanners read as extra AD structures (`src/nrf/ciot_ble_adv.c`, hedrosistemas/hg_ble#101).
 
 **Modbus server transport switch (#87):**
 
