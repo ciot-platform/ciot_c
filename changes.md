@@ -33,6 +33,11 @@ Switching `mbus_server` between RTU and TCP without a reboot left the previous t
 
 * `src/mg/ciot_socket.c` did not build on Linux in 0.27.0.2 (`call to undeclared function 'closesocket'`). `mongoose.h` declares `closesocket()` only for some architectures (Windows, FreeRTOS); on Unix, `mongoose.c` maps it to `close()` internally. `ciot_socket.c` now does the same when the macro is missing. Windows is unchanged.
 
+**Free memory on nRF (#96):**
+
+* `ciot_sys_task` on nRF now fills `status.free_memory`, which was always 0. It is what the application can still allocate: the RAM between the end of the heap (`_sbrk(0)`) and the bottom of the stack reservation (`STACK_BASE`), plus the blocks freed back to `malloc` (`mallinfo().fordblks`), the same meaning as `esp_get_free_heap_size()` on ESP32. The heap can grow past `__HeapLimit` because `_sbrk` from `libnosys` does not check it, so the RAM up to the stack counts as free. Refreshed once per second, since `mallinfo` walks the free list. Only with GCC/newlib; other toolchains keep reporting 0 (`src/nrf/ciot_sys.c`).
+* The stack depth is not included: `STACK_BASE` is the bottom of the stack reservation, not how deep the stack has gone.
+
 **Version:**
 
 * `CIOT_VER` bumped to `0.27.0.0`, opening the 0.27 alpha cycle after the v0.26.0.5 stable release.
