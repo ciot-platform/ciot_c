@@ -37,7 +37,6 @@ struct ciot_decoder_s
     ciot_decoder_s_state_t state;
     int size;
     int idx;
-    uint8_t *tx_buf;
 };
 
 static const char *TAG = "ciot_decoder_s";
@@ -53,9 +52,6 @@ ciot_decoder_t ciot_decoder_s_new(uint8_t *buf, int size)
     self->base.decode = ciot_decoder_s_decode;
     self->base.encode = ciot_decoder_s_encode;
     self->base.send = ciot_decoder_s_send;
-    // The frame is sent in one send_data call, so the iface can accept or refuse it whole.
-    // Kept off the stack: the caller (ciot_iface_send) already holds a CIOT_CONFIG_MSG_SIZE buffer there.
-    self->tx_buf = malloc(CIOT_CONFIG_MSG_SIZE + CIOT_DECODER_S_FRAME_OVERHEAD);
     return &self->base;
 }
 
@@ -143,18 +139,18 @@ static ciot_err_t ciot_decoder_s_send(ciot_decoder_t base, ciot_iface_t *iface, 
     CIOT_ERR_NULL_CHECK(bytes);
     CIOT_ERR_NULL_CHECK(iface);
     CIOT_ERR_NULL_CHECK(iface->send_data);
-    ciot_decoder_s_t self = (ciot_decoder_s_t)base;
-    CIOT_ERR_NULL_CHECK(self->tx_buf);
     if (size < 0 || size > CIOT_CONFIG_MSG_SIZE) {
         return CIOT_ERR_OVERFLOW;
     }
-    // The bytes of one frame go out together: an iface that cannot take the whole frame
+    // The bytes of one frame go out in one send_data call: an iface that cannot take the whole frame
     // refuses it, so a partial frame never breaks the receiver's framing, and the caller gets the error.
-    // Concurrent sends through the same decoder must be serialized by the caller.
-    self->tx_buf[0] = start_ch;
-    self->tx_buf[1] = (uint8_t)(size & 0xFF);
-    self->tx_buf[2] = (uint8_t)((size >> 8) & 0xFF);
-    memcpy(&self->tx_buf[3], bytes, size);
-    self->tx_buf[3 + size] = end_ch;
-    return iface->send_data(iface, self->tx_buf, size + CIOT_DECODER_S_FRAME_OVERHEAD);
+    // The frame is built on the caller's stack, so senders at different priorities or in different
+    // tasks never share it.
+    uint8_t frame[CIOT_CONFIG_MSG_SIZE + CIOT_DECODER_S_FRAME_OVERHEAD];
+    frame[0] = start_ch;
+    frame[1] = (uint8_t)(size & 0xFF);
+    frame[2] = (uint8_t)((size >> 8) & 0xFF);
+    memcpy(&frame[3], bytes, size);
+    frame[3 + size] = end_ch;
+    return iface->send_data(iface, frame, size + CIOT_DECODER_S_FRAME_OVERHEAD);
 }
