@@ -14,11 +14,12 @@
 #if CIOT_CONFIG_FEATURE_SYS == 1 && defined(CIOT_PLATFORM_NRF)
 
 #include <stdlib.h>
-#if defined(__GNUC__) && !defined(__ARMCC_VERSION)
+#if defined(_NEWLIB_VERSION)
 #include <stddef.h>
 #include <malloc.h>
 #endif
 #include "app_util.h"
+#include "app_util_platform.h"
 #include "nrf_nvic.h"
 #include "nrf_soc.h"
 #include "nrf_bootloader_info.h"
@@ -33,6 +34,7 @@
 struct ciot_sys
 {
     ciot_sys_base_t base;
+    bool free_memory_read;
 };
 
 ciot_sys_t ciot_sys_new(void *handle)
@@ -55,18 +57,24 @@ ciot_err_t ciot_sys_stop(ciot_sys_t self)
     return CIOT_ERR_NOT_IMPLEMENTED;
 }
 
-#if defined(__GNUC__) && !defined(__ARMCC_VERSION)
+#if defined(_NEWLIB_VERSION)
 // newlib; <unistd.h> hides it under -std=c99.
 extern void *_sbrk(ptrdiff_t incr);
 
 // What the application can still allocate, as esp_get_free_heap_size() on ESP32: the RAM the heap
 // has not taken yet, up to the bottom of the stack reservation (STACK_BASE; newlib's _sbrk from
 // libnosys does not stop at __HeapLimit), plus the blocks freed back to malloc.
+// Read in a critical region: newlib-nano has no malloc lock without an RTOS, and an interrupt that
+// allocates or frees would change the free list mallinfo() walks, or the heap end, mid-read.
 static uint32_t ciot_sys_free_memory(void)
 {
-    struct mallinfo info = mallinfo();
+    struct mallinfo info;
+    uintptr_t heap_end;
+    CRITICAL_REGION_ENTER();
+    info = mallinfo();
+    heap_end = (uintptr_t)_sbrk(0);
+    CRITICAL_REGION_EXIT();
     uint32_t free_memory = (uint32_t)info.fordblks;
-    uintptr_t heap_end = (uintptr_t)_sbrk(0);
     uintptr_t stack_base = (uintptr_t)STACK_BASE;
     if (heap_end < stack_base)
     {
@@ -85,9 +93,10 @@ ciot_err_t ciot_sys_task(ciot_sys_t self)
 {
     uint32_t now = ciot_timer_now();
     // mallinfo() walks the free list, so free_memory is refreshed once per second.
-    if (now != self->base.status.lifetime || self->base.status.free_memory == 0)
+    if (now != self->base.status.lifetime || !self->free_memory_read)
     {
         self->base.status.free_memory = ciot_sys_free_memory();
+        self->free_memory_read = true;
     }
     self->base.status.lifetime = now;
     if (NRF_LOG_PROCESS() == false)
