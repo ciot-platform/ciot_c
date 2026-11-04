@@ -247,7 +247,11 @@ static void ciot_uart_event_handler(nrf_drv_uart_event_t *p_event, void *p_conte
         }
         break;
     case NRF_DRV_UART_EVT_TX_DONE:
+        // The driver clears its busy flag before this event, so a sender at a higher priority could
+        // otherwise start a transfer from m_tx_chunk while this one is still filling it.
+        CRITICAL_REGION_ENTER();
         ciot_uart_tx_next(self);
+        CRITICAL_REGION_EXIT();
         break;
     default:
         break;
