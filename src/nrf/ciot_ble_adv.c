@@ -143,7 +143,14 @@ ciot_err_t ciot_ble_adv_send_bytes(ciot_ble_adv_t self, uint8_t *data, int size)
 #if (NRF_SD_BLE_API_VERSION == 2 || NRF_SD_BLE_API_VERSION == 3)
     self->base.status.err_code = sd_ble_gap_adv_start(&m_adv_params);
 #else
-    self->base.status.err_code = sd_ble_gap_adv_start(m_adv_handle, APP_BLE_CONN_CFG_TAG);
+    // Advertise only the bytes of this message. With the full buffer, a message shorter than the
+    // previous one went out with the previous tail. The adv set is stopped here, so it can be reconfigured.
+    m_adv_str.adv_data.len = size;
+    self->base.status.err_code = sd_ble_gap_adv_set_configure(&m_adv_handle, &m_adv_str, &m_adv_params);
+    if (self->base.status.err_code == NRF_SUCCESS)
+    {
+        self->base.status.err_code = sd_ble_gap_adv_start(m_adv_handle, APP_BLE_CONN_CFG_TAG);
+    }
 #endif
 
     if (self->base.status.err_code == NRF_SUCCESS)
