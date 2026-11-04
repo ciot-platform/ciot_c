@@ -14,6 +14,11 @@
 #if CIOT_CONFIG_FEATURE_SYS == 1 && defined(CIOT_PLATFORM_NRF)
 
 #include <stdlib.h>
+#if defined(__GNUC__) && !defined(__ARMCC_VERSION)
+#include <stddef.h>
+#include <malloc.h>
+#endif
+#include "app_util.h"
 #include "nrf_nvic.h"
 #include "nrf_soc.h"
 #include "nrf_bootloader_info.h"
@@ -50,9 +55,41 @@ ciot_err_t ciot_sys_stop(ciot_sys_t self)
     return CIOT_ERR_NOT_IMPLEMENTED;
 }
 
+#if defined(__GNUC__) && !defined(__ARMCC_VERSION)
+// newlib; <unistd.h> hides it under -std=c99.
+extern void *_sbrk(ptrdiff_t incr);
+
+// What the application can still allocate, as esp_get_free_heap_size() on ESP32: the RAM the heap
+// has not taken yet, up to the bottom of the stack reservation (STACK_BASE; newlib's _sbrk from
+// libnosys does not stop at __HeapLimit), plus the blocks freed back to malloc.
+static uint32_t ciot_sys_free_memory(void)
+{
+    struct mallinfo info = mallinfo();
+    uint32_t free_memory = (uint32_t)info.fordblks;
+    uintptr_t heap_end = (uintptr_t)_sbrk(0);
+    uintptr_t stack_base = (uintptr_t)STACK_BASE;
+    if (heap_end < stack_base)
+    {
+        free_memory += (uint32_t)(stack_base - heap_end);
+    }
+    return free_memory;
+}
+#else
+static uint32_t ciot_sys_free_memory(void)
+{
+    return 0;
+}
+#endif
+
 ciot_err_t ciot_sys_task(ciot_sys_t self)
 {
-    self->base.status.lifetime = ciot_timer_now();
+    uint32_t now = ciot_timer_now();
+    // mallinfo() walks the free list, so free_memory is refreshed once per second.
+    if (now != self->base.status.lifetime || self->base.status.free_memory == 0)
+    {
+        self->base.status.free_memory = ciot_sys_free_memory();
+    }
+    self->base.status.lifetime = now;
     if (NRF_LOG_PROCESS() == false)
 	{
 		#if (NRF_SD_BLE_API_VERSION == 2 || NRF_SD_BLE_API_VERSION == 3)	
