@@ -174,6 +174,8 @@ static ciot_msg_t device_data_msg(uint32_t id)
     return msg;
 }
 
+#if CIOT_CONFIG_DIRECT_MSG == 1
+
 void test_ciot_busy_device_data_does_not_take_receiver(void)
 {
     busy_test_setup();
@@ -203,52 +205,6 @@ void test_ciot_busy_device_data_leaves_receiver_untouched(void)
     TEST_ASSERT_EQUAL(1, g_app_calls);
     TEST_ASSERT_EQUAL_UINT32(11, g_app_last_msg.id);
     TEST_ASSERT_EQUAL_UINT32(55, g_ciot->receiver.event.msg.id);
-
-    busy_test_cleanup();
-}
-
-// A frame that does not decode is dropped: it neither reaches the application nor takes the receiver
-void test_ciot_busy_corrupt_msg_dropped(void)
-{
-    busy_test_setup();
-
-    ciot_event_t event = { 0 };
-    event.type = CIOT_EVENT_TYPE_MSG;
-    event.which_data = CIOT_EVENT_RAW_TAG;
-    event.raw.bytes[0] = 0xFF;
-    event.raw.bytes[1] = 0xFF;
-    event.raw.bytes[2] = 0xFF;
-    event.raw.size = 3;
-    TEST_ASSERT_EQUAL(CIOT_ERR_DESERIALIZATION, ciot_iface_send_event(&g_dev_iface, &event));
-
-    TEST_ASSERT_EQUAL(0, g_app_calls);
-    TEST_ASSERT_EQUAL(CIOT_STATE_STARTED, g_ciot->status.state);
-
-    busy_test_cleanup();
-}
-
-// The error sent back for a failed CUSTOM msg carries the iface id it was addressed to
-void test_ciot_busy_custom_error_carries_iface_id(void)
-{
-    busy_test_setup();
-    g_app_ret = CIOT_ERR_FAIL;
-
-    ciot_msg_t msg = { 0 };
-    msg.id = 12;
-    msg.has_iface = true;
-    msg.iface.type = CIOT_IFACE_TYPE_CUSTOM;
-    msg.iface.id = 5;
-    msg.has_data = true;
-    msg.data.which_type = CIOT_MSG_DATA_GET_DATA_TAG;
-    ciot_event_t event = raw_event(&msg);
-    TEST_ASSERT_EQUAL(CIOT_ERR_OK, ciot_iface_send_event(&g_dev_iface, &event));
-
-    TEST_ASSERT_GREATER_THAN(0, g_sent_size);
-    ciot_msg_t sent = { 0 };
-    TEST_ASSERT_GREATER_THAN(0, ciot_serializer_from_bytes(g_sent, g_sent_size, &sent, CIOT_MSG_FIELDS));
-    TEST_ASSERT_EQUAL(CIOT_IFACE_TYPE_CUSTOM, sent.iface.type);
-    TEST_ASSERT_EQUAL_UINT32(5, sent.iface.id);
-    TEST_ASSERT_EQUAL(CIOT_ERR_FAIL, sent.error);
 
     busy_test_cleanup();
 }
@@ -296,6 +252,91 @@ void test_ciot_busy_custom_msg_reaches_app_while_busy(void)
     TEST_ASSERT_EQUAL_UINT32(9, g_app_last_msg.id);
     TEST_ASSERT_EQUAL(CIOT_STATE_BUSY, g_ciot->status.state);
     TEST_ASSERT_EQUAL_UINT32(100, g_ciot->receiver.event.msg.id);
+
+    busy_test_cleanup();
+}
+
+#else // CIOT_CONFIG_DIRECT_MSG == 0 (default): device data takes the receiver, as before
+
+void test_ciot_busy_device_data_takes_receiver_by_default(void)
+{
+    busy_test_setup();
+
+    ciot_msg_t msg = device_data_msg(7);
+    ciot_event_t event = raw_event(&msg);
+    TEST_ASSERT_EQUAL(CIOT_ERR_OK, ciot_iface_send_event(&g_dev_iface, &event));
+
+    // Reaches the application only from ciot_task
+    TEST_ASSERT_EQUAL(CIOT_STATE_BUSY, g_ciot->status.state);
+    TEST_ASSERT_EQUAL(0, g_app_calls);
+    TEST_ASSERT_EQUAL(CIOT_ERR_OK, ciot_task(g_ciot));
+    TEST_ASSERT_EQUAL(CIOT_STATE_STARTED, g_ciot->status.state);
+    TEST_ASSERT_EQUAL(1, g_app_calls);
+    TEST_ASSERT_EQUAL_UINT32(7, g_app_last_msg.id);
+
+    busy_test_cleanup();
+}
+
+void test_ciot_busy_device_data_dropped_while_busy_by_default(void)
+{
+    busy_test_setup();
+    make_core_busy();
+
+    ciot_msg_t msg = device_data_msg(8);
+    ciot_event_t event = raw_event(&msg);
+    TEST_ASSERT_EQUAL(CIOT_ERR_BUSY, ciot_iface_send_event(&g_dev_iface, &event));
+
+    TEST_ASSERT_EQUAL(1, g_busy_calls);
+    TEST_ASSERT_EQUAL(0, g_app_calls);
+    TEST_ASSERT_EQUAL_UINT32(100, g_ciot->receiver.event.msg.id);
+
+    busy_test_cleanup();
+}
+
+#endif // CIOT_CONFIG_DIRECT_MSG
+
+// A frame that does not decode is dropped: it neither reaches the application nor takes the receiver
+void test_ciot_busy_corrupt_msg_dropped(void)
+{
+    busy_test_setup();
+
+    ciot_event_t event = { 0 };
+    event.type = CIOT_EVENT_TYPE_MSG;
+    event.which_data = CIOT_EVENT_RAW_TAG;
+    event.raw.bytes[0] = 0xFF;
+    event.raw.bytes[1] = 0xFF;
+    event.raw.bytes[2] = 0xFF;
+    event.raw.size = 3;
+    TEST_ASSERT_EQUAL(CIOT_ERR_DESERIALIZATION, ciot_iface_send_event(&g_dev_iface, &event));
+
+    TEST_ASSERT_EQUAL(0, g_app_calls);
+    TEST_ASSERT_EQUAL(CIOT_STATE_STARTED, g_ciot->status.state);
+
+    busy_test_cleanup();
+}
+
+// The error sent back for a failed CUSTOM msg carries the iface id it was addressed to
+void test_ciot_busy_custom_error_carries_iface_id(void)
+{
+    busy_test_setup();
+    g_app_ret = CIOT_ERR_FAIL;
+
+    ciot_msg_t msg = { 0 };
+    msg.id = 12;
+    msg.has_iface = true;
+    msg.iface.type = CIOT_IFACE_TYPE_CUSTOM;
+    msg.iface.id = 5;
+    msg.has_data = true;
+    msg.data.which_type = CIOT_MSG_DATA_GET_DATA_TAG;
+    ciot_event_t event = raw_event(&msg);
+    TEST_ASSERT_EQUAL(CIOT_ERR_OK, ciot_iface_send_event(&g_dev_iface, &event));
+
+    TEST_ASSERT_GREATER_THAN(0, g_sent_size);
+    ciot_msg_t sent = { 0 };
+    TEST_ASSERT_GREATER_THAN(0, ciot_serializer_from_bytes(g_sent, g_sent_size, &sent, CIOT_MSG_FIELDS));
+    TEST_ASSERT_EQUAL(CIOT_IFACE_TYPE_CUSTOM, sent.iface.type);
+    TEST_ASSERT_EQUAL_UINT32(5, sent.iface.id);
+    TEST_ASSERT_EQUAL(CIOT_ERR_FAIL, sent.error);
 
     busy_test_cleanup();
 }

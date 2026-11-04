@@ -17,7 +17,9 @@
 #include "ciot_serializer_pb.h"
 
 // Short critical sections around the flag that guards the direct dispatch buffer (see ciot_direct_lock).
-#if defined(CIOT_PLATFORM_NRF)
+#if CIOT_CONFIG_DIRECT_MSG != 1
+// Not used
+#elif defined(CIOT_PLATFORM_NRF)
 #include "app_util_platform.h"
 #define CIOT_CORE_CRITICAL_ENTER() CRITICAL_REGION_ENTER()
 #define CIOT_CORE_CRITICAL_EXIT() CRITICAL_REGION_EXIT()
@@ -48,7 +50,9 @@ static ciot_err_t ciot_set_iface_list(ciot_t self, ciot_iface_t *ifaces[], int c
 static ciot_err_t ciot_bytes_received(ciot_iface_t *sender, uint8_t *bytes, int size, ciot_event_t *dst);
 static void ciot_log_received_msg(ciot_msg_t *msg);
 static bool ciot_msg_needs_receiver(ciot_iface_t *sender, ciot_msg_t *msg);
+#if CIOT_CONFIG_DIRECT_MSG == 1
 static ciot_err_t ciot_process_direct_msg(ciot_t self, ciot_iface_t *sender, ciot_event_t *event);
+#endif
 static void ciot_dispatch_msg(ciot_t self, ciot_iface_t *sender, ciot_event_t *event);
 static ciot_err_t ciot_iface_event_handler(ciot_iface_t *sender, ciot_event_t *event, void *event_args);
 static ciot_err_t ciot_reject_busy(ciot_t self, ciot_iface_t *sender, ciot_event_t *event);
@@ -597,6 +601,7 @@ static ciot_err_t ciot_iface_event_handler(ciot_iface_t *sender, ciot_event_t *e
         return self->iface.event_handler(sender, event, self->iface.event_args);
     }
 
+#if CIOT_CONFIG_DIRECT_MSG == 1
     // A raw MSG is decoded apart from receiver.event first: if it does not need the receiver it goes
     // to the application now, busy or not, and never touches receiver.event. CIOT_ERR_BUSY means it
     // needs the receiver (or the direct buffer is in use), so it follows the receiver path below.
@@ -611,6 +616,7 @@ static ciot_err_t ciot_iface_event_handler(ciot_iface_t *sender, ciot_event_t *e
             return err;
         }
     }
+#endif
 
     // PENDING_EVENT holds the event that answers the current request until the next
     // ciot_busy_task(); an event from another iface must not overwrite it either
@@ -643,7 +649,7 @@ static ciot_err_t ciot_iface_event_handler(ciot_iface_t *sender, ciot_event_t *e
         CIOT_ERR_RETURN(ciot_bytes_received(sender, event->raw.bytes, event->raw.size, &receiver->event));
         ciot_log_received_msg(&receiver->event.msg);
 
-        // Only reached by a message that does not need the receiver when the direct buffer was in use
+        // A CUSTOM msg, or (CIOT_CONFIG_DIRECT_MSG) one that found the direct buffer in use
         if(!ciot_msg_needs_receiver(sender, &receiver->event.msg))
         {
             ciot_dispatch_msg(self, sender, &receiver->event);
@@ -710,10 +716,11 @@ static void ciot_log_received_msg(ciot_msg_t *msg)
 }
 
 // Whether a received message must go through the receiver (busy state and ciot_busy_task), or can
-// go straight to the application handler. ciot_busy_task only acts on proxied messages, on requests
-// for a core iface and on answers to a request pending on the sender. For anything else (e.g. data
-// a device sends on its own, like advs and acks from a BLE coprocessor) it would only call the
-// application handler, so taking the receiver would just make the core busy and drop what arrives meanwhile.
+// go straight to the application handler. A CUSTOM msg without proxy always goes straight to it.
+// With CIOT_CONFIG_DIRECT_MSG, so does anything ciot_busy_task would only hand to the application:
+// it only acts on proxied messages, on requests for a core iface and on answers to a request pending
+// on the sender. For anything else (e.g. data a device sends on its own, like advs and acks from a
+// BLE coprocessor) taking the receiver just makes the core busy and drops what arrives meanwhile.
 static bool ciot_msg_needs_receiver(ciot_iface_t *sender, ciot_msg_t *msg)
 {
     if(msg->has_proxy)
@@ -724,10 +731,16 @@ static bool ciot_msg_needs_receiver(ciot_iface_t *sender, ciot_msg_t *msg)
     {
         return false;
     }
+#if CIOT_CONFIG_DIRECT_MSG == 1
     return msg->type == CIOT_MSG_TYPE_REQUEST ||
            sender->req_status.state != CIOT_IFACE_REQ_STATE_IDLE;
+#else
+    (void)sender;
+    return true;
+#endif
 }
 
+#if CIOT_CONFIG_DIRECT_MSG == 1
 // Test-and-set of direct.in_use. nRF, ESP32 and ESP8266 use a critical section (senders run in
 // interrupts or in other tasks); elsewhere an atomic builtin when the compiler has one.
 static bool ciot_direct_lock(ciot_direct_t *direct)
@@ -798,6 +811,7 @@ static ciot_err_t ciot_process_direct_msg(ciot_t self, ciot_iface_t *sender, cio
     ciot_direct_unlock(&self->direct);
     return err;
 }
+#endif // CIOT_CONFIG_DIRECT_MSG
 
 // Hands a decoded message that does not need the receiver to the application handler. As before,
 // only a CUSTOM message gets an error back when there is no handler or the handler fails; for the
