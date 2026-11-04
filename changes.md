@@ -32,6 +32,14 @@ Switching `mbus_server` between RTU and TCP without a reboot left the previous t
 
 * `src/mg/ciot_socket.c` did not build on Linux in 0.27.0.2 (`call to undeclared function 'closesocket'`). `mongoose.h` declares `closesocket()` only for some architectures (Windows, FreeRTOS); on Unix, `mongoose.c` maps it to `close()` internally. `ciot_socket.c` now does the same when the macro is missing. Windows is unchanged.
 
+**Core: data from a device is no longer dropped while the core is busy (#89):**
+
+* After decoding a `MSG`, `ciot_iface_event_handler` checks whether it needs the receiver (the busy state and `ciot_busy_task`): proxied messages, requests for a core iface, and answers to a request pending on the sender. Anything else goes straight to the application handler, in the sender's context, without making the core busy. This was already the case for `CUSTOM` messages. It now also covers non-request messages from a sender with no pending request, e.g. acks that a device sends as responses without an iface. Before, each of them made the core `BUSY` until the next `ciot_task`, where `ciot_busy_task` only called the application handler. On ESP32 that can take up to 100 ms (`ciot_sys_task` wait), and every frame that arrived in between was dropped (`src/core/ciot.c`).
+* While the core is `BUSY` or `PENDING_EVENT`, a raw `MSG` from another iface is decoded into a separate static buffer. If it does not need the receiver, it goes to the application handler instead of being dropped. Requests and answers are still dropped and reach the busy handler as before. The buffer serves one sender at a time, through a short critical section on nRF and ESP32; a sender that finds it in use is dropped as before. Static RAM grows by one `ciot_event_t` (896 B on nRF with `CIOT_CONFIG_MSG_SIZE` 256) (`src/core/ciot.c`).
+* Seen on an ESP32 with an nRF52840 on its UART, during load tests: advs and acks from the nRF were dropped with `ciot busy. UART(9) evt:EVENT_MSG ignored`, 314 times in about 10 minutes of log (232 with the nRF scanning every advertiser, 82 at its default scan level). These frames are not requests, so no busy handler could answer for them.
+* As before, an error from the application handler is sent back only for `CUSTOM` messages.
+* Not changed: status events (`STARTED`, `STOPPED`, ...) still take the receiver, and an HTTP request dropped as busy still gets no response (the HTTP case of #89).
+
 **Version:**
 
 * `CIOT_VER` bumped to `0.27.0.0`, opening the 0.27 alpha cycle after the v0.26.0.5 stable release.
