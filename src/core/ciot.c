@@ -16,6 +16,21 @@
 #include "ciot_timer.h"
 #include "ciot_serializer_pb.h"
 
+// Short critical sections around the flag that guards the direct dispatch buffer (see ciot_direct_lock).
+#if defined(CIOT_PLATFORM_NRF)
+#include "app_util_platform.h"
+#define CIOT_CORE_CRITICAL_ENTER() CRITICAL_REGION_ENTER()
+#define CIOT_CORE_CRITICAL_EXIT() CRITICAL_REGION_EXIT()
+#elif defined(CIOT_PLATFORM_ESP32)
+#include "freertos/FreeRTOS.h"
+static portMUX_TYPE ciot_core_mux = portMUX_INITIALIZER_UNLOCKED;
+#define CIOT_CORE_CRITICAL_ENTER() portENTER_CRITICAL(&ciot_core_mux)
+#define CIOT_CORE_CRITICAL_EXIT() portEXIT_CRITICAL(&ciot_core_mux)
+#else
+#define CIOT_CORE_CRITICAL_ENTER()
+#define CIOT_CORE_CRITICAL_EXIT()
+#endif
+
 #ifndef CIOT_CONFIG_START_TIMEOUT_SECS
 #define CIOT_CONFIG_START_TIMEOUT_SECS 5
 #endif
@@ -29,13 +44,25 @@ static const char *TAG = "ciot";
 static ciot_err_t ciot_starting_task(ciot_t self);
 static ciot_err_t ciot_busy_task(ciot_t self);
 static ciot_err_t ciot_set_iface_list(ciot_t self, ciot_iface_t *ifaces[], int count);
-static ciot_err_t ciot_bytes_received(ciot_t self, ciot_iface_t *sender, uint8_t *bytes, int size);
+static ciot_err_t ciot_bytes_received(ciot_iface_t *sender, uint8_t *bytes, int size, ciot_event_t *dst);
+static void ciot_log_received_msg(ciot_msg_t *msg);
+static bool ciot_msg_needs_receiver(ciot_iface_t *sender, ciot_msg_t *msg);
+static ciot_err_t ciot_process_busy_msg(ciot_t self, ciot_iface_t *sender, ciot_event_t *event);
+static void ciot_dispatch_msg(ciot_t self, ciot_iface_t *sender, ciot_event_t *event);
 static ciot_err_t ciot_iface_event_handler(ciot_iface_t *sender, ciot_event_t *event, void *event_args);
 static ciot_err_t ciot_reject_busy(ciot_t self, ciot_iface_t *sender, ciot_event_t *event);
 
 #ifdef CIOT_MG_ENABLED
 struct mg_mgr mg;
 #endif
+
+// Holds a message decoded while the core is busy, so it does not overwrite receiver.event.
+// One sender at a time: a sender that finds it in use is rejected as busy, as before.
+static struct
+{
+    ciot_event_t event;
+    volatile bool in_use;
+} ciot_direct;
 
 ciot_t ciot_new(void)
 {
@@ -587,6 +614,11 @@ static ciot_err_t ciot_iface_event_handler(ciot_iface_t *sender, ciot_event_t *e
             CIOT_LOGI(TAG, "ciot busy but event from same iface. processing...");
             self->status.state = CIOT_STATE_PENDING_EVENT;
         }
+        else if(event->type == CIOT_EVENT_TYPE_MSG && event->which_data == CIOT_EVENT_RAW_TAG &&
+                ciot_process_busy_msg(self, sender, event) == CIOT_ERR_OK)
+        {
+            return CIOT_ERR_OK;
+        }
         else
         {
             CIOT_LOGE(TAG, "ciot busy. %s(%lu) evt:%s ignored", ciot_iface_to_str(sender), (long unsigned int)sender->info.id, ciot_event_to_str(event));
@@ -605,35 +637,12 @@ static ciot_err_t ciot_iface_event_handler(ciot_iface_t *sender, ciot_event_t *e
     
     if (event->type == CIOT_EVENT_TYPE_MSG)
     {
-        CIOT_ERR_RETURN(ciot_bytes_received(self, sender, event->raw.bytes, event->raw.size));
+        CIOT_ERR_RETURN(ciot_bytes_received(sender, event->raw.bytes, event->raw.size, &receiver->event));
+        ciot_log_received_msg(&receiver->event.msg);
 
-#if CIOT_CONFIG_FEATURE_LOG == 1
-        if(receiver->event.msg.data.which_type == CIOT_MSG_DATA_LOG_TAG)
+        if(!ciot_msg_needs_receiver(sender, &receiver->event.msg))
         {
-            ciot_log_data_t *log = &receiver->event.msg.data.log;
-            if(log->level == CIOT_LOG_LEVEL_INFO) CIOT_LOGI(TAG, "[%s] %s", log->tag, log->message);
-            if(log->level == CIOT_LOG_LEVEL_WARNING) CIOT_LOGW(TAG, "[%s] %s", log->tag, log->message);
-            if(log->level == CIOT_LOG_LEVEL_ERROR) CIOT_LOGE(TAG, "[%s] %s", log->tag, log->message);
-        }
-#endif 
-
-        if(receiver->event.msg.iface.type == CIOT_IFACE_TYPE_CUSTOM &&
-           receiver->event.msg.has_proxy == false)
-        {
-            if(self->iface.event_handler != NULL)
-            {
-                ciot_err_t err = self->iface.event_handler(sender, &receiver->event, self->iface.event_args);
-                if(err != CIOT_ERR_OK)
-                {
-                    CIOT_LOGE(TAG, "error from application event handler: %s", ciot_err_to_message(err));
-                    ciot_iface_send_error(receiver->sender, receiver->event.msg.iface.type, receiver->event.msg.iface.type, &receiver->event.msg, err);
-                }
-            }
-            else
-            {
-                CIOT_LOGE(TAG, "ciot event handler is null");
-                ciot_iface_send_error(receiver->sender, CIOT_IFACE_TYPE_CIOT, self->iface.info.id, &receiver->event.msg, CIOT_ERR_NULL_EVENT_HANDLER);
-            }
+            ciot_dispatch_msg(self, sender, &receiver->event);
         }
         else
         {
@@ -661,19 +670,122 @@ static ciot_err_t ciot_reject_busy(ciot_t self, ciot_iface_t *sender, ciot_event
     return CIOT_ERR_BUSY;
 }
 
-static ciot_err_t ciot_bytes_received(ciot_t self, ciot_iface_t *sender, uint8_t *bytes, int size)
+static ciot_err_t ciot_bytes_received(ciot_iface_t *sender, uint8_t *bytes, int size, ciot_event_t *dst)
 {
     if(sender->serializer != NULL)
     {
-        sender->serializer->from_bytes(bytes, size, &self->receiver.event.msg);
-        self->receiver.event.which_data = CIOT_EVENT_MSG_TAG;
-        return CIOT_ERR_OK;
+        sender->serializer->from_bytes(bytes, size, &dst->msg);
     }
     else
     {
-        ciot_serializer_from_bytes(bytes, size, &self->receiver.event.msg, CIOT_MSG_FIELDS);
-        self->receiver.event.which_data = CIOT_EVENT_MSG_TAG;
-        return CIOT_ERR_OK;
+        ciot_serializer_from_bytes(bytes, size, &dst->msg, CIOT_MSG_FIELDS);
+    }
+    dst->which_data = CIOT_EVENT_MSG_TAG;
+    return CIOT_ERR_OK;
+}
+
+static void ciot_log_received_msg(ciot_msg_t *msg)
+{
+#if CIOT_CONFIG_FEATURE_LOG == 1
+    if(msg->data.which_type == CIOT_MSG_DATA_LOG_TAG)
+    {
+        ciot_log_data_t *log = &msg->data.log;
+        if(log->level == CIOT_LOG_LEVEL_INFO) CIOT_LOGI(TAG, "[%s] %s", log->tag, log->message);
+        if(log->level == CIOT_LOG_LEVEL_WARNING) CIOT_LOGW(TAG, "[%s] %s", log->tag, log->message);
+        if(log->level == CIOT_LOG_LEVEL_ERROR) CIOT_LOGE(TAG, "[%s] %s", log->tag, log->message);
+    }
+#endif
+}
+
+// Whether a received message must go through the receiver (busy state and ciot_busy_task), or can
+// go straight to the application handler. ciot_busy_task only acts on proxied messages, on requests
+// for a core iface and on answers to a request pending on the sender. For anything else (e.g. data
+// a device sends on its own, like advs and acks from a BLE coprocessor) it would only call the
+// application handler, so taking the receiver would just make the core busy and drop what arrives meanwhile.
+static bool ciot_msg_needs_receiver(ciot_iface_t *sender, ciot_msg_t *msg)
+{
+    if(msg->has_proxy)
+    {
+        return true;
+    }
+    if(msg->iface.type == CIOT_IFACE_TYPE_CUSTOM)
+    {
+        return false;
+    }
+    return msg->type == CIOT_MSG_TYPE_REQUEST ||
+           sender->req_status.state != CIOT_IFACE_REQ_STATE_IDLE;
+}
+
+static bool ciot_direct_lock(void)
+{
+    bool locked = false;
+    CIOT_CORE_CRITICAL_ENTER();
+    if(!ciot_direct.in_use)
+    {
+        ciot_direct.in_use = true;
+        locked = true;
+    }
+    CIOT_CORE_CRITICAL_EXIT();
+    return locked;
+}
+
+static void ciot_direct_unlock(void)
+{
+    CIOT_CORE_CRITICAL_ENTER();
+    ciot_direct.in_use = false;
+    CIOT_CORE_CRITICAL_EXIT();
+}
+
+// A raw message that arrives while the core is busy. It is decoded apart from receiver.event and,
+// if it does not need the receiver, handed to the application handler instead of being dropped.
+// Returns CIOT_ERR_BUSY when the message must be rejected as before.
+static ciot_err_t ciot_process_busy_msg(ciot_t self, ciot_iface_t *sender, ciot_event_t *event)
+{
+    if(!ciot_direct_lock())
+    {
+        return CIOT_ERR_BUSY;
+    }
+
+    ciot_event_t *direct = &ciot_direct.event;
+    ciot_err_t err = CIOT_ERR_BUSY;
+
+    direct->type = event->type;
+    ciot_bytes_received(sender, event->raw.bytes, event->raw.size, direct);
+
+    if(!ciot_msg_needs_receiver(sender, &direct->msg))
+    {
+        ciot_log_received_msg(&direct->msg);
+        CIOT_LOGD(TAG, "ciot busy. %s(%lu) msg handled without the receiver", ciot_iface_to_str(sender), (long unsigned int)sender->info.id);
+        ciot_dispatch_msg(self, sender, direct);
+        err = CIOT_ERR_OK;
+    }
+
+    ciot_direct_unlock();
+    return err;
+}
+
+// Hands a decoded message that does not need the receiver to the application handler. As before,
+// only a CUSTOM message gets an error back when there is no handler or the handler fails; for the
+// others ciot_busy_task ignored the handler result.
+static void ciot_dispatch_msg(ciot_t self, ciot_iface_t *sender, ciot_event_t *event)
+{
+    bool custom = event->msg.iface.type == CIOT_IFACE_TYPE_CUSTOM;
+
+    if(self->iface.event_handler == NULL)
+    {
+        if(custom)
+        {
+            CIOT_LOGE(TAG, "ciot event handler is null");
+            ciot_iface_send_error(sender, CIOT_IFACE_TYPE_CIOT, self->iface.info.id, &event->msg, CIOT_ERR_NULL_EVENT_HANDLER);
+        }
+        return;
+    }
+
+    ciot_err_t err = self->iface.event_handler(sender, event, self->iface.event_args);
+    if(err != CIOT_ERR_OK && custom)
+    {
+        CIOT_LOGE(TAG, "error from application event handler: %s", ciot_err_to_message(err));
+        ciot_iface_send_error(sender, event->msg.iface.type, event->msg.iface.type, &event->msg, err);
     }
 }
 

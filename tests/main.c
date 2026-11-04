@@ -21,6 +21,13 @@ void test_ciot_crypt();
 void test_ciot_queue_starting_discards_unexpected_event_and_continues(void);
 void test_ciot_queue_custom_msg_handler_error_does_not_leave_dead_item(void);
 
+// Core busy tests
+void test_ciot_busy_device_data_does_not_take_receiver(void);
+void test_ciot_busy_device_data_reaches_app_while_busy(void);
+void test_ciot_busy_custom_msg_reaches_app_while_busy(void);
+void test_ciot_busy_request_still_rejected_while_busy(void);
+void test_ciot_busy_answer_to_pending_request_takes_receiver(void);
+
 // WiFi Multi tests
 void test_ciot_wifi_multi_new_with_injected_wifi(void);
 void test_ciot_wifi_multi_new_creates_internal_wifi(void);
@@ -73,6 +80,13 @@ int main(void)
     // Queue regression tests
     RUN_TEST(test_ciot_queue_starting_discards_unexpected_event_and_continues);
     RUN_TEST(test_ciot_queue_custom_msg_handler_error_does_not_leave_dead_item);
+
+    // Core busy tests
+    RUN_TEST(test_ciot_busy_device_data_does_not_take_receiver);
+    RUN_TEST(test_ciot_busy_device_data_reaches_app_while_busy);
+    RUN_TEST(test_ciot_busy_custom_msg_reaches_app_while_busy);
+    RUN_TEST(test_ciot_busy_request_still_rejected_while_busy);
+    RUN_TEST(test_ciot_busy_answer_to_pending_request_takes_receiver);
 
     // WiFi Multi tests
     RUN_TEST(test_ciot_wifi_multi_new_with_injected_wifi);
