@@ -18,6 +18,7 @@
 #include "app_fifo.h"
 #include "app_usbd_serial_num.h"
 #include "nrf_drv_clock.h"
+#include "app_util_platform.h"
 #include "ciot_usb.h"
 #include "ciot_uart.h"
 #include "ciot_err.h"
@@ -32,8 +33,14 @@ static const char *TAG = "ciot_usb";
 #define CDC_ACM_DATA_EPIN NRF_DRV_USBD_EPIN1
 #define CDC_ACM_DATA_EPOUT NRF_DRV_USBD_EPOUT1
 
+// Bytes handed to the CDC class per transfer (one full-speed bulk packet).
+#ifndef CIOT_CONFIG_USB_TX_CHUNK_SIZE
+#define CIOT_CONFIG_USB_TX_CHUNK_SIZE NRF_DRV_USBD_EPSIZE
+#endif
+
 static void ciot_usbd_event_handler(app_usbd_event_type_t event);
 static void ciot_cdc_acm_event_handler(app_usbd_class_inst_t const *p_inst, app_usbd_cdc_acm_user_event_t event);
+static void ciot_usb_tx_next(ciot_usb_t self);
 
 APP_USBD_CDC_ACM_GLOBAL_DEF(m_app_cdc_acm,
                             ciot_cdc_acm_event_handler,
@@ -55,12 +62,14 @@ struct ciot_usb
     ciot_usb_base_t base;
     ciot_usb_fifo_t fifo;
     uint8_t rx_byte[1];
-    uint8_t tx_byte[1];
     bool tx_in_progress;
     const app_usbd_class_inst_t *usb;
 };
 
 static ciot_usb_t usb;
+
+// Static: there is a single CDC instance, and the buffer stays off the heap.
+static uint8_t m_tx_chunk[CIOT_CONFIG_USB_TX_CHUNK_SIZE];
 
 ciot_usb_t ciot_usb_new(void *handle)
 {
@@ -140,37 +149,79 @@ ciot_err_t ciot_usb_task(ciot_usb_t self)
     return CIOT_ERR_OK;
 }
 
+// All or nothing: the bytes are queued only if all of them fit in the TX FIFO. Otherwise nothing
+// is queued and CIOT_ERR_OVERFLOW is returned, so a frame never goes out partially.
 ciot_err_t ciot_usb_send_bytes(ciot_usb_t self, uint8_t *bytes, int size)
 {
     CIOT_ERR_NULL_CHECK(self);
     CIOT_ERR_NULL_CHECK(bytes);
-
-    uint32_t err_code = 0;
-    uint32_t len = 0;
-    // ciot_usb_t self = (ciot_usb_t)iface;
 
     if(self->base.status.state != CIOT_USB_STATE_STARTED)
     {
         return CIOT_ERR_INVALID_STATE;
     }
 
-    err_code = app_fifo_write(&self->fifo.tx, NULL, &len);
-    err_code = len < size ? CIOT_ERR_OVERFLOW : CIOT_ERR_OK;
-    if(err_code == CIOT_ERR_OK)
+    if(size <= 0)
     {
-        len = size;
-        err_code = app_fifo_write(&self->fifo.tx, bytes, &len);
-    }
-    if(!self->tx_in_progress)
-    {
-        self->tx_in_progress = true;
-        if(app_fifo_get(&self->fifo.tx, self->tx_byte) == NRF_SUCCESS) 
-        {
-            err_code = app_usbd_cdc_acm_write(&m_app_cdc_acm, self->tx_byte, 1);
-        }
+        return CIOT_ERR_OK;
     }
 
-    return err_code;
+    ciot_err_t err = CIOT_ERR_OK;
+
+    // Keeps the free space check, the write and the TX start together when senders run at different priorities.
+    CRITICAL_REGION_ENTER();
+    uint32_t len = 0;
+    app_fifo_write(&self->fifo.tx, NULL, &len);
+    if(len < (uint32_t)size)
+    {
+        err = CIOT_ERR_OVERFLOW;
+    }
+    else
+    {
+        len = size;
+        app_fifo_write(&self->fifo.tx, bytes, &len);
+        if(!self->tx_in_progress)
+        {
+            ciot_usb_tx_next(self);
+        }
+    }
+    CRITICAL_REGION_EXIT();
+
+    return err;
+}
+
+// Starts the transfer of the next chunk of the TX FIFO. The bytes leave the FIFO only after the
+// CDC class accepts them, so a refused write (e.g. port closed) keeps them for the next try.
+static void ciot_usb_tx_next(ciot_usb_t self)
+{
+    uint32_t len = 0;
+    app_fifo_read(&self->fifo.tx, NULL, &len);
+    if(len == 0)
+    {
+        self->tx_in_progress = false;
+        return;
+    }
+    if(len > sizeof(m_tx_chunk))
+    {
+        len = sizeof(m_tx_chunk);
+    }
+    for(uint32_t i = 0; i < len; i++)
+    {
+        app_fifo_peek(&self->fifo.tx, i, &m_tx_chunk[i]);
+    }
+    if(app_usbd_cdc_acm_write(&m_app_cdc_acm, m_tx_chunk, len) == NRF_SUCCESS)
+    {
+        for(uint32_t i = 0; i < len; i++)
+        {
+            uint8_t byte;
+            app_fifo_get(&self->fifo.tx, &byte);
+        }
+        self->tx_in_progress = true;
+    }
+    else
+    {
+        self->tx_in_progress = false;
+    }
 }
 
 static void ciot_usbd_event_handler(app_usbd_event_type_t event)
@@ -258,20 +309,18 @@ static void ciot_cdc_acm_event_handler(app_usbd_class_inst_t const *p_inst, app_
     }
     case APP_USBD_CDC_ACM_USER_EVT_TX_DONE:
     {
-        if (app_fifo_get(&self->fifo.tx, self->tx_byte) == NRF_SUCCESS)
-        {
-            app_usbd_cdc_acm_write(&m_app_cdc_acm, self->tx_byte, 1);
-        }
-        else
-        {
-            self->tx_in_progress = false;
-        }
+        CRITICAL_REGION_ENTER();
+        ciot_usb_tx_next(self);
+        CRITICAL_REGION_EXIT();
         break;
     }
     case APP_USBD_CDC_ACM_USER_EVT_PORT_OPEN:
     {
-        self->tx_in_progress = false;
         app_usbd_cdc_acm_read(&m_app_cdc_acm, &self->rx_byte, 1);
+        // Sends what was queued while the port was closed.
+        CRITICAL_REGION_ENTER();
+        ciot_usb_tx_next(self);
+        CRITICAL_REGION_EXIT();
         break;
     }
     default:
