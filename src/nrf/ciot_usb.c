@@ -63,6 +63,7 @@ struct ciot_usb
     ciot_usb_fifo_t fifo;
     uint8_t rx_byte[1];
     bool tx_in_progress;
+    bool port_open;
     const app_usbd_class_inst_t *usb;
 };
 
@@ -126,6 +127,7 @@ ciot_err_t ciot_usb_start(ciot_usb_t self, ciot_usb_cfg_t *cfg)
     #endif  //APP_USBD_CONFIG_POWER_EVENTS_PROCESS
 
     self->tx_in_progress = false;
+    self->port_open = false;
 
     // ciot_event_t event = {0};
     // event.type = CIOT_EVENT_TYPE_STARTED;
@@ -151,6 +153,7 @@ ciot_err_t ciot_usb_task(ciot_usb_t self)
 
 // All or nothing: the bytes are queued only if all of them fit in the TX FIFO. Otherwise nothing
 // is queued and CIOT_ERR_OVERFLOW is returned, so a frame never goes out partially.
+// While no host has the CDC port open, nothing is queued and CIOT_ERR_CLOSED is returned.
 ciot_err_t ciot_usb_send_bytes(ciot_usb_t self, uint8_t *bytes, int size)
 {
     CIOT_ERR_NULL_CHECK(self);
@@ -172,7 +175,11 @@ ciot_err_t ciot_usb_send_bytes(ciot_usb_t self, uint8_t *bytes, int size)
     CRITICAL_REGION_ENTER();
     uint32_t len = 0;
     app_fifo_write(&self->fifo.tx, NULL, &len);
-    if(len < (uint32_t)size)
+    if(!self->port_open)
+    {
+        err = CIOT_ERR_CLOSED;
+    }
+    else if(len < (uint32_t)size)
     {
         err = CIOT_ERR_OVERFLOW;
     }
@@ -191,7 +198,7 @@ ciot_err_t ciot_usb_send_bytes(ciot_usb_t self, uint8_t *bytes, int size)
 }
 
 // Starts the transfer of the next chunk of the TX FIFO. The bytes leave the FIFO only after the
-// CDC class accepts them, so a refused write (e.g. port closed) keeps them for the next try.
+// CDC class accepts them, so a refused write keeps them for the next try.
 static void ciot_usb_tx_next(ciot_usb_t self)
 {
     uint32_t len = 0;
@@ -317,9 +324,20 @@ static void ciot_cdc_acm_event_handler(app_usbd_class_inst_t const *p_inst, app_
     case APP_USBD_CDC_ACM_USER_EVT_PORT_OPEN:
     {
         app_usbd_cdc_acm_read(&m_app_cdc_acm, &self->rx_byte, 1);
-        // Sends what was queued while the port was closed.
+        // Nothing is queued while the port is closed, so there is nothing to start here. A transfer
+        // still in flight from before the close keeps tx_in_progress and ends with TX_DONE.
         CRITICAL_REGION_ENTER();
-        ciot_usb_tx_next(self);
+        self->port_open = true;
+        CRITICAL_REGION_EXIT();
+        break;
+    }
+    case APP_USBD_CDC_ACM_USER_EVT_PORT_CLOSE:
+    {
+        // Drops what the host did not read: old frames (e.g. acks for requests that already timed
+        // out) must not reach the next host that opens the port.
+        CRITICAL_REGION_ENTER();
+        self->port_open = false;
+        app_fifo_flush(&self->fifo.tx);
         CRITICAL_REGION_EXIT();
         break;
     }
