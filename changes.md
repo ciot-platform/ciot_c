@@ -45,3 +45,4 @@ Switching `mbus_server` between RTU and TCP without a reboot left the previous t
 * `CIOT_VER` bumped to `0.27.0.2` (Modbus server transport switch fix).
 * `CIOT_VER` bumped to `0.27.0.3` (Linux build fix).
 * `CIOT_VER` bumped to `0.27.0.4` (Modbus server last register fix).
+* `CIOT_VER` bumped to `0.27.0.8` (free memory on nRF).
