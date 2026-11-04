@@ -26,9 +26,10 @@
 static portMUX_TYPE ciot_core_mux = portMUX_INITIALIZER_UNLOCKED;
 #define CIOT_CORE_CRITICAL_ENTER() portENTER_CRITICAL(&ciot_core_mux)
 #define CIOT_CORE_CRITICAL_EXIT() portEXIT_CRITICAL(&ciot_core_mux)
-#else
-#define CIOT_CORE_CRITICAL_ENTER()
-#define CIOT_CORE_CRITICAL_EXIT()
+#elif defined(CIOT_PLATFORM_ESP8266)
+#include "freertos/FreeRTOS.h"
+#define CIOT_CORE_CRITICAL_ENTER() portENTER_CRITICAL()
+#define CIOT_CORE_CRITICAL_EXIT() portEXIT_CRITICAL()
 #endif
 
 #ifndef CIOT_CONFIG_START_TIMEOUT_SECS
@@ -47,7 +48,7 @@ static ciot_err_t ciot_set_iface_list(ciot_t self, ciot_iface_t *ifaces[], int c
 static ciot_err_t ciot_bytes_received(ciot_iface_t *sender, uint8_t *bytes, int size, ciot_event_t *dst);
 static void ciot_log_received_msg(ciot_msg_t *msg);
 static bool ciot_msg_needs_receiver(ciot_iface_t *sender, ciot_msg_t *msg);
-static ciot_err_t ciot_process_busy_msg(ciot_t self, ciot_iface_t *sender, ciot_event_t *event);
+static ciot_err_t ciot_process_direct_msg(ciot_t self, ciot_iface_t *sender, ciot_event_t *event);
 static void ciot_dispatch_msg(ciot_t self, ciot_iface_t *sender, ciot_event_t *event);
 static ciot_err_t ciot_iface_event_handler(ciot_iface_t *sender, ciot_event_t *event, void *event_args);
 static ciot_err_t ciot_reject_busy(ciot_t self, ciot_iface_t *sender, ciot_event_t *event);
@@ -55,14 +56,6 @@ static ciot_err_t ciot_reject_busy(ciot_t self, ciot_iface_t *sender, ciot_event
 #ifdef CIOT_MG_ENABLED
 struct mg_mgr mg;
 #endif
-
-// Holds a message decoded while the core is busy, so it does not overwrite receiver.event.
-// One sender at a time: a sender that finds it in use is rejected as busy, as before.
-static struct
-{
-    ciot_event_t event;
-    volatile bool in_use;
-} ciot_direct;
 
 ciot_t ciot_new(void)
 {
@@ -604,6 +597,21 @@ static ciot_err_t ciot_iface_event_handler(ciot_iface_t *sender, ciot_event_t *e
         return self->iface.event_handler(sender, event, self->iface.event_args);
     }
 
+    // A raw MSG is decoded apart from receiver.event first: if it does not need the receiver it goes
+    // to the application now, busy or not, and never touches receiver.event. CIOT_ERR_BUSY means it
+    // needs the receiver (or the direct buffer is in use), so it follows the receiver path below.
+    if (event->type == CIOT_EVENT_TYPE_MSG && event->which_data == CIOT_EVENT_RAW_TAG &&
+        (self->status.state == CIOT_STATE_STARTED ||
+         self->status.state == CIOT_STATE_BUSY ||
+         self->status.state == CIOT_STATE_PENDING_EVENT))
+    {
+        ciot_err_t err = ciot_process_direct_msg(self, sender, event);
+        if (err != CIOT_ERR_BUSY)
+        {
+            return err;
+        }
+    }
+
     // PENDING_EVENT holds the event that answers the current request until the next
     // ciot_busy_task(); an event from another iface must not overwrite it either
     if (self->status.state == CIOT_STATE_BUSY || self->status.state == CIOT_STATE_PENDING_EVENT)
@@ -613,11 +621,6 @@ static ciot_err_t ciot_iface_event_handler(ciot_iface_t *sender, ciot_event_t *e
         {
             CIOT_LOGI(TAG, "ciot busy but event from same iface. processing...");
             self->status.state = CIOT_STATE_PENDING_EVENT;
-        }
-        else if(event->type == CIOT_EVENT_TYPE_MSG && event->which_data == CIOT_EVENT_RAW_TAG &&
-                ciot_process_busy_msg(self, sender, event) == CIOT_ERR_OK)
-        {
-            return CIOT_ERR_OK;
         }
         else
         {
@@ -640,6 +643,7 @@ static ciot_err_t ciot_iface_event_handler(ciot_iface_t *sender, ciot_event_t *e
         CIOT_ERR_RETURN(ciot_bytes_received(sender, event->raw.bytes, event->raw.size, &receiver->event));
         ciot_log_received_msg(&receiver->event.msg);
 
+        // Only reached by a message that does not need the receiver when the direct buffer was in use
         if(!ciot_msg_needs_receiver(sender, &receiver->event.msg))
         {
             ciot_dispatch_msg(self, sender, &receiver->event);
@@ -670,15 +674,23 @@ static ciot_err_t ciot_reject_busy(ciot_t self, ciot_iface_t *sender, ciot_event
     return CIOT_ERR_BUSY;
 }
 
+// A message that fails to decode (e.g. a frame corrupted on the way) is dropped: a partly decoded
+// message must not reach the application or take the receiver.
 static ciot_err_t ciot_bytes_received(ciot_iface_t *sender, uint8_t *bytes, int size, ciot_event_t *dst)
 {
+    int decoded;
     if(sender->serializer != NULL)
     {
-        sender->serializer->from_bytes(bytes, size, &dst->msg);
+        decoded = sender->serializer->from_bytes(bytes, size, &dst->msg);
     }
     else
     {
-        ciot_serializer_from_bytes(bytes, size, &dst->msg, CIOT_MSG_FIELDS);
+        decoded = ciot_serializer_from_bytes(bytes, size, &dst->msg, CIOT_MSG_FIELDS);
+    }
+    if(decoded <= 0)
+    {
+        CIOT_LOGE(TAG, "%s(%lu) msg dropped: decode failed", ciot_iface_to_str(sender), (long unsigned int)sender->info.id);
+        return CIOT_ERR_DESERIALIZATION;
     }
     dst->which_data = CIOT_EVENT_MSG_TAG;
     return CIOT_ERR_OK;
@@ -716,51 +728,74 @@ static bool ciot_msg_needs_receiver(ciot_iface_t *sender, ciot_msg_t *msg)
            sender->req_status.state != CIOT_IFACE_REQ_STATE_IDLE;
 }
 
-static bool ciot_direct_lock(void)
+// Test-and-set of direct.in_use. nRF, ESP32 and ESP8266 use a critical section (senders run in
+// interrupts or in other tasks); elsewhere an atomic builtin when the compiler has one.
+static bool ciot_direct_lock(ciot_direct_t *direct)
 {
+#if defined(CIOT_CORE_CRITICAL_ENTER)
     bool locked = false;
     CIOT_CORE_CRITICAL_ENTER();
-    if(!ciot_direct.in_use)
+    if(!direct->in_use)
     {
-        ciot_direct.in_use = true;
+        direct->in_use = true;
         locked = true;
     }
     CIOT_CORE_CRITICAL_EXIT();
     return locked;
+#elif defined(__GNUC__) || defined(__clang__)
+    return !__atomic_test_and_set((void *)&direct->in_use, __ATOMIC_ACQUIRE);
+#else
+    if(direct->in_use)
+    {
+        return false;
+    }
+    direct->in_use = true;
+    return true;
+#endif
 }
 
-static void ciot_direct_unlock(void)
+static void ciot_direct_unlock(ciot_direct_t *direct)
 {
+#if defined(CIOT_CORE_CRITICAL_ENTER)
     CIOT_CORE_CRITICAL_ENTER();
-    ciot_direct.in_use = false;
+    direct->in_use = false;
     CIOT_CORE_CRITICAL_EXIT();
+#elif defined(__GNUC__) || defined(__clang__)
+    __atomic_clear((void *)&direct->in_use, __ATOMIC_RELEASE);
+#else
+    direct->in_use = false;
+#endif
 }
 
-// A raw message that arrives while the core is busy. It is decoded apart from receiver.event and,
-// if it does not need the receiver, handed to the application handler instead of being dropped.
-// Returns CIOT_ERR_BUSY when the message must be rejected as before.
-static ciot_err_t ciot_process_busy_msg(ciot_t self, ciot_iface_t *sender, ciot_event_t *event)
+// Decodes a raw message apart from receiver.event and, if it does not need the receiver, hands it
+// to the application handler. Returns CIOT_ERR_OK when handled, CIOT_ERR_DESERIALIZATION when it
+// was dropped, and CIOT_ERR_BUSY when it must follow the receiver path (it needs the receiver, or
+// the direct buffer is in use by another sender).
+static ciot_err_t ciot_process_direct_msg(ciot_t self, ciot_iface_t *sender, ciot_event_t *event)
 {
-    if(!ciot_direct_lock())
+    if(!ciot_direct_lock(&self->direct))
     {
         return CIOT_ERR_BUSY;
     }
 
-    ciot_event_t *direct = &ciot_direct.event;
-    ciot_err_t err = CIOT_ERR_BUSY;
-
+    ciot_event_t *direct = &self->direct.event;
     direct->type = event->type;
-    ciot_bytes_received(sender, event->raw.bytes, event->raw.size, direct);
+    ciot_err_t err = ciot_bytes_received(sender, event->raw.bytes, event->raw.size, direct);
 
-    if(!ciot_msg_needs_receiver(sender, &direct->msg))
+    if(err == CIOT_ERR_OK)
     {
-        ciot_log_received_msg(&direct->msg);
-        CIOT_LOGD(TAG, "ciot busy. %s(%lu) msg handled without the receiver", ciot_iface_to_str(sender), (long unsigned int)sender->info.id);
-        ciot_dispatch_msg(self, sender, direct);
-        err = CIOT_ERR_OK;
+        if(ciot_msg_needs_receiver(sender, &direct->msg))
+        {
+            err = CIOT_ERR_BUSY;
+        }
+        else
+        {
+            ciot_log_received_msg(&direct->msg);
+            ciot_dispatch_msg(self, sender, direct);
+        }
     }
 
-    ciot_direct_unlock();
+    ciot_direct_unlock(&self->direct);
     return err;
 }
 
@@ -785,7 +820,7 @@ static void ciot_dispatch_msg(ciot_t self, ciot_iface_t *sender, ciot_event_t *e
     if(err != CIOT_ERR_OK && custom)
     {
         CIOT_LOGE(TAG, "error from application event handler: %s", ciot_err_to_message(err));
-        ciot_iface_send_error(sender, event->msg.iface.type, event->msg.iface.type, &event->msg, err);
+        ciot_iface_send_error(sender, event->msg.iface.type, event->msg.iface.id, &event->msg, err);
     }
 }
 

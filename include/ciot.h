@@ -82,6 +82,14 @@ typedef struct ciot_receiver
     uint64_t timeout_timer;
 } ciot_receiver_t;
 
+// Holds a message decoded apart from receiver.event, so data that does not need the receiver
+// reaches the application without touching it. One sender at a time.
+typedef struct ciot_direct
+{
+    ciot_event_t event;
+    volatile bool in_use;
+} ciot_direct_t;
+
 struct ciot
 {
     ciot_iface_t iface;
@@ -91,6 +99,7 @@ struct ciot
     ciot_ifaces_t ifaces;
     ciot_starter_t starter;
     ciot_receiver_t receiver;
+    ciot_direct_t direct;
     ciot_err_t error;
     ciot_storage_t storage;
     ciot_iface_event_handler_fn *busy_handler;

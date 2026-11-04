@@ -18,6 +18,9 @@ static ciot_msg_data_t *g_cfgs[3];
 static int g_app_calls;
 static ciot_msg_t g_app_last_msg;
 static int g_busy_calls;
+static ciot_err_t g_app_ret;
+static uint8_t g_sent[512];
+static int g_sent_size;
 
 static ciot_err_t mock_process_data(ciot_iface_t *iface, ciot_msg_data_t *data)
 {
@@ -36,8 +39,11 @@ static ciot_err_t mock_get_data(ciot_iface_t *iface, ciot_msg_data_t *data)
 static ciot_err_t mock_send_data(ciot_iface_t *iface, uint8_t *data, int size)
 {
     (void)iface;
-    (void)data;
-    (void)size;
+    if(size > 0 && size <= (int)sizeof(g_sent))
+    {
+        memcpy(g_sent, data, size);
+        g_sent_size = size;
+    }
     return CIOT_ERR_OK;
 }
 
@@ -50,7 +56,7 @@ static ciot_err_t mock_app_handler(ciot_iface_t *sender, ciot_event_t *event, vo
         g_app_calls++;
         g_app_last_msg = event->msg;
     }
-    return CIOT_ERR_OK;
+    return g_app_ret;
 }
 
 static ciot_err_t mock_busy_handler(ciot_iface_t *sender, ciot_event_t *event, void *args)
@@ -92,6 +98,8 @@ static void busy_test_setup(void)
 
     g_app_calls = 0;
     g_busy_calls = 0;
+    g_app_ret = CIOT_ERR_OK;
+    g_sent_size = 0;
     memset(&g_app_last_msg, 0, sizeof(g_app_last_msg));
 
     ciot_cfg_t cfg = { 0 };
@@ -178,6 +186,69 @@ void test_ciot_busy_device_data_does_not_take_receiver(void)
     TEST_ASSERT_EQUAL(CIOT_STATE_STARTED, g_ciot->status.state);
     TEST_ASSERT_EQUAL(1, g_app_calls);
     TEST_ASSERT_EQUAL_UINT32(7, g_app_last_msg.id);
+
+    busy_test_cleanup();
+}
+
+// Device data is decoded apart from receiver.event, so another sender's request is never overwritten
+void test_ciot_busy_device_data_leaves_receiver_untouched(void)
+{
+    busy_test_setup();
+
+    g_ciot->receiver.event.msg.id = 55;
+    ciot_msg_t msg = device_data_msg(11);
+    ciot_event_t event = raw_event(&msg);
+    TEST_ASSERT_EQUAL(CIOT_ERR_OK, ciot_iface_send_event(&g_dev_iface, &event));
+
+    TEST_ASSERT_EQUAL(1, g_app_calls);
+    TEST_ASSERT_EQUAL_UINT32(11, g_app_last_msg.id);
+    TEST_ASSERT_EQUAL_UINT32(55, g_ciot->receiver.event.msg.id);
+
+    busy_test_cleanup();
+}
+
+// A frame that does not decode is dropped: it neither reaches the application nor takes the receiver
+void test_ciot_busy_corrupt_msg_dropped(void)
+{
+    busy_test_setup();
+
+    ciot_event_t event = { 0 };
+    event.type = CIOT_EVENT_TYPE_MSG;
+    event.which_data = CIOT_EVENT_RAW_TAG;
+    event.raw.bytes[0] = 0xFF;
+    event.raw.bytes[1] = 0xFF;
+    event.raw.bytes[2] = 0xFF;
+    event.raw.size = 3;
+    TEST_ASSERT_EQUAL(CIOT_ERR_DESERIALIZATION, ciot_iface_send_event(&g_dev_iface, &event));
+
+    TEST_ASSERT_EQUAL(0, g_app_calls);
+    TEST_ASSERT_EQUAL(CIOT_STATE_STARTED, g_ciot->status.state);
+
+    busy_test_cleanup();
+}
+
+// The error sent back for a failed CUSTOM msg carries the iface id it was addressed to
+void test_ciot_busy_custom_error_carries_iface_id(void)
+{
+    busy_test_setup();
+    g_app_ret = CIOT_ERR_FAIL;
+
+    ciot_msg_t msg = { 0 };
+    msg.id = 12;
+    msg.has_iface = true;
+    msg.iface.type = CIOT_IFACE_TYPE_CUSTOM;
+    msg.iface.id = 5;
+    msg.has_data = true;
+    msg.data.which_type = CIOT_MSG_DATA_GET_DATA_TAG;
+    ciot_event_t event = raw_event(&msg);
+    TEST_ASSERT_EQUAL(CIOT_ERR_OK, ciot_iface_send_event(&g_dev_iface, &event));
+
+    TEST_ASSERT_GREATER_THAN(0, g_sent_size);
+    ciot_msg_t sent = { 0 };
+    TEST_ASSERT_GREATER_THAN(0, ciot_serializer_from_bytes(g_sent, g_sent_size, &sent, CIOT_MSG_FIELDS));
+    TEST_ASSERT_EQUAL(CIOT_IFACE_TYPE_CUSTOM, sent.iface.type);
+    TEST_ASSERT_EQUAL_UINT32(5, sent.iface.id);
+    TEST_ASSERT_EQUAL(CIOT_ERR_FAIL, sent.error);
 
     busy_test_cleanup();
 }
