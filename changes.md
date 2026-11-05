@@ -52,6 +52,13 @@ Switching `mbus_server` between RTU and TCP without a reboot left the previous t
 * Either way, as before, an error from the application handler is sent back only for `CUSTOM` messages. It now carries the iface id of the message; before, the iface type was sent as the id. It is sent with `ciot_iface_send_msg` and no longer clears a request pending on the sender (`ciot_iface_send_error` did), so the answer to that request is still forwarded.
 * Not changed: status events (`STARTED`, `STOPPED`, ...) still take the receiver, and an HTTP request dropped as busy still gets no response (the HTTP case of #89).
 
+**Free memory on nRF (#96):**
+
+* `ciot_sys_task` on nRF now fills `status.free_memory`, which was always 0. It is what the application can still allocate: the RAM between the end of the heap (`_sbrk(0)`) and the bottom of the stack reservation (`STACK_BASE`), plus the blocks freed back to `malloc` (`mallinfo().fordblks`), the same meaning as `esp_get_free_heap_size()` on ESP32. The heap can grow past `__HeapLimit` because `_sbrk` from `libnosys` does not check it, so the RAM up to the stack counts as free. Refreshed once per second, since `mallinfo` walks the free list, and read in a critical region, since newlib-nano has no malloc lock without an RTOS. Only with newlib (`_NEWLIB_VERSION`); other runtimes keep reporting 0 (`src/nrf/ciot_sys.c`).
+* The stack depth is not included: `STACK_BASE` is the bottom of the stack reservation, not how deep the stack has gone.
+* Read first in `ciot_sys_new`, then refreshed by `ciot_sys_task` when `lifetime` changes; while `ciot_timer` is not running it keeps that first value, as `lifetime` does. Only newlib `malloc` is covered: the value is too high with an `_sbrk` that stops at `__HeapLimit`, and an RTOS heap (e.g. FreeRTOS) is not seen.
+* `ciot_sys_new` on nRF returns NULL when `calloc` fails, instead of writing through NULL in `ciot_sys_init`.
+
 **Version:**
 
 * `CIOT_VER` bumped to `0.27.0.0`, opening the 0.27 alpha cycle after the v0.26.0.5 stable release.
@@ -61,3 +68,4 @@ Switching `mbus_server` between RTU and TCP without a reboot left the previous t
 * `CIOT_VER` bumped to `0.27.0.4` (Modbus server last register fix).
 * `CIOT_VER` bumped to `0.27.0.6` (whole frames and send errors on nRF).
 * `CIOT_VER` bumped to `0.27.0.7` (`CIOT_CONFIG_DIRECT_MSG`: device data no longer dropped while the core is busy).
+* `CIOT_VER` bumped to `0.27.0.8` (free memory on nRF).
