@@ -27,12 +27,14 @@ void test_ciot_busy_device_data_does_not_take_receiver(void);
 void test_ciot_busy_device_data_reaches_app_while_busy(void);
 void test_ciot_busy_device_data_leaves_receiver_untouched(void);
 void test_ciot_busy_custom_msg_reaches_app_while_busy(void);
+void test_ciot_busy_device_data_takes_receiver_when_direct_in_use(void);
 #else
 void test_ciot_busy_device_data_takes_receiver_by_default(void);
 void test_ciot_busy_device_data_dropped_while_busy_by_default(void);
 #endif
 void test_ciot_busy_corrupt_msg_dropped(void);
 void test_ciot_busy_custom_error_carries_iface_id(void);
+void test_ciot_busy_custom_error_keeps_pending_request(void);
 void test_ciot_busy_request_still_rejected_while_busy(void);
 void test_ciot_busy_answer_to_pending_request_takes_receiver(void);
 
@@ -95,12 +97,14 @@ int main(void)
     RUN_TEST(test_ciot_busy_device_data_reaches_app_while_busy);
     RUN_TEST(test_ciot_busy_device_data_leaves_receiver_untouched);
     RUN_TEST(test_ciot_busy_custom_msg_reaches_app_while_busy);
+    RUN_TEST(test_ciot_busy_device_data_takes_receiver_when_direct_in_use);
 #else
     RUN_TEST(test_ciot_busy_device_data_takes_receiver_by_default);
     RUN_TEST(test_ciot_busy_device_data_dropped_while_busy_by_default);
 #endif
     RUN_TEST(test_ciot_busy_corrupt_msg_dropped);
     RUN_TEST(test_ciot_busy_custom_error_carries_iface_id);
+    RUN_TEST(test_ciot_busy_custom_error_keeps_pending_request);
     RUN_TEST(test_ciot_busy_request_still_rejected_while_busy);
     RUN_TEST(test_ciot_busy_answer_to_pending_request_takes_receiver);
 

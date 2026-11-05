@@ -256,6 +256,28 @@ void test_ciot_busy_custom_msg_reaches_app_while_busy(void)
     busy_test_cleanup();
 }
 
+// Device data that finds the direct buffer in use takes the receiver: it is not dispatched from
+// receiver.event, which the next sender could overwrite while the application reads it
+void test_ciot_busy_device_data_takes_receiver_when_direct_in_use(void)
+{
+    busy_test_setup();
+    g_ciot->direct.in_use = true;
+
+    ciot_msg_t msg = device_data_msg(13);
+    ciot_event_t event = raw_event(&msg);
+    TEST_ASSERT_EQUAL(CIOT_ERR_OK, ciot_iface_send_event(&g_dev_iface, &event));
+
+    TEST_ASSERT_EQUAL(CIOT_STATE_BUSY, g_ciot->status.state);
+    TEST_ASSERT_EQUAL(0, g_app_calls);
+    g_ciot->direct.in_use = false;
+    TEST_ASSERT_EQUAL(CIOT_ERR_OK, ciot_task(g_ciot));
+    TEST_ASSERT_EQUAL(CIOT_STATE_STARTED, g_ciot->status.state);
+    TEST_ASSERT_EQUAL(1, g_app_calls);
+    TEST_ASSERT_EQUAL_UINT32(13, g_app_last_msg.id);
+
+    busy_test_cleanup();
+}
+
 #else // CIOT_CONFIG_DIRECT_MSG == 0 (default): device data takes the receiver, as before
 
 void test_ciot_busy_device_data_takes_receiver_by_default(void)
@@ -337,6 +359,30 @@ void test_ciot_busy_custom_error_carries_iface_id(void)
     TEST_ASSERT_EQUAL(CIOT_IFACE_TYPE_CUSTOM, sent.iface.type);
     TEST_ASSERT_EQUAL_UINT32(5, sent.iface.id);
     TEST_ASSERT_EQUAL(CIOT_ERR_FAIL, sent.error);
+
+    busy_test_cleanup();
+}
+
+// The error reply to a failed CUSTOM msg does not clear a request pending on the sender, so its
+// answer can still be forwarded
+void test_ciot_busy_custom_error_keeps_pending_request(void)
+{
+    busy_test_setup();
+    g_app_ret = CIOT_ERR_FAIL;
+    g_dev_iface.req_status.state = CIOT_IFACE_REQ_STATE_SENDED;
+
+    ciot_msg_t msg = { 0 };
+    msg.id = 14;
+    msg.has_iface = true;
+    msg.iface.type = CIOT_IFACE_TYPE_CUSTOM;
+    msg.iface.id = 5;
+    msg.has_data = true;
+    msg.data.which_type = CIOT_MSG_DATA_GET_DATA_TAG;
+    ciot_event_t event = raw_event(&msg);
+    TEST_ASSERT_EQUAL(CIOT_ERR_OK, ciot_iface_send_event(&g_dev_iface, &event));
+
+    TEST_ASSERT_GREATER_THAN(0, g_sent_size);
+    TEST_ASSERT_EQUAL(CIOT_IFACE_REQ_STATE_SENDED, g_dev_iface.req_status.state);
 
     busy_test_cleanup();
 }
