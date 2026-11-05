@@ -46,6 +46,11 @@
 #define CIOT_CONFIG_FEATURE_DFU 1
 #define CIOT_CONFIG_FEATURE_CRYPT 1
 
+// Build with -DCIOT_CONFIG_DIRECT_MSG=0 to run the busy tests against the default
+#ifndef CIOT_CONFIG_DIRECT_MSG
+#define CIOT_CONFIG_DIRECT_MSG 1
+#endif
+
 #define CIOT_CONFIG_MSG_SIZE 256
 #define CIOT_CONFIG_URL_SIZE 48
 #define CIOT_CONFIG_MQTT_TOPIC_SIZE 48

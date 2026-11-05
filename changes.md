@@ -41,6 +41,17 @@ Switching `mbus_server` between RTU and TCP without a reboot left the previous t
 
 * `src/mg/ciot_socket.c` did not build on Linux in 0.27.0.2 (`call to undeclared function 'closesocket'`). `mongoose.h` declares `closesocket()` only for some architectures (Windows, FreeRTOS); on Unix, `mongoose.c` maps it to `close()` internally. `ciot_socket.c` now does the same when the macro is missing. Windows is unchanged.
 
+**Core: option to stop dropping data from a device while the core is busy (#89):**
+
+* New `CIOT_CONFIG_DIRECT_MSG` (default `0`, `include/ciot.h`). With `0`, messages take the receiver as before; the items below about the `direct` buffer and the sender's context apply only with `1`. An application that sets it must make its event handler safe to call from the sender's context (another task, or an interrupt on nRF) at the same time as from `ciot_task`.
+* A raw `MSG` is first decoded into a buffer apart from the receiver (`direct`, one `ciot_event_t` in `struct ciot`), whether the core is busy or not. `ciot_iface_event_handler` then checks whether it needs the receiver (the busy state and `ciot_busy_task`): proxied messages, requests for a core iface, and answers to a request pending on the sender. Anything else goes straight to the application handler, in the sender's context, without making the core busy and without touching `receiver.event`, so it cannot overwrite a request another sender is about to hand to the core. This was already the case for `CUSTOM` messages. It now also covers non-request messages from a sender with no pending request, e.g. acks that a device sends as responses without an iface. Before, each of them made the core `BUSY` until the next `ciot_task`, where `ciot_busy_task` only called the application handler. On ESP32 that can take up to 100 ms (`ciot_sys_task` wait), and every frame that arrived in between was dropped (`src/core/ciot.c`).
+* While the core is `BUSY` or `PENDING_EVENT`, a message from another iface that does not need the receiver now reaches the application handler instead of being dropped. Requests and answers are still dropped and reach the busy handler as before.
+* The `direct` buffer serves one sender at a time: a critical section on nRF, ESP32 and ESP8266, an atomic test-and-set elsewhere. A sender that finds it in use follows the receiver path, as before: it takes the receiver and reaches the application from `ciot_task` (only `CUSTOM` messages are still dispatched from `receiver.event` right away). With the option set, `struct ciot` grows by one `ciot_event_t` (896 B on nRF with `CIOT_CONFIG_MSG_SIZE` 256) (`include/ciot.h`, `src/core/ciot.c`).
+* Either way, a `MSG` that fails to decode is dropped with `CIOT_ERR_DESERIALIZATION`. Before, a partly decoded message took the receiver anyway.
+* Seen on an ESP32 with an nRF52840 on its UART, during load tests: advs and acks from the nRF were dropped with `ciot busy. UART(9) evt:EVENT_MSG ignored`, 314 times in about 10 minutes of log (232 with the nRF scanning every advertiser, 82 at its default scan level). These frames are not requests, so no busy handler could answer for them.
+* Either way, as before, an error from the application handler is sent back only for `CUSTOM` messages. It now carries the iface id of the message; before, the iface type was sent as the id. It is sent with `ciot_iface_send_msg` and no longer clears a request pending on the sender (`ciot_iface_send_error` did), so the answer to that request is still forwarded.
+* Not changed: status events (`STARTED`, `STOPPED`, ...) still take the receiver, and an HTTP request dropped as busy still gets no response (the HTTP case of #89).
+
 **Version:**
 
 * `CIOT_VER` bumped to `0.27.0.0`, opening the 0.27 alpha cycle after the v0.26.0.5 stable release.
@@ -49,3 +60,4 @@ Switching `mbus_server` between RTU and TCP without a reboot left the previous t
 * `CIOT_VER` bumped to `0.27.0.3` (Linux build fix).
 * `CIOT_VER` bumped to `0.27.0.4` (Modbus server last register fix).
 * `CIOT_VER` bumped to `0.27.0.6` (whole frames and send errors on nRF).
+* `CIOT_VER` bumped to `0.27.0.7` (`CIOT_CONFIG_DIRECT_MSG`: device data no longer dropped while the core is busy).
