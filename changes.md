@@ -29,6 +29,14 @@ Switching `mbus_server` between RTU and TCP without a reboot left the previous t
 
 * `ciot_mbus_server_set_reg` and `ciot_mbus_server_get_reg` compared the register index with `regs.count - size`, but `size` is in bytes and each register is 2 bytes. A 16-bit access to the last register (index `count - 1`) was rejected with `CIOT_ERR_INVALID_INDEX`, so that register stayed at 0. In hg_tcp, the 125th TAG (40125) was updated in the bridge but read 0 over Modbus. The check now converts `size` to registers and only rejects accesses that end past the last one. Reads through Modbus (FC03) already used the right limit (`src/common/ciot_mbus_server.c`).
 
+**Frames sent whole on nRF, and send errors reach the caller (#92):**
+
+* `ciot_decoder_s_send` builds the whole frame (`{`, size, payload, `}`) on the caller's stack and hands it to the iface in a single `send_data` call, then returns its error. Before, it called `send_data` four times and always returned `CIOT_ERR_OK`, so `ciot_iface_send_msg` and `ciot_iface_send_rsp` reported success for frames that were cut or never sent. A payload larger than `CIOT_CONFIG_MSG_SIZE` now returns `CIOT_ERR_OVERFLOW` without sending anything. The `CIOT_CONFIG_MSG_SIZE + 4` byte frame buffer is per call, so senders in different tasks or at different interrupt priorities never share it; a send needs that much more stack (`src/common/ciot_decoder_s.c`).
+* nRF UART: `ciot_uart` uses `nrf_drv_uart` with its own TX FIFO instead of `app_uart_fifo`, whose FIFO has no free-space API. `ciot_uart_send_bytes` queues the bytes only if all of them fit in the FIFO (`CIOT_CONFIG_UART_TX_BUF_SIZE`); otherwise it queues nothing and returns `CIOT_ERR_OVERFLOW`. Before, it wrote byte by byte and left the start of the frame in the FIFO when it filled up, which also broke the next frame on the receiver ("Missing terminator"). The bytes go to the driver in chunks of up to `CIOT_CONFIG_UART_TX_CHUNK_SIZE` (32) instead of one per transfer. `ciot_uart_read_bytes` returns `CIOT_ERR_NOT_IMPLEMENTED`: received bytes already went to the iface from the driver event, so it had nothing to read (`src/nrf/ciot_uart.c`).
+* nRF USB CDC: the same all-or-nothing check now covers the whole frame. Before, each of the four parts was checked on its own, so the host got `{` + size + `}` without the payload (e.g. `{ 0x35 0x00 }`). The CDC sends up to 64 bytes per transfer instead of 1, and bytes leave the FIFO only after `app_usbd_cdc_acm_write` accepts them. Before, a refused write lost the byte taken from the FIFO. While no host has the port open, `ciot_usb_send_bytes` queues nothing and returns `CIOT_ERR_CLOSED`, and closing the port drops what the host did not read, so a host that opens it later does not get old frames (`src/nrf/ciot_usb.c`).
+* On both, the free-space check, the write and the start of each transfer (also from `TX_DONE`) run in a critical region, so senders at different priorities do not interleave or overwrite a chunk being transmitted.
+* With the error propagated, an application that resends on failure now gets to resend.
+
 **Linux build fix:**
 
 * `src/mg/ciot_socket.c` did not build on Linux in 0.27.0.2 (`call to undeclared function 'closesocket'`). `mongoose.h` declares `closesocket()` only for some architectures (Windows, FreeRTOS); on Unix, `mongoose.c` maps it to `close()` internally. `ciot_socket.c` now does the same when the macro is missing. Windows is unchanged.
@@ -51,4 +59,5 @@ Switching `mbus_server` between RTU and TCP without a reboot left the previous t
 * `CIOT_VER` bumped to `0.27.0.2` (Modbus server transport switch fix).
 * `CIOT_VER` bumped to `0.27.0.3` (Linux build fix).
 * `CIOT_VER` bumped to `0.27.0.4` (Modbus server last register fix).
-* `CIOT_VER` bumped to `0.27.0.7` (device data no longer dropped while the core is busy).
+* `CIOT_VER` bumped to `0.27.0.6` (whole frames and send errors on nRF).
+* `CIOT_VER` bumped to `0.27.0.7` (`CIOT_CONFIG_DIRECT_MSG`: device data no longer dropped while the core is busy).
