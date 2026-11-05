@@ -56,6 +56,8 @@ Switching `mbus_server` between RTU and TCP without a reboot left the previous t
 
 * `ciot_sys_task` on nRF now fills `status.free_memory`, which was always 0. It is what the application can still allocate: the RAM between the end of the heap (`_sbrk(0)`) and the bottom of the stack reservation (`STACK_BASE`), plus the blocks freed back to `malloc` (`mallinfo().fordblks`), the same meaning as `esp_get_free_heap_size()` on ESP32. The heap can grow past `__HeapLimit` because `_sbrk` from `libnosys` does not check it, so the RAM up to the stack counts as free. Refreshed once per second, since `mallinfo` walks the free list, and read in a critical region, since newlib-nano has no malloc lock without an RTOS. Only with newlib (`_NEWLIB_VERSION`); other runtimes keep reporting 0 (`src/nrf/ciot_sys.c`).
 * The stack depth is not included: `STACK_BASE` is the bottom of the stack reservation, not how deep the stack has gone.
+* Read first in `ciot_sys_new`, then refreshed by `ciot_sys_task` when `lifetime` changes; while `ciot_timer` is not running it keeps that first value, as `lifetime` does. Only newlib `malloc` is covered: the value is too high with an `_sbrk` that stops at `__HeapLimit`, and an RTOS heap (e.g. FreeRTOS) is not seen.
+* `ciot_sys_new` on nRF returns NULL when `calloc` fails, instead of writing through NULL in `ciot_sys_init`.
 
 **Version:**
 
