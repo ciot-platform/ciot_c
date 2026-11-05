@@ -14,12 +14,19 @@
 #if CIOT_CONFIG_FEATURE_SYS == 1 && defined(CIOT_PLATFORM_NRF)
 
 #include <stdlib.h>
+// _NEWLIB_VERSION comes from <newlib.h>; included explicitly so the check below does not depend on
+// what <stdlib.h> happens to pull in.
+#if defined(__has_include)
+#if __has_include(<newlib.h>)
+#include <newlib.h>
+#endif
+#endif
 #if defined(_NEWLIB_VERSION)
 #include <stddef.h>
 #include <malloc.h>
-#endif
 #include "app_util.h"
 #include "app_util_platform.h"
+#endif
 #include "nrf_nvic.h"
 #include "nrf_soc.h"
 #include "nrf_bootloader_info.h"
@@ -34,13 +41,20 @@
 struct ciot_sys
 {
     ciot_sys_base_t base;
-    bool free_memory_read;
 };
+
+static uint32_t ciot_sys_free_memory(void);
 
 ciot_sys_t ciot_sys_new(void *handle)
 {
     ciot_sys_t self = calloc(1, sizeof(struct ciot_sys));
+    if (self == NULL)
+    {
+        return NULL;
+    }
     ciot_sys_init(self);
+    // First value; ciot_sys_task refreshes it once per second.
+    self->base.status.free_memory = ciot_sys_free_memory();
     return self;
 }
 
@@ -64,6 +78,8 @@ extern void *_sbrk(ptrdiff_t incr);
 // What the application can still allocate, as esp_get_free_heap_size() on ESP32: the RAM the heap
 // has not taken yet, up to the bottom of the stack reservation (STACK_BASE; newlib's _sbrk from
 // libnosys does not stop at __HeapLimit), plus the blocks freed back to malloc.
+// Only newlib malloc is covered. The value is too high with an _sbrk that stops at __HeapLimit, and
+// it does not see an RTOS heap (e.g. FreeRTOS pvPortMalloc).
 // Read in a critical region: newlib-nano has no malloc lock without an RTOS, and an interrupt that
 // allocates or frees would change the free list mallinfo() walks, or the heap end, mid-read.
 static uint32_t ciot_sys_free_memory(void)
@@ -91,12 +107,12 @@ static uint32_t ciot_sys_free_memory(void)
 
 ciot_err_t ciot_sys_task(ciot_sys_t self)
 {
-    uint32_t now = ciot_timer_now();
-    // mallinfo() walks the free list, so free_memory is refreshed once per second.
-    if (now != self->base.status.lifetime || !self->free_memory_read)
+    uint32_t now = (uint32_t)ciot_timer_now();
+    // mallinfo() walks the free list, so free_memory is refreshed once per second (it stays at the
+    // value read in ciot_sys_new while ciot_timer is not running, as lifetime does).
+    if (now != self->base.status.lifetime)
     {
         self->base.status.free_memory = ciot_sys_free_memory();
-        self->free_memory_read = true;
     }
     self->base.status.lifetime = now;
     if (NRF_LOG_PROCESS() == false)
