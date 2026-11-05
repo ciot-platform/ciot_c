@@ -13,27 +13,43 @@
 
 #if CIOT_CONFIG_FEATURE_UART == 1 && defined(CIOT_PLATFORM_NRF)
 
-#include "app_uart.h"
+#include "nrf_drv_uart.h"
+#include "app_fifo.h"
+#include "app_util_platform.h"
 #include "ciot_uart.h"
 #include "ciot_err.h"
 
-#ifndef CIOT_CONFIG_UART_RX_BUF_SIZE
-#define CIOT_CONFIG_UART_RX_BUF_SIZE 256
-#endif
 #ifndef CIOT_CONFIG_UART_TX_BUF_SIZE
 #define CIOT_CONFIG_UART_TX_BUF_SIZE 256
 #endif
 
+// Bytes handed to the driver per transfer (nrf_drv_uart_tx takes a uint8_t length).
+#ifndef CIOT_CONFIG_UART_TX_CHUNK_SIZE
+#define CIOT_CONFIG_UART_TX_CHUNK_SIZE 32
+#endif
+
+#define CIOT_UART_DRIVER_INSTANCE 0
+
 struct ciot_uart
 {
     ciot_uart_base_t base;
+    app_fifo_t tx_fifo;
+    bool rx_enabled;
 };
 
 static const char *TAG = "ciot_uart";
 
+static const nrf_drv_uart_t m_uart = NRF_DRV_UART_INSTANCE(CIOT_UART_DRIVER_INSTANCE);
+
 static ciot_uart_t _self = NULL;
 
-static void ciot_uart_event_handler(app_uart_evt_t *p_event);
+// Static, as in app_uart_fifo: there is a single UART instance, and the buffers stay off the heap.
+static uint8_t m_tx_fifo_buf[CIOT_CONFIG_UART_TX_BUF_SIZE];
+static uint8_t m_tx_chunk[CIOT_CONFIG_UART_TX_CHUNK_SIZE];
+static uint8_t m_rx_byte[1];
+
+static void ciot_uart_event_handler(nrf_drv_uart_event_t *p_event, void *p_context);
+static void ciot_uart_tx_next(ciot_uart_t self);
 
 ciot_uart_t ciot_uart_new(void *handle)
 {
@@ -73,26 +89,29 @@ ciot_err_t ciot_uart_start(ciot_uart_t self, ciot_uart_cfg_t *cfg)
     }
     base->cfg = *cfg;
 
-    const app_uart_comm_params_t comm_params =
-        {
-            .rx_pin_no = base->cfg.gpio.rx,
-            .tx_pin_no = base->cfg.gpio.tx,
-            .rts_pin_no = base->cfg.gpio.rts,
-            .cts_pin_no = base->cfg.gpio.cts,
-            .flow_control = base->cfg.flow_control ? APP_UART_FLOW_CONTROL_ENABLED : APP_UART_FLOW_CONTROL_DISABLED,
-            .use_parity = base->cfg.parity ? true : false,
-            .baud_rate = base->cfg.baud_rate};
-
-    uint32_t err_code;
-
-    APP_UART_FIFO_INIT(&comm_params,
-                       CIOT_CONFIG_UART_RX_BUF_SIZE,
-                       CIOT_CONFIG_UART_TX_BUF_SIZE,
-                       ciot_uart_event_handler,
-                       APP_IRQ_PRIORITY_LOWEST,
-                       err_code);
-
+    uint32_t err_code = app_fifo_init(&self->tx_fifo, m_tx_fifo_buf, sizeof(m_tx_fifo_buf));
     APP_ERROR_CHECK(err_code);
+
+    nrf_drv_uart_config_t config = NRF_DRV_UART_DEFAULT_CONFIG;
+    config.baudrate = (nrf_uart_baudrate_t)base->cfg.baud_rate;
+    config.hwfc = base->cfg.flow_control ? NRF_UART_HWFC_ENABLED : NRF_UART_HWFC_DISABLED;
+    config.interrupt_priority = APP_IRQ_PRIORITY_LOWEST;
+    config.parity = base->cfg.parity ? NRF_UART_PARITY_INCLUDED : NRF_UART_PARITY_EXCLUDED;
+    config.pselcts = base->cfg.gpio.cts;
+    config.pselrts = base->cfg.gpio.rts;
+    config.pselrxd = base->cfg.gpio.rx;
+    config.pseltxd = base->cfg.gpio.tx;
+    config.p_context = self;
+
+    err_code = nrf_drv_uart_init(&m_uart, &config, ciot_uart_event_handler);
+    APP_ERROR_CHECK(err_code);
+
+    self->rx_enabled = config.pselrxd != NRF_UART_PSEL_DISCONNECTED;
+    if (self->rx_enabled)
+    {
+        err_code = nrf_drv_uart_rx(&m_uart, m_rx_byte, 1);
+        APP_ERROR_CHECK(err_code);
+    }
 
     ciot_iface_send_event_type(&base->iface, CIOT_EVENT_TYPE_STARTED);
 
@@ -104,47 +123,61 @@ ciot_err_t ciot_uart_start(ciot_uart_t self, ciot_uart_cfg_t *cfg)
 ciot_err_t ciot_uart_stop(ciot_uart_t self)
 {
     CIOT_ERR_NULL_CHECK(self);
-    app_uart_close();
+    nrf_drv_uart_uninit(&m_uart);
+    app_fifo_flush(&self->tx_fifo);
     self->base.status.state = CIOT_UART_STATE_CLOSED;
     ciot_iface_send_event_type(&self->base.iface, CIOT_EVENT_TYPE_STOPPED);
     _self = NULL;
     return CIOT_ERR_OK;
 }
 
+// All or nothing: the bytes are queued only if all of them fit in the TX FIFO. Otherwise nothing
+// is queued and CIOT_ERR_OVERFLOW is returned, so a frame never goes out partially.
 ciot_err_t ciot_uart_send_bytes(ciot_uart_t self, uint8_t *bytes, int size)
 {
     CIOT_ERR_NULL_CHECK(self);
     CIOT_ERR_NULL_CHECK(bytes);
 
-    for (int i = 0; i < size; i++)
+    if (self->base.status.state != CIOT_UART_STATE_STARTED)
     {
-        uint32_t err_code = app_uart_put(bytes[i]);
-        if (err_code != NRF_SUCCESS)
-        {
-            return CIOT_ERR_FAIL;
-        }
+        return CIOT_ERR_INVALID_STATE;
     }
 
-    return CIOT_ERR_OK;
+    if (size <= 0)
+    {
+        return CIOT_ERR_OK;
+    }
+
+    ciot_err_t err = CIOT_ERR_OK;
+
+    // Keeps the free space check, the write and the TX start together when senders run at different priorities.
+    CRITICAL_REGION_ENTER();
+    uint32_t len = 0;
+    app_fifo_write(&self->tx_fifo, NULL, &len);
+    if (len < (uint32_t)size)
+    {
+        err = CIOT_ERR_OVERFLOW;
+    }
+    else
+    {
+        len = size;
+        app_fifo_write(&self->tx_fifo, bytes, &len);
+        if (!nrf_drv_uart_tx_in_progress(&m_uart))
+        {
+            ciot_uart_tx_next(self);
+        }
+    }
+    CRITICAL_REGION_EXIT();
+
+    return err;
 }
 
+// Received bytes go to the iface (ciot_iface_process_data) from the driver event, so there is nothing to read here.
 ciot_err_t ciot_uart_read_bytes(ciot_uart_t self, uint8_t *bytes, int size)
 {
     CIOT_ERR_NULL_CHECK(self);
     CIOT_ERR_NULL_CHECK(bytes);
-
-    for (int i = 0; i < size; i++)
-    {
-        uint8_t byte;
-        uint32_t err_code = app_uart_get(&byte);
-        if (err_code != NRF_SUCCESS)
-        {
-            return CIOT_ERR_FAIL;
-        }
-        bytes[i] = byte;
-    }
-
-    return CIOT_ERR_OK;
+    return CIOT_ERR_NOT_IMPLEMENTED;
 }
 
 size_t ciot_uart_available(ciot_uart_t self)
@@ -157,32 +190,68 @@ ciot_err_t ciot_uart_task(ciot_uart_t self)
     return CIOT_ERR_OK;
 }
 
-static void ciot_uart_event_handler(app_uart_evt_t *p_event)
+// Starts the transfer of the next chunk of the TX FIFO. The bytes leave the FIFO only after the driver accepts them.
+static void ciot_uart_tx_next(ciot_uart_t self)
 {
-    if (_self == NULL)
+    uint32_t len = 0;
+    app_fifo_read(&self->tx_fifo, NULL, &len);
+    if (len == 0)
+    {
+        return;
+    }
+    if (len > sizeof(m_tx_chunk))
+    {
+        len = sizeof(m_tx_chunk);
+    }
+    for (uint32_t i = 0; i < len; i++)
+    {
+        app_fifo_peek(&self->tx_fifo, i, &m_tx_chunk[i]);
+    }
+    if (nrf_drv_uart_tx(&m_uart, m_tx_chunk, (uint8_t)len) == NRF_SUCCESS)
+    {
+        for (uint32_t i = 0; i < len; i++)
+        {
+            uint8_t byte;
+            app_fifo_get(&self->tx_fifo, &byte);
+        }
+    }
+}
+
+static void ciot_uart_event_handler(nrf_drv_uart_event_t *p_event, void *p_context)
+{
+    ciot_uart_t self = (ciot_uart_t)p_context;
+
+    if (self == NULL || self != _self)
     {
         return;
     }
 
-    ciot_uart_t self = _self;
     ciot_uart_base_t *base = &self->base;
-    uint8_t byte;
 
-    switch (p_event->evt_type)
+    switch (p_event->type)
     {
-    case APP_UART_DATA_READY:
-        if (app_uart_get(&byte) == NRF_SUCCESS)
+    case NRF_DRV_UART_EVT_RX_DONE:
+        // 0 bytes is an RX timeout with no new byte.
+        if (p_event->data.rxtx.bytes != 0)
         {
-            ciot_iface_process_data(&base->iface, &byte, 1, CIOT_EVENT_TYPE_MSG);
+            ciot_iface_process_data(&base->iface, p_event->data.rxtx.p_data, 1, CIOT_EVENT_TYPE_MSG);
+        }
+        (void)nrf_drv_uart_rx(&m_uart, m_rx_byte, 1);
+        break;
+    case NRF_DRV_UART_EVT_ERROR:
+        CIOT_LOGE(TAG, "UART communication error: %lu", (unsigned long)p_event->data.error.error_mask);
+        base->status.error = CIOT_ERR_FAIL;
+        if (self->rx_enabled)
+        {
+            (void)nrf_drv_uart_rx(&m_uart, m_rx_byte, 1);
         }
         break;
-    case APP_UART_COMMUNICATION_ERROR:
-        CIOT_LOGE(TAG, "UART communication error: %d", p_event->data.error_communication);
-        base->status.error = CIOT_ERR_FAIL;
-        break;
-    case APP_UART_FIFO_ERROR:
-        CIOT_LOGE(TAG, "UART FIFO error: %d", p_event->data.error_code);
-        base->status.error = CIOT_ERR_OVERFLOW;
+    case NRF_DRV_UART_EVT_TX_DONE:
+        // The driver clears its busy flag before this event, so a sender at a higher priority could
+        // otherwise start a transfer from m_tx_chunk while this one is still filling it.
+        CRITICAL_REGION_ENTER();
+        ciot_uart_tx_next(self);
+        CRITICAL_REGION_EXIT();
         break;
     default:
         break;
