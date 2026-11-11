@@ -33,7 +33,7 @@
 #warning "Target undefined."
 #endif
 
-#define CIOT_VER 0,27,0,8
+#define CIOT_VER 0,27,0,9
 
 #ifndef CIOT_CONFIG_IFACE_CFG_FILENAME_MASK
 #define CIOT_CONFIG_IFACE_CFG_FILENAME_MASK "cfg%d.dat"
