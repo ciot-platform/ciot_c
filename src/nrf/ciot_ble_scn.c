@@ -101,19 +101,23 @@ ciot_err_t ciot_ble_scn_continue(ciot_ble_scn_t self)
     return self->base.status.err_code;
 }
 
-// Keep the scanner paused after the report being handled: call it from the scan filter. The
-// SoftDevice already pauses the scanner on each report, and the report handler skips
-// ciot_ble_scn_continue while the hold is set, so the radio is free (e.g. for an advertising
-// burst) until ciot_ble_scn_resume, ciot_ble_scn_start or ciot_ble_scn_stop.
+// Stop the scanner from the scan filter, after the report being handled, to free the radio (e.g.
+// for an advertising burst that must start right away) until ciot_ble_scn_resume,
+// ciot_ble_scn_start or ciot_ble_scn_stop. Only skipping ciot_ble_scn_continue is not enough: the
+// paused scanner keeps its scan window, and the first advertising event waits for its end. Don't
+// call it on the report of a scannable advert: stopping there aborts the SCAN_REQ that follows.
+// The scan state (status) is kept: it is a short pause, not a stop.
 ciot_err_t ciot_ble_scn_hold(ciot_ble_scn_t self)
 {
     CIOT_ERR_NULL_CHECK(self);
     self->base.hold = true;
+    sd_ble_gap_scan_stop();
     return CIOT_ERR_OK;
 }
 
-// Resume a scanner paused by ciot_ble_scn_hold. Safe from an interrupt (e.g. a timer): without
-// a hold (already resumed, or restarted by ciot_ble_scn_start) it does nothing.
+// Restart a scanner held by ciot_ble_scn_hold with its current parameters. Safe from an interrupt
+// (e.g. a timer): without a hold (already resumed, or restarted by ciot_ble_scn_start) it does
+// nothing. The scan timeout, if any, starts again.
 ciot_err_t ciot_ble_scn_resume(ciot_ble_scn_t self)
 {
     CIOT_ERR_NULL_CHECK(self);
@@ -126,7 +130,13 @@ ciot_err_t ciot_ble_scn_resume(ciot_ble_scn_t self)
     {
         return CIOT_ERR_OK;
     }
-    return ciot_ble_scn_continue(self);
+    uint32_t err = sd_ble_gap_scan_start(&self->scan_params, &self->scan_buffer);
+    if (err)
+    {
+        self->base.status.err_code = ciot_ble_scn_get_error(err);
+        return self->base.status.err_code;
+    }
+    return CIOT_ERR_OK;
 }
 
 ciot_err_t ciot_ble_scn_stop(ciot_ble_scn_t self)

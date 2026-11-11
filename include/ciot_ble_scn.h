@@ -65,7 +65,7 @@ typedef struct ciot_ble_scn_base
     ciot_ble_scn_status_t status;
     // ciot_ble_scn_adv_t recv;
     ciot_ble_scn_filter_t filter;
-    volatile bool hold;     // keep the scanner paused after the current report (ciot_ble_scn_hold)
+    volatile bool hold;     // scanner stopped by ciot_ble_scn_hold, until ciot_ble_scn_resume
 #if CIOT_CONFIG_BLE_SCN_ADV_FIFO_ENABLED
     ciot_ble_scn_adv_fifo_t adv_fifo;
 #endif

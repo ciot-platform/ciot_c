@@ -257,8 +257,8 @@ static void ciot_ble_evt_handler(ble_evt_t const *p_ble_evt, void *p_context)
             // ciot_iface_send_internal_event(&ble_scn->iface, &adv_report, CIOT_BLE_SCN_EVENT_ADV_REPORT);
             ciot_ble_scn_handle_adv_report((ciot_ble_scn_t)ble_scn, &adv_report);
         }
-        // The SoftDevice pauses the scanner after each report until it is resumed. With the hold
-        // set by the filter, it stays paused until ciot_ble_scn_resume (or a new start).
+        // The SoftDevice pauses the scanner after each report until it is resumed. A filter that
+        // called ciot_ble_scn_hold stopped the scanner: ciot_ble_scn_resume restarts it.
         if (!ble_scn->hold)
         {
             ciot_ble_scn_continue((ciot_ble_scn_t)ble_scn);
