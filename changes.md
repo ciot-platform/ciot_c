@@ -59,6 +59,11 @@ Switching `mbus_server` between RTU and TCP without a reboot left the previous t
 * Read first in `ciot_sys_new`, then refreshed by `ciot_sys_task` when `lifetime` changes; while `ciot_timer` is not running it keeps that first value, as `lifetime` does. Only newlib `malloc` is covered: the value is too high with an `_sbrk` that stops at `__HeapLimit`, and an RTOS heap (e.g. FreeRTOS) is not seen.
 * `ciot_sys_new` on nRF returns NULL when `calloc` fails, instead of writing through NULL in `ciot_sys_init`.
 
+**Scan responses and scanner hold on nRF:**
+
+* `ciot_ble_scn_event_adv_report_t` has a new `scan_response` field, set on nRF from the SoftDevice report (`adv_report.type.scan_response`). The scan filter can now tell a scan response (SCAN_RSP) from an advert. An empty scan response reaches the filter with `payload_len` 0 (`include/ciot_ble_scn.h`, `src/nrf/ciot_ble.c`).
+* New `ciot_ble_scn_hold` and `ciot_ble_scn_resume` (nRF). Called from the scan filter, `ciot_ble_scn_hold` keeps the scanner paused after the report being handled: the SoftDevice already pauses the scanner on each report, and the report handler now skips `ciot_ble_scn_continue` while the hold is set. The radio is then free, for example for an advertising burst that must start right away. `ciot_ble_scn_resume` releases it and can be called from an interrupt (a timer); without a hold it does nothing. `ciot_ble_scn_start` and `ciot_ble_scn_stop` clear the hold (`src/nrf/ciot_ble_scn.c`).
+
 **Version:**
 
 * `CIOT_VER` bumped to `0.27.0.0`, opening the 0.27 alpha cycle after the v0.26.0.5 stable release.
@@ -69,3 +74,4 @@ Switching `mbus_server` between RTU and TCP without a reboot left the previous t
 * `CIOT_VER` bumped to `0.27.0.6` (whole frames and send errors on nRF).
 * `CIOT_VER` bumped to `0.27.0.7` (`CIOT_CONFIG_DIRECT_MSG`: device data no longer dropped while the core is busy).
 * `CIOT_VER` bumped to `0.27.0.8` (free memory on nRF).
+* `CIOT_VER` bumped to `0.27.0.9` (scan responses and scanner hold on nRF).
