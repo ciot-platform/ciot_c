@@ -32,6 +32,7 @@ typedef struct ciot_ble_scn_event_adv_report
     uint8_t mac[6];
     uint8_t *payload;
     uint8_t payload_len;
+    bool scan_response;     // report of a scan response (SCAN_RSP), not of an advertisement
 } ciot_ble_scn_event_adv_report_t;
 
 typedef bool (ciot_ble_scn_filter_fn)(ciot_ble_scn_t self, ciot_ble_scn_event_adv_report_t *adv_report, void *args);
@@ -64,6 +65,7 @@ typedef struct ciot_ble_scn_base
     ciot_ble_scn_status_t status;
     // ciot_ble_scn_adv_t recv;
     ciot_ble_scn_filter_t filter;
+    volatile bool hold;     // keep the scanner paused after the current report (ciot_ble_scn_hold)
 #if CIOT_CONFIG_BLE_SCN_ADV_FIFO_ENABLED
     ciot_ble_scn_adv_fifo_t adv_fifo;
 #endif
@@ -73,6 +75,8 @@ ciot_ble_scn_t ciot_ble_scn_new(void *handle);
 ciot_err_t ciot_ble_scn_init(ciot_ble_scn_t self);
 ciot_err_t ciot_ble_scn_start(ciot_ble_scn_t self, ciot_ble_scn_cfg_t *cfg);
 ciot_err_t ciot_ble_scn_continue(ciot_ble_scn_t self);
+ciot_err_t ciot_ble_scn_hold(ciot_ble_scn_t self);
+ciot_err_t ciot_ble_scn_resume(ciot_ble_scn_t self);
 ciot_err_t ciot_ble_scn_stop(ciot_ble_scn_t self);
 ciot_err_t ciot_ble_scn_process_req(ciot_ble_scn_t self, ciot_ble_scn_req_t *req);
 ciot_err_t ciot_ble_scn_get_cfg(ciot_ble_scn_t self, ciot_ble_scn_cfg_t *cfg);

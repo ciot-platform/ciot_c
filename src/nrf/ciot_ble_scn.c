@@ -25,6 +25,7 @@
 #include "nrf_log_default_backends.h"
 #endif
 #include "ble_gap.h"
+#include "app_util_platform.h"
 #include "ciot_ble_scn.h"
 #include "ciot_err.h"
 #include "ciot_config.h"
@@ -61,6 +62,7 @@ ciot_err_t ciot_ble_scn_start(ciot_ble_scn_t self, ciot_ble_scn_cfg_t *cfg)
         base->cfg = *cfg;
     }
 
+    base->hold = false;
     uint32_t err = sd_ble_gap_scan_stop();
 
     self->scan_params.interval = base->cfg.interval;
@@ -99,10 +101,39 @@ ciot_err_t ciot_ble_scn_continue(ciot_ble_scn_t self)
     return self->base.status.err_code;
 }
 
+// Keep the scanner paused after the report being handled: call it from the scan filter. The
+// SoftDevice already pauses the scanner on each report, and the report handler skips
+// ciot_ble_scn_continue while the hold is set, so the radio is free (e.g. for an advertising
+// burst) until ciot_ble_scn_resume, ciot_ble_scn_start or ciot_ble_scn_stop.
+ciot_err_t ciot_ble_scn_hold(ciot_ble_scn_t self)
+{
+    CIOT_ERR_NULL_CHECK(self);
+    self->base.hold = true;
+    return CIOT_ERR_OK;
+}
+
+// Resume a scanner paused by ciot_ble_scn_hold. Safe from an interrupt (e.g. a timer): without
+// a hold (already resumed, or restarted by ciot_ble_scn_start) it does nothing.
+ciot_err_t ciot_ble_scn_resume(ciot_ble_scn_t self)
+{
+    CIOT_ERR_NULL_CHECK(self);
+    bool hold;
+    CRITICAL_REGION_ENTER();
+    hold = self->base.hold;
+    self->base.hold = false;
+    CRITICAL_REGION_EXIT();
+    if (!hold)
+    {
+        return CIOT_ERR_OK;
+    }
+    return ciot_ble_scn_continue(self);
+}
+
 ciot_err_t ciot_ble_scn_stop(ciot_ble_scn_t self)
 {
     CIOT_ERR_NULL_CHECK(self);
     ciot_ble_scn_base_t *base = &self->base;
+    base->hold = false;
     int err = sd_ble_gap_scan_stop();
     if (err == NRF_SUCCESS)
     {
