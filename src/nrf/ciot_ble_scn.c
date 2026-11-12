@@ -42,6 +42,18 @@ struct ciot_ble_scn
 
 static ciot_err_t ciot_ble_scn_get_error(uint32_t nrf_error);
 
+// Start the SoftDevice scanner with the stored parameters (ciot_ble_scn_start, ciot_ble_scn_resume)
+static uint32_t ciot_ble_scn_sd_start(ciot_ble_scn_t self)
+{
+#if NRF_SD_BLE_API_VERSION == 2 || NRF_SD_BLE_API_VERSION == 3
+    return sd_ble_gap_scan_start(&self->scan_params);
+#else
+    self->scan_buffer.p_data = self->buffer;
+    self->scan_buffer.len = BLE_GAP_SCAN_BUFFER_MIN;
+    return sd_ble_gap_scan_start(&self->scan_params, &self->scan_buffer);
+#endif
+}
+
 // static const char *TAG = "hg_ble_scn";
 
 ciot_ble_scn_t ciot_ble_scn_new(void *handle)
@@ -63,21 +75,14 @@ ciot_err_t ciot_ble_scn_start(ciot_ble_scn_t self, ciot_ble_scn_cfg_t *cfg)
     }
 
     base->hold = false;
-    uint32_t err = sd_ble_gap_scan_stop();
+    sd_ble_gap_scan_stop();
 
     self->scan_params.interval = base->cfg.interval;
     self->scan_params.window = base->cfg.window;
     self->scan_params.active = base->cfg.active;
     self->scan_params.timeout = base->cfg.timeout;
 
-#if NRF_SD_BLE_API_VERSION == 2 || NRF_SD_BLE_API_VERSION == 3
-    err = sd_ble_gap_scan_start(&self->scan_params);
-#else
-    self->scan_buffer.p_data = self->buffer;
-    self->scan_buffer.len = BLE_GAP_SCAN_BUFFER_MIN;
-    err = sd_ble_gap_scan_start(&self->scan_params, &self->scan_buffer);
-#endif
-
+    uint32_t err = ciot_ble_scn_sd_start(self);
     if (err == NRF_SUCCESS)
     {
         base->status.state = base->cfg.active
@@ -91,13 +96,17 @@ ciot_err_t ciot_ble_scn_start(ciot_ble_scn_t self, ciot_ble_scn_cfg_t *cfg)
     return err;
 }
 
+// Resume the scanner paused by the SoftDevice after each scan report (API 5+). With API 2/3 the
+// scanner doesn't pause after a report: nothing to do.
 ciot_err_t ciot_ble_scn_continue(ciot_ble_scn_t self)
 {
+#if NRF_SD_BLE_API_VERSION != 2 && NRF_SD_BLE_API_VERSION != 3
     uint32_t err = sd_ble_gap_scan_start(NULL, &self->scan_buffer);
     if (err)
     {
         self->base.status.err_code = ciot_ble_scn_get_error(err);
     }
+#endif
     return self->base.status.err_code;
 }
 
@@ -106,18 +115,24 @@ ciot_err_t ciot_ble_scn_continue(ciot_ble_scn_t self)
 // ciot_ble_scn_start or ciot_ble_scn_stop. Only skipping ciot_ble_scn_continue is not enough: the
 // paused scanner keeps its scan window, and the first advertising event waits for its end. Don't
 // call it on the report of a scannable advert: stopping there aborts the SCAN_REQ that follows.
-// The scan state (status) is kept: it is a short pause, not a stop.
+// The scan state (status) is kept: it is a short pause, not a stop. If the scanner is not running
+// (e.g. already stopped), nothing is held, so ciot_ble_scn_resume doesn't start it.
 ciot_err_t ciot_ble_scn_hold(ciot_ble_scn_t self)
 {
     CIOT_ERR_NULL_CHECK(self);
+    uint32_t err = sd_ble_gap_scan_stop();
+    if (err != NRF_SUCCESS)
+    {
+        return ciot_ble_scn_get_error(err);
+    }
     self->base.hold = true;
-    sd_ble_gap_scan_stop();
     return CIOT_ERR_OK;
 }
 
 // Restart a scanner held by ciot_ble_scn_hold with its current parameters. Safe from an interrupt
-// (e.g. a timer): without a hold (already resumed, or restarted by ciot_ble_scn_start) it does
-// nothing. The scan timeout, if any, starts again.
+// (e.g. a timer): without a hold (already resumed, or restarted by ciot_ble_scn_start or stopped
+// by ciot_ble_scn_stop) it does nothing. The scan timeout, if any, starts again. A scanner already
+// running (NRF_ERROR_INVALID_STATE) is not an error.
 ciot_err_t ciot_ble_scn_resume(ciot_ble_scn_t self)
 {
     CIOT_ERR_NULL_CHECK(self);
@@ -130,8 +145,8 @@ ciot_err_t ciot_ble_scn_resume(ciot_ble_scn_t self)
     {
         return CIOT_ERR_OK;
     }
-    uint32_t err = sd_ble_gap_scan_start(&self->scan_params, &self->scan_buffer);
-    if (err)
+    uint32_t err = ciot_ble_scn_sd_start(self);
+    if (err != NRF_SUCCESS && err != NRF_ERROR_INVALID_STATE)
     {
         self->base.status.err_code = ciot_ble_scn_get_error(err);
         return self->base.status.err_code;
@@ -139,13 +154,20 @@ ciot_err_t ciot_ble_scn_resume(ciot_ble_scn_t self)
     return CIOT_ERR_OK;
 }
 
+// A held scanner is already stopped in the SoftDevice (sd_ble_gap_scan_stop fails with
+// NRF_ERROR_INVALID_STATE), but it is still a running scan for the application: it goes to IDLE
+// and sends STOPPED, and the hold is dropped so ciot_ble_scn_resume doesn't restart it.
 ciot_err_t ciot_ble_scn_stop(ciot_ble_scn_t self)
 {
     CIOT_ERR_NULL_CHECK(self);
     ciot_ble_scn_base_t *base = &self->base;
+    bool hold;
+    CRITICAL_REGION_ENTER();
+    hold = base->hold;
     base->hold = false;
-    int err = sd_ble_gap_scan_stop();
-    if (err == NRF_SUCCESS)
+    CRITICAL_REGION_EXIT();
+    uint32_t err = sd_ble_gap_scan_stop();
+    if (err == NRF_SUCCESS || hold)
     {
         base->status.state = CIOT_BLE_SCN_STATE_IDLE;
         ciot_iface_send_event_type(&base->iface, CIOT_EVENT_TYPE_STOPPED);
