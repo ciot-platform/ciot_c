@@ -64,6 +64,10 @@ Switching `mbus_server` between RTU and TCP without a reboot left the previous t
 * `ciot_ble_scn_event_adv_report_t` has a new `scan_response` field, set on nRF from the SoftDevice report (`adv_report.type.scan_response`). The scan filter can now tell a scan response (SCAN_RSP) from an advert. An empty scan response reaches the filter with `payload_len` 0 (`include/ciot_ble_scn.h`, `src/nrf/ciot_ble.c`).
 * New `ciot_ble_scn_hold` and `ciot_ble_scn_resume` (nRF). Called from the scan filter, `ciot_ble_scn_hold` stops the scanner after the report being handled, and the report handler skips `ciot_ble_scn_continue`. The radio is then free, for example for an advertising burst whose first event must go out right away. Only skipping `ciot_ble_scn_continue` (the scanner paused by the SoftDevice) is not enough: the paused scanner keeps its scan window, and on a bench the first advertising event still waited ~110 ms for its end. Don't call it on the report of a scannable advert: stopping there aborts the SCAN_REQ that follows. `ciot_ble_scn_resume` restarts the scanner with its current parameters (a scan timeout starts again) and can be called from an interrupt (a timer); without a hold it does nothing. `ciot_ble_scn_start` and `ciot_ble_scn_stop` clear the hold (`src/nrf/ciot_ble_scn.c`).
 
+**Tests:**
+
+* Requests answered by an event of the target iface (e.g. a start acked by `STARTED`) are now covered: an ack sent from inside the request, while the core is busy with it, is kept in `PENDING_EVENT` and answers the request on the next `ciot_task`; an event from another iface in that window is dropped (busy handler) and does not overwrite the ack; an ack sent later does not keep the core busy meanwhile, and other requests are taken and answered before it arrives (`tests/common/ciot_busy_test.c`).
+
 **Version:**
 
 * `CIOT_VER` bumped to `0.27.0.0`, opening the 0.27 alpha cycle after the v0.26.0.5 stable release.

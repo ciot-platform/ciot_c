@@ -37,6 +37,9 @@ void test_ciot_busy_custom_error_carries_iface_id(void);
 void test_ciot_busy_custom_error_keeps_pending_request(void);
 void test_ciot_busy_request_still_rejected_while_busy(void);
 void test_ciot_busy_answer_to_pending_request_takes_receiver(void);
+void test_ciot_pending_event_sync_ack_answers_request(void);
+void test_ciot_pending_event_other_iface_does_not_overwrite_ack(void);
+void test_ciot_pending_event_async_ack_does_not_block_core(void);
 
 // WiFi Multi tests
 void test_ciot_wifi_multi_new_with_injected_wifi(void);
@@ -107,6 +110,9 @@ int main(void)
     RUN_TEST(test_ciot_busy_custom_error_keeps_pending_request);
     RUN_TEST(test_ciot_busy_request_still_rejected_while_busy);
     RUN_TEST(test_ciot_busy_answer_to_pending_request_takes_receiver);
+    RUN_TEST(test_ciot_pending_event_sync_ack_answers_request);
+    RUN_TEST(test_ciot_pending_event_other_iface_does_not_overwrite_ack);
+    RUN_TEST(test_ciot_pending_event_async_ack_does_not_block_core);
 
     // WiFi Multi tests
     RUN_TEST(test_ciot_wifi_multi_new_with_injected_wifi);
