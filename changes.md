@@ -13,7 +13,7 @@
 * The "same iface" check in the `BUSY` state only runs for events that carry a decoded msg. For raw `MSG` events it read `event->msg.iface` from the union's raw bytes, and a false match could move the core to `PENDING_EVENT` and reprocess the previous event (`src/core/ciot.c`).
 * `MSG` events dropped because the core is not started are now logged at error level with the iface and event (`src/core/ciot.c`).
 * On ESP32, `ciot_eth_stop` now sets `cfg.disabled = true` on the stored config, as `ciot_wifi_stop` already does. A config saved after stopping ethernet now keeps it disabled; before, the saved config was still enabled and ethernet came back on at boot. The next start with an enabled config resets the flag (`src/esp32/ciot_eth.c`).
-* On nRF (S140), `ciot_ble_adv_send_bytes` advertises only the bytes of the message: it sets `adv_data.len` to the message size and reconfigures the stopped adv set before `sd_ble_gap_adv_start`. Before, the adv data always had 31 bytes and the buffer was not cleared, so a message shorter than the previous one went out with the tail of the previous one, which scanners read as extra AD structures (`src/nrf/ciot_ble_adv.c`, hedrosistemas/hg_ble#101).
+* On nRF (S140), `ciot_ble_adv_send_bytes` advertises only the bytes of the message: it sets `adv_data.len` to the message size and reconfigures the stopped adv set before `sd_ble_gap_adv_start`. Before, the adv data always had 31 bytes and the buffer was not cleared, so a message shorter than the previous one went out with the tail of the previous one, which scanners read as extra AD structures (`src/nrf/ciot_ble_adv.c`).
 
 **Modbus server transport switch (#87):**
 
@@ -27,7 +27,7 @@ Switching `mbus_server` between RTU and TCP without a reboot left the previous t
 
 **Modbus server: last holding register never written:**
 
-* `ciot_mbus_server_set_reg` and `ciot_mbus_server_get_reg` compared the register index with `regs.count - size`, but `size` is in bytes and each register is 2 bytes. A 16-bit access to the last register (index `count - 1`) was rejected with `CIOT_ERR_INVALID_INDEX`, so that register stayed at 0. In hg_tcp, the 125th TAG (40125) was updated in the bridge but read 0 over Modbus. The check now converts `size` to registers and only rejects accesses that end past the last one. Reads through Modbus (FC03) already used the right limit (`src/common/ciot_mbus_server.c`).
+* `ciot_mbus_server_set_reg` and `ciot_mbus_server_get_reg` compared the register index with `regs.count - size`, but `size` is in bytes and each register is 2 bytes. A 16-bit access to the last register (index `count - 1`) was rejected with `CIOT_ERR_INVALID_INDEX`, so that register stayed at 0: with 125 holding registers, register 40125 was written by the application but read 0 over Modbus. The check now converts `size` to registers and only rejects accesses that end past the last one. Reads through Modbus (FC03) already used the right limit (`src/common/ciot_mbus_server.c`).
 
 **Frames sent whole on nRF, and send errors reach the caller (#92):**
 
@@ -75,6 +75,7 @@ Switching `mbus_server` between RTU and TCP without a reboot left the previous t
 * `CIOT_VER` bumped to `0.27.0.2` (Modbus server transport switch fix).
 * `CIOT_VER` bumped to `0.27.0.3` (Linux build fix).
 * `CIOT_VER` bumped to `0.27.0.4` (Modbus server last register fix).
+* `CIOT_VER` bumped to `0.27.0.5` (adv data length on nRF).
 * `CIOT_VER` bumped to `0.27.0.6` (whole frames and send errors on nRF).
 * `CIOT_VER` bumped to `0.27.0.7` (`CIOT_CONFIG_DIRECT_MSG`: device data no longer dropped while the core is busy).
 * `CIOT_VER` bumped to `0.27.0.8` (free memory on nRF).
