@@ -10,8 +10,13 @@
  */
 
 #include <stdlib.h>
+#include <string.h>
+#include "ciot_config.h"
 #include "ciot_decoder_s.h"
 #include "ciot_iface.h"
+
+// Start char, 2-byte size and end char around the payload.
+#define CIOT_DECODER_S_FRAME_OVERHEAD 4
 
 typedef enum ciot_decoder_s_state
 {
@@ -133,9 +138,19 @@ static ciot_err_t ciot_decoder_s_send(ciot_decoder_t base, ciot_iface_t *iface, 
     CIOT_ERR_NULL_CHECK(base);
     CIOT_ERR_NULL_CHECK(bytes);
     CIOT_ERR_NULL_CHECK(iface);
-    iface->send_data(iface, &start_ch, 1);
-    iface->send_data(iface, (uint8_t*)&size, 2);
-    iface->send_data(iface, bytes, size);
-    iface->send_data(iface, &end_ch, 1);
-    return CIOT_ERR_OK;
+    CIOT_ERR_NULL_CHECK(iface->send_data);
+    if (size < 0 || size > CIOT_CONFIG_MSG_SIZE) {
+        return CIOT_ERR_OVERFLOW;
+    }
+    // The bytes of one frame go out in one send_data call: an iface that cannot take the whole frame
+    // refuses it, so a partial frame never breaks the receiver's framing, and the caller gets the error.
+    // The frame is built on the caller's stack, so senders at different priorities or in different
+    // tasks never share it.
+    uint8_t frame[CIOT_CONFIG_MSG_SIZE + CIOT_DECODER_S_FRAME_OVERHEAD];
+    frame[0] = start_ch;
+    frame[1] = (uint8_t)(size & 0xFF);
+    frame[2] = (uint8_t)((size >> 8) & 0xFF);
+    memcpy(&frame[3], bytes, size);
+    frame[3 + size] = end_ch;
+    return iface->send_data(iface, frame, size + CIOT_DECODER_S_FRAME_OVERHEAD);
 }

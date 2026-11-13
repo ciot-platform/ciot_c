@@ -153,10 +153,23 @@ ciot_err_t ciot_uart_stop(ciot_uart_t self)
         CIOT_LOGW(TAG, "UART %d already stopped", (int)self->base.cfg.num);
         return CIOT_ERR_OK;
     }
+    // The event task only exists for UARTs with a decoder: vTaskDelete(NULL) would
+    // delete the caller instead. Delete it before the driver frees the queue it waits on,
+    // unless stop runs in that task (e.g. from an event handler): then it ends last.
+    TaskHandle_t task = self->task;
+    bool in_task = task != NULL && task == xTaskGetCurrentTaskHandle();
+    self->task = NULL;
+    if (task != NULL && !in_task)
+    {
+        vTaskDelete(task);
+    }
     uart_driver_delete(self->base.cfg.num);
     self->base.status.state = CIOT_UART_STATE_CLOSED;
     ciot_iface_send_event_type(&self->base.iface, CIOT_EVENT_TYPE_STOPPED);
-    vTaskDelete(self->task);
+    if (in_task)
+    {
+        vTaskDelete(NULL);
+    }
     return CIOT_ERR_OK;
 }
 

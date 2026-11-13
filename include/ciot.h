@@ -33,10 +33,20 @@
 #warning "Target undefined."
 #endif
 
-#define CIOT_VER 0,26,0,5
+#define CIOT_VER 0,27,0,9
 
 #ifndef CIOT_CONFIG_IFACE_CFG_FILENAME_MASK
 #define CIOT_CONFIG_IFACE_CFG_FILENAME_MASK "cfg%d.dat"
+#endif
+
+// 1: a received message that does not need the core (data a device sends on its own) is decoded
+// apart from the receiver and handed to the application handler right away, in the sender's
+// context (another task or an interrupt), even while the core is busy. The application handler
+// must then be safe to call from those contexts at the same time as from ciot_task.
+// 0 (default): it takes the receiver and reaches the application from ciot_task, and is dropped
+// while the core is busy. CUSTOM messages go to the application in the sender's context either way.
+#ifndef CIOT_CONFIG_DIRECT_MSG
+#define CIOT_CONFIG_DIRECT_MSG 0
 #endif
 
 #if defined(CIOT_TARGET_WIN) || defined(CIOT_TARGET_LINUX)
@@ -82,6 +92,16 @@ typedef struct ciot_receiver
     uint64_t timeout_timer;
 } ciot_receiver_t;
 
+#if CIOT_CONFIG_DIRECT_MSG == 1
+// Holds a message decoded apart from receiver.event, so data that does not need the receiver
+// reaches the application without touching it. One sender at a time.
+typedef struct ciot_direct
+{
+    ciot_event_t event;
+    volatile bool in_use;
+} ciot_direct_t;
+#endif
+
 struct ciot
 {
     ciot_iface_t iface;
@@ -91,8 +111,13 @@ struct ciot
     ciot_ifaces_t ifaces;
     ciot_starter_t starter;
     ciot_receiver_t receiver;
+#if CIOT_CONFIG_DIRECT_MSG == 1
+    ciot_direct_t direct;
+#endif
     ciot_err_t error;
     ciot_storage_t storage;
+    ciot_iface_event_handler_fn *busy_handler;
+    void *busy_args;
 };
 
 ciot_t ciot_new(void);
@@ -112,5 +137,13 @@ ciot_err_t ciot_delete_all(ciot_t self);
 bool ciot_cfg_exists(ciot_t self, uint8_t iface_id);
 const char *ciot_event_to_str(ciot_event_t *event);
 ciot_iface_state_t ciot_iface_get_state(ciot_t self, uint16_t iface_id);
+/**
+ * @brief Register a handler called when ciot core rejects an event because it is busy.
+ *
+ * The event is forwarded exactly as received from the sender iface (MSG events are still raw),
+ * so the application can decode it and notify the requester. The handler runs in the sender's
+ * context, which may be a different task than the one running ciot_task.
+ */
+ciot_err_t ciot_set_busy_handler(ciot_t self, ciot_iface_event_handler_fn busy_handler, void *busy_args);
 
 #endif  //!__CIOT__H__
