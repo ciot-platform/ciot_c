@@ -13,7 +13,7 @@
 * The "same iface" check in the `BUSY` state only runs for events that carry a decoded msg. For raw `MSG` events it read `event->msg.iface` from the union's raw bytes, and a false match could move the core to `PENDING_EVENT` and reprocess the previous event (`src/core/ciot.c`).
 * `MSG` events dropped because the core is not started are now logged at error level with the iface and event (`src/core/ciot.c`).
 * On ESP32, `ciot_eth_stop` now sets `cfg.disabled = true` on the stored config, as `ciot_wifi_stop` already does. A config saved after stopping ethernet now keeps it disabled; before, the saved config was still enabled and ethernet came back on at boot. The next start with an enabled config resets the flag (`src/esp32/ciot_eth.c`).
-* On nRF (S140), `ciot_ble_adv_send_bytes` advertises only the bytes of the message: it sets `adv_data.len` to the message size and reconfigures the stopped adv set before `sd_ble_gap_adv_start`. Before, the adv data always had 31 bytes and the buffer was not cleared, so a message shorter than the previous one went out with the tail of the previous one, which scanners read as extra AD structures (`src/nrf/ciot_ble_adv.c`, hedrosistemas/hg_ble#101).
+* On nRF (S140), `ciot_ble_adv_send_bytes` advertises only the bytes of the message: it sets `adv_data.len` to the message size and reconfigures the stopped adv set before `sd_ble_gap_adv_start`. Before, the adv data always had 31 bytes and the buffer was not cleared, so a message shorter than the previous one went out with the tail of the previous one, which scanners read as extra AD structures (`src/nrf/ciot_ble_adv.c`).
 
 **Modbus server transport switch (#87):**
 
@@ -27,7 +27,7 @@ Switching `mbus_server` between RTU and TCP without a reboot left the previous t
 
 **Modbus server: last holding register never written:**
 
-* `ciot_mbus_server_set_reg` and `ciot_mbus_server_get_reg` compared the register index with `regs.count - size`, but `size` is in bytes and each register is 2 bytes. A 16-bit access to the last register (index `count - 1`) was rejected with `CIOT_ERR_INVALID_INDEX`, so that register stayed at 0. In hg_tcp, the 125th TAG (40125) was updated in the bridge but read 0 over Modbus. The check now converts `size` to registers and only rejects accesses that end past the last one. Reads through Modbus (FC03) already used the right limit (`src/common/ciot_mbus_server.c`).
+* `ciot_mbus_server_set_reg` and `ciot_mbus_server_get_reg` compared the register index with `regs.count - size`, but `size` is in bytes and each register is 2 bytes. A 16-bit access to the last register (index `count - 1`) was rejected with `CIOT_ERR_INVALID_INDEX`, so that register stayed at 0: with 125 holding registers, register 40125 was written by the application but read 0 over Modbus. The check now converts `size` to registers and only rejects accesses that end past the last one. Reads through Modbus (FC03) already used the right limit (`src/common/ciot_mbus_server.c`).
 
 **Frames sent whole on nRF, and send errors reach the caller (#92):**
 
@@ -59,6 +59,16 @@ Switching `mbus_server` between RTU and TCP without a reboot left the previous t
 * Read first in `ciot_sys_new`, then refreshed by `ciot_sys_task` when `lifetime` changes; while `ciot_timer` is not running it keeps that first value, as `lifetime` does. Only newlib `malloc` is covered: the value is too high with an `_sbrk` that stops at `__HeapLimit`, and an RTOS heap (e.g. FreeRTOS) is not seen.
 * `ciot_sys_new` on nRF returns NULL when `calloc` fails, instead of writing through NULL in `ciot_sys_init`.
 
+**Scan responses and scanner hold on nRF:**
+
+* `ciot_ble_scn_event_adv_report_t` has a new `scan_response` field, set on nRF from the SoftDevice report (`adv_report.type.scan_response`). The scan filter can now tell a scan response (SCAN_RSP) from an advert. An empty scan response reaches the filter with `payload_len` 0 (`include/ciot_ble_scn.h`, `src/nrf/ciot_ble.c`).
+* New `ciot_ble_scn_hold` and `ciot_ble_scn_resume` (nRF). Called from the scan filter, `ciot_ble_scn_hold` stops the scanner after the report being handled, and the report handler skips `ciot_ble_scn_continue`. The radio is then free, for example for an advertising burst whose first event must go out right away. Only skipping `ciot_ble_scn_continue` (the scanner paused by the SoftDevice) is not enough: the paused scanner keeps its scan window, and on a bench the first advertising event still waited ~110 ms for its end. Don't call it on the report of a scannable advert: stopping there aborts the SCAN_REQ that follows. `ciot_ble_scn_resume` restarts the scanner with its current parameters (a scan timeout starts again) and can be called from an interrupt (a timer); without a hold it does nothing, and a scanner already running is not an error. `ciot_ble_scn_hold` holds only a running scanner: if `sd_ble_gap_scan_stop` fails it returns the error and `ciot_ble_scn_resume` will not start the scanner. `ciot_ble_scn_start` and `ciot_ble_scn_stop` clear the hold; `ciot_ble_scn_stop` during a hold sets the state to IDLE and sends `STOPPED`, although the SoftDevice scanner is already stopped (`src/nrf/ciot_ble_scn.c`).
+* `ciot_ble_scn_continue` on nRF builds with SoftDevice API 2/3 (no pause after a report there: it does nothing).
+
+**Tests:**
+
+* Requests answered by an event of the target iface (e.g. a start acked by `STARTED`) are now covered: an ack sent from inside the request, while the core is busy with it, is kept in `PENDING_EVENT` and answers the request on the next `ciot_task`; an event from another iface in that window is dropped (busy handler) and does not overwrite the ack; an ack sent later does not keep the core busy meanwhile, and other requests are taken and answered before it arrives (`tests/common/ciot_busy_test.c`).
+
 **Version:**
 
 * `CIOT_VER` bumped to `0.27.0.0`, opening the 0.27 alpha cycle after the v0.26.0.5 stable release.
@@ -66,6 +76,8 @@ Switching `mbus_server` between RTU and TCP without a reboot left the previous t
 * `CIOT_VER` bumped to `0.27.0.2` (Modbus server transport switch fix).
 * `CIOT_VER` bumped to `0.27.0.3` (Linux build fix).
 * `CIOT_VER` bumped to `0.27.0.4` (Modbus server last register fix).
+* `CIOT_VER` bumped to `0.27.0.5` (adv data length on nRF).
 * `CIOT_VER` bumped to `0.27.0.6` (whole frames and send errors on nRF).
 * `CIOT_VER` bumped to `0.27.0.7` (`CIOT_CONFIG_DIRECT_MSG`: device data no longer dropped while the core is busy).
 * `CIOT_VER` bumped to `0.27.0.8` (free memory on nRF).
+* `CIOT_VER` bumped to `0.27.0.9` (scan responses and scanner hold on nRF).

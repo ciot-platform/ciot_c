@@ -11,9 +11,10 @@
 static ciot_t g_ciot;
 static ciot_iface_t g_req_iface;
 static ciot_iface_t g_dev_iface;
-static ciot_iface_t *g_ifaces[3];
+static ciot_iface_t g_ack_iface;
+static ciot_iface_t *g_ifaces[4];
 static ciot_msg_data_t g_cfg;
-static ciot_msg_data_t *g_cfgs[3];
+static ciot_msg_data_t *g_cfgs[4];
 
 static int g_app_calls;
 static ciot_msg_t g_app_last_msg;
@@ -21,11 +22,26 @@ static int g_busy_calls;
 static ciot_err_t g_app_ret;
 static uint8_t g_sent[512];
 static int g_sent_size;
+static ciot_iface_t *g_sent_iface;
+static bool g_ack_sync;
 
 static ciot_err_t mock_process_data(ciot_iface_t *iface, ciot_msg_data_t *data)
 {
     (void)iface;
     (void)data;
+    return CIOT_ERR_OK;
+}
+
+// An iface whose request is answered by an event, like a start: the request stays pending on it
+// until it reports STARTED. With g_ack_sync it reports it right away, from inside process_data,
+// while the core is still busy with the request; otherwise the test reports it later.
+static ciot_err_t mock_ack_process_data(ciot_iface_t *iface, ciot_msg_data_t *data)
+{
+    (void)data;
+    if(g_ack_sync)
+    {
+        return ciot_iface_send_event_type(iface, CIOT_EVENT_TYPE_STARTED);
+    }
     return CIOT_ERR_OK;
 }
 
@@ -38,11 +54,11 @@ static ciot_err_t mock_get_data(ciot_iface_t *iface, ciot_msg_data_t *data)
 
 static ciot_err_t mock_send_data(ciot_iface_t *iface, uint8_t *data, int size)
 {
-    (void)iface;
     if(size > 0 && size <= (int)sizeof(g_sent))
     {
         memcpy(g_sent, data, size);
         g_sent_size = size;
+        g_sent_iface = iface;
     }
     return CIOT_ERR_OK;
 }
@@ -82,30 +98,37 @@ static void busy_test_setup(void)
     g_ciot = ciot_new();
     TEST_ASSERT_NOT_NULL(g_ciot);
 
-    // id 1: receives requests (e.g. MQTT); id 2: a device that sends data on its own (e.g. a UART)
+    // id 1: receives requests (e.g. MQTT); id 2: a device that sends data on its own (e.g. a UART);
+    // id 3: an iface whose requests are answered by an event (e.g. a start acked by STARTED)
     init_iface(&g_req_iface, CIOT_IFACE_TYPE_MQTT_CLIENT);
     init_iface(&g_dev_iface, CIOT_IFACE_TYPE_UART);
+    init_iface(&g_ack_iface, CIOT_IFACE_TYPE_UART);
+    g_ack_iface.process_data = mock_ack_process_data;
 
     g_ifaces[0] = NULL;
     g_ifaces[1] = &g_req_iface;
     g_ifaces[2] = &g_dev_iface;
+    g_ifaces[3] = &g_ack_iface;
 
     memset(&g_cfg, 0, sizeof(g_cfg));
     g_cfg.which_type = CIOT_MSG_DATA_GET_DATA_TAG;
     g_cfgs[0] = NULL;
     g_cfgs[1] = &g_cfg;
     g_cfgs[2] = NULL;
+    g_cfgs[3] = NULL;
 
     g_app_calls = 0;
     g_busy_calls = 0;
     g_app_ret = CIOT_ERR_OK;
     g_sent_size = 0;
+    g_sent_iface = NULL;
+    g_ack_sync = false;
     memset(&g_app_last_msg, 0, sizeof(g_app_last_msg));
 
     ciot_cfg_t cfg = { 0 };
     cfg.ifaces.list = g_ifaces;
     cfg.ifaces.cfgs = g_cfgs;
-    cfg.ifaces.count = 3;
+    cfg.ifaces.count = 4;
 
     TEST_ASSERT_EQUAL(CIOT_ERR_OK, ciot_start(g_ciot, &cfg));
     TEST_ASSERT_EQUAL(CIOT_ERR_OK, ciot_task(g_ciot));
@@ -423,6 +446,120 @@ void test_ciot_busy_answer_to_pending_request_takes_receiver(void)
 
     TEST_ASSERT_EQUAL(CIOT_STATE_BUSY, g_ciot->status.state);
     TEST_ASSERT_EQUAL(0, g_app_calls);
+
+    busy_test_cleanup();
+}
+
+// Requests answered by an event of the target iface (e.g. a start acked by STARTED). The request
+// stays pending on the iface (req_status), not on the core, and the ack is forwarded to the
+// requester as the response.
+
+static void send_ack_iface_request(uint32_t id)
+{
+    ciot_msg_t req = { 0 };
+    req.id = id;
+    req.type = CIOT_MSG_TYPE_REQUEST;
+    req.has_iface = true;
+    req.iface = g_ack_iface.info;
+    req.has_data = true;
+    req.data.which_type = CIOT_MSG_DATA_UART_TAG;
+
+    ciot_event_t event = raw_event(&req);
+    TEST_ASSERT_EQUAL(CIOT_ERR_OK, ciot_iface_send_event(&g_req_iface, &event));
+    TEST_ASSERT_EQUAL(CIOT_STATE_BUSY, g_ciot->status.state);
+}
+
+// The requester got the ack of the target iface as the response to its request
+static void assert_ack_response_sent(uint32_t id)
+{
+    TEST_ASSERT_TRUE(g_sent_iface == &g_req_iface);
+    ciot_msg_t sent = { 0 };
+    TEST_ASSERT_GREATER_THAN(0, ciot_serializer_from_bytes(g_sent, g_sent_size, &sent, CIOT_MSG_FIELDS));
+    TEST_ASSERT_EQUAL_UINT32(id, sent.id);
+    TEST_ASSERT_EQUAL(CIOT_MSG_TYPE_RESPONSE, sent.type);
+    TEST_ASSERT_EQUAL(CIOT_ERR_OK, sent.error);
+    TEST_ASSERT_EQUAL(g_ack_iface.info.type, sent.iface.type);
+    TEST_ASSERT_EQUAL_UINT32(g_ack_iface.info.id, sent.iface.id);
+    TEST_ASSERT_EQUAL(CIOT_IFACE_REQ_STATE_IDLE, g_ack_iface.req_status.state);
+}
+
+// The ack comes from inside the request, while the core is busy with it: it is kept
+// (PENDING_EVENT) and answers the request on the next ciot_task, instead of being dropped as busy.
+void test_ciot_pending_event_sync_ack_answers_request(void)
+{
+    busy_test_setup();
+    g_ack_sync = true;
+
+    send_ack_iface_request(200);
+    TEST_ASSERT_EQUAL(CIOT_ERR_OK, ciot_task(g_ciot));
+
+    TEST_ASSERT_EQUAL(CIOT_STATE_PENDING_EVENT, g_ciot->status.state);
+    TEST_ASSERT_EQUAL(0, g_busy_calls);
+    TEST_ASSERT_NULL(g_sent_iface);
+
+    TEST_ASSERT_EQUAL(CIOT_ERR_OK, ciot_task(g_ciot));
+
+    TEST_ASSERT_EQUAL(CIOT_STATE_STARTED, g_ciot->status.state);
+    assert_ack_response_sent(200);
+
+    busy_test_cleanup();
+}
+
+// An event from another iface while the ack is pending is dropped (busy handler) and does not
+// overwrite the ack, so the response still reaches the requester.
+void test_ciot_pending_event_other_iface_does_not_overwrite_ack(void)
+{
+    busy_test_setup();
+    g_ack_sync = true;
+
+    send_ack_iface_request(201);
+    TEST_ASSERT_EQUAL(CIOT_ERR_OK, ciot_task(g_ciot));
+    TEST_ASSERT_EQUAL(CIOT_STATE_PENDING_EVENT, g_ciot->status.state);
+
+    TEST_ASSERT_EQUAL(CIOT_ERR_BUSY, ciot_iface_send_event_type(&g_dev_iface, CIOT_EVENT_TYPE_STARTED));
+    TEST_ASSERT_EQUAL(1, g_busy_calls);
+    // The pending event is still the ack (the next ciot_task takes the sender from its iface)
+    TEST_ASSERT_EQUAL(CIOT_EVENT_TYPE_STARTED, g_ciot->receiver.event.type);
+    TEST_ASSERT_EQUAL_UINT32(g_ack_iface.info.id, g_ciot->receiver.event.msg.iface.id);
+
+    TEST_ASSERT_EQUAL(CIOT_ERR_OK, ciot_task(g_ciot));
+
+    TEST_ASSERT_EQUAL(CIOT_STATE_STARTED, g_ciot->status.state);
+    assert_ack_response_sent(201);
+
+    busy_test_cleanup();
+}
+
+// The ack comes later: the core does not wait for it. It is back to STARTED and takes other
+// requests while the request is pending on the iface, and the late ack still answers it.
+void test_ciot_pending_event_async_ack_does_not_block_core(void)
+{
+    busy_test_setup();
+
+    send_ack_iface_request(202);
+    TEST_ASSERT_EQUAL(CIOT_ERR_OK, ciot_task(g_ciot));
+
+    TEST_ASSERT_EQUAL(CIOT_STATE_STARTED, g_ciot->status.state);
+    TEST_ASSERT_EQUAL(CIOT_IFACE_REQ_STATE_RECEIVED, g_ack_iface.req_status.state);
+    TEST_ASSERT_NULL(g_sent_iface);
+
+    // Another request is taken and answered meanwhile
+    g_app_calls = 0;
+    make_core_busy();
+    TEST_ASSERT_EQUAL(CIOT_ERR_OK, ciot_task(g_ciot));
+    TEST_ASSERT_EQUAL(CIOT_STATE_STARTED, g_ciot->status.state);
+    TEST_ASSERT_TRUE(g_sent_iface == &g_req_iface);
+    TEST_ASSERT_EQUAL(CIOT_IFACE_REQ_STATE_RECEIVED, g_ack_iface.req_status.state);
+
+    // The late ack answers the first request
+    g_sent_iface = NULL;
+    TEST_ASSERT_EQUAL(CIOT_ERR_OK, ciot_iface_send_event_type(&g_ack_iface, CIOT_EVENT_TYPE_STARTED));
+    TEST_ASSERT_EQUAL(CIOT_STATE_BUSY, g_ciot->status.state);
+    TEST_ASSERT_EQUAL(CIOT_ERR_OK, ciot_task(g_ciot));
+
+    TEST_ASSERT_EQUAL(CIOT_STATE_STARTED, g_ciot->status.state);
+    assert_ack_response_sent(202);
+    TEST_ASSERT_EQUAL(0, g_busy_calls);
 
     busy_test_cleanup();
 }
