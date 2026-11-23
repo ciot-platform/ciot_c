@@ -80,6 +80,10 @@ ciot_err_t ciot_uart_start(ciot_uart_t self, ciot_uart_cfg_t *cfg)
     if (base->status.state == CIOT_UART_STATE_STARTED &&
         base->cfg.num == cfg->num)
     {
+        // Already open: report STARTED again, as the ESP32 and Windows UARTs do.
+        // Users that wait for it after a start (e.g. ciot_dfu_nrf_start on a link
+        // opened by ciot_dfu_nrf_start_bootloader) would wait forever otherwise.
+        ciot_iface_send_event_type(&base->iface, CIOT_EVENT_TYPE_STARTED);
         return CIOT_ERR_OK;
     }
 

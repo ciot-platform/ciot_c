@@ -99,6 +99,23 @@ typedef struct ciot_dfu_nrf *ciot_dfu_nrf_t;
 ciot_dfu_nrf_t ciot_dfu_nrf_new(ciot_dfu_nrf_cfg_t *cfg);
 ciot_err_t ciot_dfu_nrf_start(ciot_dfu_nrf_t self, ciot_dfu_cfg_t *cfg);
 ciot_err_t ciot_dfu_nrf_stop(ciot_dfu_nrf_t self);
+
+/**
+ * @brief Ends the current session without closing the transport iface.
+ *
+ * Clears the session state (states, counters, CRC, current object, the ping retry,
+ * the SLIP decoder) and releases the iface event handler, so the next
+ * ciot_dfu_nrf_start() begins a new session from scratch on the iface that is still
+ * open. ciot_dfu_nrf_stop() does the same and also closes the iface.
+ *
+ * Use it between sessions that reuse the same link, e.g. after a ping-only session
+ * (test mode), which ends in COMPLETED with the iface still open.
+ *
+ * It is not synchronized with the iface RX path: call it once the session has ended
+ * (COMPLETED, ERROR or timed out), not while a response is being processed.
+ * Bytes received after it are dropped by the next ciot_dfu_nrf_start().
+ */
+ciot_err_t ciot_dfu_nrf_reset(ciot_dfu_nrf_t self);
 ciot_err_t ciot_dfu_nrf_set_test_mode(ciot_dfu_nrf_t self, bool enable);
 ciot_err_t ciot_dfu_nrf_init(ciot_dfu_nrf_t self);
 ciot_err_t ciot_dfu_nrf_process_req(ciot_dfu_nrf_t self, ciot_dfu_req_t *req);
@@ -106,6 +123,19 @@ ciot_err_t ciot_dfu_nrf_get_cfg(ciot_dfu_nrf_t self, ciot_dfu_cfg_t *cfg);
 ciot_err_t ciot_dfu_nrf_get_status(ciot_dfu_nrf_t self, ciot_dfu_status_t *status);
 ciot_err_t ciot_dfu_nrf_task(ciot_dfu_nrf_t self);
 ciot_err_t ciot_dfu_nrf_read_file(ciot_dfu_nrf_packet_t *object, const char *name);
+/**
+ * @brief Opens the DFU iface and asks the device, through `iface`, to reset into
+ * its bootloader (SYS request INIT_DFU to `sys_id`).
+ *
+ * The DFU iface is opened first so the line is idle when the bootloader starts,
+ * unless `iface` is the DFU iface itself: a link shared with the application keeps
+ * its framing and config until ciot_dfu_nrf_start().
+ *
+ * The DFU iface must send STARTED on every start, also when it is already open:
+ * ciot_dfu_nrf_start() waits for it before the ping.
+ * Call it with no session running (after ciot_dfu_nrf_reset() or
+ * ciot_dfu_nrf_stop()), then ciot_dfu_nrf_start() once the bootloader is up.
+ */
 ciot_err_t ciot_dfu_nrf_start_bootloader(ciot_dfu_nrf_t self, ciot_iface_t *iface, int sys_id);
 ciot_dfu_nrf_state_t ciot_dfu_nrf_state(ciot_dfu_nrf_t self);
 

@@ -101,7 +101,13 @@ ciot_err_t ciot_dfu_nrf_start(ciot_dfu_nrf_t self, ciot_dfu_cfg_t *cfg)
     }
 
     self->state = CIOT_DFU_NRF_STATE_IDLE;
+    self->base.status.code = 0;
+    self->base.status.image_written = 0;
     ciot_dfu_nrf_set_state(self, CIOT_DFU_STATE_STARTING);
+    // The link may already be open (ciot_dfu_nrf_start_bootloader, or a previous
+    // session ended with ciot_dfu_nrf_reset): drop what it received since then,
+    // e.g. bytes from the device reset, so they don't prefix the ping response.
+    ciot_decoder_slip_reset(self->decoder);
     ciot_iface_set_decoder(self->cfg.iface, self->decoder);
     ciot_iface_set_event_handler(self->cfg.iface, ciot_dfu_nrf_event_handler, self);
 
@@ -110,7 +116,7 @@ ciot_err_t ciot_dfu_nrf_start(ciot_dfu_nrf_t self, ciot_dfu_cfg_t *cfg)
     return self->base.status.error;
 }
 
-ciot_err_t ciot_dfu_nrf_stop(ciot_dfu_nrf_t self)
+ciot_err_t ciot_dfu_nrf_reset(ciot_dfu_nrf_t self)
 {
     CIOT_ERR_NULL_CHECK(self);
     ciot_iface_set_event_handler(self->cfg.iface, NULL, NULL);
@@ -120,9 +126,21 @@ ciot_err_t ciot_dfu_nrf_stop(ciot_dfu_nrf_t self)
     self->crc.expected = 0;
     self->crc.received = 0;
     self->object.packet = &self->cfg.init_packet;
+    self->object.remaining = 0;
+    self->cfg.init_packet.transferred = false;
+    self->cfg.app_image.transferred = false;
+    self->ping_refused = false;
     self->state = CIOT_DFU_NRF_STATE_IDLE;
     self->last_state = CIOT_DFU_NRF_STATE_IDLE;
     self->base.status.state = CIOT_DFU_STATE_IDLE;
+    ciot_decoder_slip_reset(self->decoder);
+    return CIOT_ERR_OK;
+}
+
+ciot_err_t ciot_dfu_nrf_stop(ciot_dfu_nrf_t self)
+{
+    CIOT_ERR_NULL_CHECK(self);
+    ciot_dfu_nrf_reset(self);
     ciot_msg_data_t data = {
         .which_type = self->cfg.iface_cfg->which_type,
         .common.which_type = CIOT_COMMON_STOP_TAG,
@@ -307,7 +325,32 @@ ciot_err_t ciot_dfu_nrf_read_file(ciot_dfu_nrf_packet_t *object, const char *nam
 
 ciot_err_t ciot_dfu_nrf_start_bootloader(ciot_dfu_nrf_t self, ciot_iface_t *iface, int sys_id)
 {
+    CIOT_ERR_NULL_CHECK(self);
     CIOT_LOGI(TAG, "Starting bootloader");
+
+    // Open the DFU link before the device resets into the bootloader, so the
+    // line is idle when the bootloader starts its transport. A closed UART may
+    // stop driving its TX pin (ESP32: uart_driver_delete disables the output),
+    // and a bootloader started on that line did not answer the session.
+    // The decoder goes first: the UART only creates its RX task if it has one.
+    // No session handler may see the STARTED event of this open: a left-over one
+    // would move to SEND_PING before the bootloader is up.
+    // A link that can't be opened yet (e.g. one that needs the bootloader running)
+    // is opened by ciot_dfu_nrf_start, as before: INIT_DFU still goes out.
+    // When INIT_DFU goes over the DFU link itself, that link is already open and
+    // still belongs to the application (its framing, config and handler): it is
+    // left alone until ciot_dfu_nrf_start.
+    if (iface != self->cfg.iface)
+    {
+        ciot_iface_set_event_handler(self->cfg.iface, NULL, NULL);
+        ciot_iface_set_decoder(self->cfg.iface, self->decoder);
+        ciot_err_t open_err = self->cfg.iface->process_data(self->cfg.iface, self->cfg.iface_cfg);
+        if (open_err != CIOT_ERR_OK)
+        {
+            CIOT_LOGW(TAG, "DFU iface not opened before the bootloader: %s", ciot_err_to_message(open_err));
+        }
+    }
+
     ciot_msg_t req = {
         .has_iface = true,
         .iface.type = CIOT_IFACE_TYPE_SYS,

@@ -15,6 +15,7 @@
 #include "ciot_iface.h"
 #include "ciot_decoder.h"
 #include "ciot_decoder_slip.h"
+#include "ciot_decoder_s.h"
 
 static ciot_iface_t iface;
 static uint8_t encode_result[64];
@@ -83,6 +84,45 @@ void test_ciot_decoder_slip_decode_ok()
     TEST_ASSERT_EQUAL_MEMORY(expected, iface.decoder->result.buf, sizeof(expected));
 }
 
+// Bytes of a frame cut in the middle (here after an ESC) are dropped by the reset.
+void test_ciot_decoder_slip_reset_drops_partial_frame()
+{
+    ciot_err_t err;
+    uint8_t buf[32] = {0};
+    uint8_t cut[] = {0x60, 0x03, 0xdb};
+    uint8_t data[] = {0x60, 0x09, 0x01, 0xc0};
+    uint8_t expected[] = {0x60, 0x09, 0x01};
+    iface.decoder = ciot_decoder_slip_new(buf, sizeof(buf));
+
+    for (size_t i = 0; i < sizeof(cut); i++)
+    {
+        iface.decoder->decode(iface.decoder, cut[i]);
+    }
+
+    TEST_ASSERT_EQUAL(CIOT_ERR_OK, ciot_decoder_slip_reset(iface.decoder));
+    TEST_ASSERT_EQUAL(CIOT_DECODER_STATE_IDLE, iface.decoder->state);
+
+    for (size_t i = 0; i < sizeof(data); i++)
+    {
+        err = iface.decoder->decode(iface.decoder, data[i]);
+        if (err != CIOT_ERR_OK)
+            break;
+    }
+
+    TEST_ASSERT_EQUAL(CIOT_ERR_OK, err);
+    TEST_ASSERT_EQUAL(CIOT_DECODER_STATE_DONE, iface.decoder->state);
+    TEST_ASSERT_EQUAL(sizeof(expected), iface.decoder->result.size);
+    TEST_ASSERT_EQUAL_MEMORY(expected, iface.decoder->result.buf, sizeof(expected));
+}
+
+// Only a SLIP decoder can be reset: another decoder's object is smaller.
+void test_ciot_decoder_slip_reset_rejects_other_decoder()
+{
+    uint8_t buf[8];
+    TEST_ASSERT_EQUAL(CIOT_ERR_INVALID_TYPE, ciot_decoder_slip_reset(ciot_decoder_s_new(buf, sizeof(buf))));
+    TEST_ASSERT_EQUAL(CIOT_ERR_NULL_ARG, ciot_decoder_slip_reset(NULL));
+}
+
 static ciot_err_t iface_send(ciot_iface_t *iface, uint8_t *bytes, int size)
 {
     int idx = encode_result_size;
@@ -97,4 +137,6 @@ void test_ciot_decoder_slip()
     RUN_TEST(test_ciot_decoder_slip_decode_no_memory);
     RUN_TEST(test_ciot_decoder_slip_decode_protocol_violation);
     RUN_TEST(test_ciot_decoder_slip_decode_ok);
+    RUN_TEST(test_ciot_decoder_slip_reset_drops_partial_frame);
+    RUN_TEST(test_ciot_decoder_slip_reset_rejects_other_decoder);
 }
