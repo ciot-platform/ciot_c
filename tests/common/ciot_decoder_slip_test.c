@@ -15,6 +15,7 @@
 #include "ciot_iface.h"
 #include "ciot_decoder.h"
 #include "ciot_decoder_slip.h"
+#include "ciot_decoder_s.h"
 
 static ciot_iface_t iface;
 static uint8_t encode_result[64];
@@ -114,6 +115,14 @@ void test_ciot_decoder_slip_reset_drops_partial_frame()
     TEST_ASSERT_EQUAL_MEMORY(expected, iface.decoder->result.buf, sizeof(expected));
 }
 
+// Only a SLIP decoder can be reset: another decoder's object is smaller.
+void test_ciot_decoder_slip_reset_rejects_other_decoder()
+{
+    uint8_t buf[8];
+    TEST_ASSERT_EQUAL(CIOT_ERR_INVALID_TYPE, ciot_decoder_slip_reset(ciot_decoder_s_new(buf, sizeof(buf))));
+    TEST_ASSERT_EQUAL(CIOT_ERR_NULL_ARG, ciot_decoder_slip_reset(NULL));
+}
+
 static ciot_err_t iface_send(ciot_iface_t *iface, uint8_t *bytes, int size)
 {
     int idx = encode_result_size;
@@ -129,4 +138,5 @@ void test_ciot_decoder_slip()
     RUN_TEST(test_ciot_decoder_slip_decode_protocol_violation);
     RUN_TEST(test_ciot_decoder_slip_decode_ok);
     RUN_TEST(test_ciot_decoder_slip_reset_drops_partial_frame);
+    RUN_TEST(test_ciot_decoder_slip_reset_rejects_other_decoder);
 }

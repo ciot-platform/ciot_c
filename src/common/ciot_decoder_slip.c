@@ -62,6 +62,10 @@ ciot_decoder_t ciot_decoder_slip_new(uint8_t *buf, int size)
 ciot_err_t ciot_decoder_slip_reset(ciot_decoder_t decoder)
 {
     CIOT_ERR_NULL_CHECK(decoder);
+    if (decoder->decode != ciot_decoder_slip_decode)
+    {
+        return CIOT_ERR_INVALID_TYPE;
+    }
     ciot_decoder_slip_t self = (ciot_decoder_slip_t)decoder;
     self->state = CIOT_DECODER_SLIP_STATE_DECODING;
     self->idx = 0;

@@ -110,6 +110,10 @@ ciot_err_t ciot_dfu_nrf_stop(ciot_dfu_nrf_t self);
  *
  * Use it between sessions that reuse the same link, e.g. after a ping-only session
  * (test mode), which ends in COMPLETED with the iface still open.
+ *
+ * It is not synchronized with the iface RX path: call it once the session has ended
+ * (COMPLETED, ERROR or timed out), not while a response is being processed.
+ * Bytes received after it are dropped by the next ciot_dfu_nrf_start().
  */
 ciot_err_t ciot_dfu_nrf_reset(ciot_dfu_nrf_t self);
 ciot_err_t ciot_dfu_nrf_set_test_mode(ciot_dfu_nrf_t self, bool enable);

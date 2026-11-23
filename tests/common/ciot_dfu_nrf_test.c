@@ -18,6 +18,7 @@ static ciot_iface_t g_link;
 static ciot_msg_data_t g_link_cfg;
 static int g_link_opens;
 static int g_link_closes;
+static ciot_err_t g_link_open_err;
 static uint8_t g_tx[64];
 static int g_tx_size;
 
@@ -25,6 +26,10 @@ static ciot_err_t link_process_data(ciot_iface_t *iface, ciot_msg_data_t *data)
 {
     if (data == &g_link_cfg)
     {
+        if (g_link_open_err != CIOT_ERR_OK)
+        {
+            return g_link_open_err;
+        }
         g_link_opens++;
         // Like ciot_uart_start: STARTED on every start, open or not.
         ciot_iface_send_event_type(iface, CIOT_EVENT_TYPE_STARTED);
@@ -62,6 +67,7 @@ static ciot_dfu_nrf_t new_dfu(void)
     g_link_cfg.which_type = CIOT_MSG_DATA_UART_TAG;
     g_link_opens = 0;
     g_link_closes = 0;
+    g_link_open_err = CIOT_ERR_OK;
     g_tx_size = 0;
 
     ciot_dfu_nrf_cfg_t cfg = {
@@ -210,8 +216,57 @@ void test_ciot_dfu_nrf_start_bootloader_opens_link_first(void)
     TEST_ASSERT_EQUAL(3, g_opens_at_request);
 }
 
+// Bytes received while the device resets into the bootloader (link already open,
+// no session yet) must not prefix the ping response.
+void test_ciot_dfu_nrf_start_drops_bytes_received_before_it(void)
+{
+    ciot_dfu_nrf_t dfu = new_dfu();
+    ciot_iface_t data_link = { .send_data = data_link_send_data };
+
+    g_opens_at_request = -1;
+    TEST_ASSERT_EQUAL(CIOT_ERR_OK, ciot_dfu_nrf_start_bootloader(dfu, &data_link, 1));
+    uint8_t noise[] = {0x00, 0x60};
+    ciot_iface_process_data(&g_link, noise, sizeof(noise), CIOT_EVENT_TYPE_MSG);
+
+    TEST_ASSERT_EQUAL(CIOT_ERR_OK, start(dfu));
+    send_ping(dfu);
+    answer_ping(0x01);
+    TEST_ASSERT_EQUAL(CIOT_DFU_NRF_STATE_COMPLETED, ciot_dfu_nrf_state(dfu));
+}
+
+// A link that can't be opened before the bootloader runs doesn't stop INIT_DFU.
+void test_ciot_dfu_nrf_start_bootloader_sends_request_when_open_fails(void)
+{
+    ciot_dfu_nrf_t dfu = new_dfu();
+    ciot_iface_t data_link = { .send_data = data_link_send_data };
+
+    g_link_open_err = CIOT_ERR_NOT_IMPLEMENTED;
+    g_opens_at_request = -1;
+    TEST_ASSERT_EQUAL(CIOT_ERR_OK, ciot_dfu_nrf_start_bootloader(dfu, &data_link, 1));
+    TEST_ASSERT_EQUAL(0, g_opens_at_request);
+}
+
+// A handler left by a session that ended in ERROR without reset doesn't see the
+// STARTED event of the early open.
+void test_ciot_dfu_nrf_start_bootloader_releases_left_over_handler(void)
+{
+    ciot_dfu_nrf_t dfu = new_dfu();
+    ciot_iface_t data_link = { .send_data = data_link_send_data };
+
+    TEST_ASSERT_EQUAL(CIOT_ERR_OK, start(dfu));
+    TEST_ASSERT_NOT_NULL(g_link.event_handler);
+
+    g_opens_at_request = -1;
+    TEST_ASSERT_EQUAL(CIOT_ERR_OK, ciot_dfu_nrf_start_bootloader(dfu, &data_link, 1));
+    TEST_ASSERT_NULL(g_link.event_handler);
+    TEST_ASSERT_EQUAL(CIOT_DFU_NRF_STATE_SEND_PING, ciot_dfu_nrf_state(dfu)); // from start, not moved by the open
+}
+
 void test_ciot_dfu_nrf(void)
 {
+    RUN_TEST(test_ciot_dfu_nrf_start_drops_bytes_received_before_it);
+    RUN_TEST(test_ciot_dfu_nrf_start_bootloader_sends_request_when_open_fails);
+    RUN_TEST(test_ciot_dfu_nrf_start_bootloader_releases_left_over_handler);
     RUN_TEST(test_ciot_dfu_nrf_start_bootloader_opens_link_first);
     RUN_TEST(test_ciot_dfu_nrf_reset_starts_new_session_on_open_iface);
     RUN_TEST(test_ciot_dfu_nrf_reset_allows_ping_retry_again);
