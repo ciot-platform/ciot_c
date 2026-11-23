@@ -174,8 +174,45 @@ void test_ciot_dfu_nrf_reset_drops_partial_frame(void)
     TEST_ASSERT_EQUAL(CIOT_DFU_NRF_STATE_COMPLETED, ciot_dfu_nrf_state(dfu));
 }
 
+static int g_opens_at_request;
+
+static ciot_err_t data_link_send_data(ciot_iface_t *iface, uint8_t *data, int size)
+{
+    if (g_opens_at_request < 0)
+    {
+        g_opens_at_request = g_link_opens;
+    }
+    return CIOT_ERR_OK;
+}
+
+// The DFU link is open, with the SLIP decoder, before the INIT_DFU request goes out,
+// also after a stop closed it: the bootloader must start on an idle line.
+void test_ciot_dfu_nrf_start_bootloader_opens_link_first(void)
+{
+    ciot_dfu_nrf_t dfu = new_dfu();
+    ciot_iface_t data_link = { .send_data = data_link_send_data };
+
+    g_opens_at_request = -1;
+    TEST_ASSERT_EQUAL(CIOT_ERR_OK, ciot_dfu_nrf_start_bootloader(dfu, &data_link, 1));
+    TEST_ASSERT_EQUAL(1, g_opens_at_request);
+    TEST_ASSERT_NOT_NULL(g_link.decoder);
+
+    TEST_ASSERT_EQUAL(CIOT_ERR_OK, start(dfu));
+    send_ping(dfu);
+    answer_ping(0x01);
+    TEST_ASSERT_EQUAL(CIOT_DFU_NRF_STATE_COMPLETED, ciot_dfu_nrf_state(dfu));
+    TEST_ASSERT_EQUAL(CIOT_ERR_OK, ciot_dfu_nrf_stop(dfu));
+    TEST_ASSERT_EQUAL(1, g_link_closes);
+
+    g_opens_at_request = -1;
+    data_link.req_status.state = CIOT_IFACE_REQ_STATE_IDLE;
+    TEST_ASSERT_EQUAL(CIOT_ERR_OK, ciot_dfu_nrf_start_bootloader(dfu, &data_link, 1));
+    TEST_ASSERT_EQUAL(3, g_opens_at_request);
+}
+
 void test_ciot_dfu_nrf(void)
 {
+    RUN_TEST(test_ciot_dfu_nrf_start_bootloader_opens_link_first);
     RUN_TEST(test_ciot_dfu_nrf_reset_starts_new_session_on_open_iface);
     RUN_TEST(test_ciot_dfu_nrf_reset_allows_ping_retry_again);
     RUN_TEST(test_ciot_dfu_nrf_reset_drops_partial_frame);

@@ -319,7 +319,25 @@ ciot_err_t ciot_dfu_nrf_read_file(ciot_dfu_nrf_packet_t *object, const char *nam
 
 ciot_err_t ciot_dfu_nrf_start_bootloader(ciot_dfu_nrf_t self, ciot_iface_t *iface, int sys_id)
 {
+    CIOT_ERR_NULL_CHECK(self);
     CIOT_LOGI(TAG, "Starting bootloader");
+
+    // Open the DFU link before the device resets into the bootloader, so the
+    // line is idle when the bootloader starts its transport. A closed UART may
+    // stop driving its TX pin (ESP32: uart_driver_delete disables the output),
+    // and a bootloader started on that line did not answer the session.
+    // The decoder goes first: the UART only creates its RX task if it has one.
+    ciot_iface_set_decoder(self->cfg.iface, self->decoder);
+    ciot_err_t open_err = self->cfg.iface->process_data(self->cfg.iface, self->cfg.iface_cfg);
+    if (open_err != CIOT_ERR_OK)
+    {
+        self->base.status.error = open_err;
+        self->state = CIOT_DFU_NRF_STATE_ERROR;
+        ciot_dfu_nrf_set_state(self, CIOT_DFU_STATE_ERROR);
+        CIOT_LOGE(TAG, "DFU iface start error: %s", ciot_err_to_message(open_err));
+        return open_err;
+    }
+
     ciot_msg_t req = {
         .has_iface = true,
         .iface.type = CIOT_IFACE_TYPE_SYS,

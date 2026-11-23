@@ -119,6 +119,14 @@ ciot_err_t ciot_dfu_nrf_get_cfg(ciot_dfu_nrf_t self, ciot_dfu_cfg_t *cfg);
 ciot_err_t ciot_dfu_nrf_get_status(ciot_dfu_nrf_t self, ciot_dfu_status_t *status);
 ciot_err_t ciot_dfu_nrf_task(ciot_dfu_nrf_t self);
 ciot_err_t ciot_dfu_nrf_read_file(ciot_dfu_nrf_packet_t *object, const char *name);
+/**
+ * @brief Opens the DFU iface and asks the device, through `iface`, to reset into
+ * its bootloader (SYS request INIT_DFU to `sys_id`).
+ *
+ * The DFU iface is opened first so the line is idle when the bootloader starts.
+ * Call it with no session running (after ciot_dfu_nrf_reset() or
+ * ciot_dfu_nrf_stop()), then ciot_dfu_nrf_start() once the bootloader is up.
+ */
 ciot_err_t ciot_dfu_nrf_start_bootloader(ciot_dfu_nrf_t self, ciot_iface_t *iface, int sys_id);
 ciot_dfu_nrf_state_t ciot_dfu_nrf_state(ciot_dfu_nrf_t self);
 
