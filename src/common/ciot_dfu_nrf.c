@@ -110,7 +110,7 @@ ciot_err_t ciot_dfu_nrf_start(ciot_dfu_nrf_t self, ciot_dfu_cfg_t *cfg)
     return self->base.status.error;
 }
 
-ciot_err_t ciot_dfu_nrf_stop(ciot_dfu_nrf_t self)
+ciot_err_t ciot_dfu_nrf_reset(ciot_dfu_nrf_t self)
 {
     CIOT_ERR_NULL_CHECK(self);
     ciot_iface_set_event_handler(self->cfg.iface, NULL, NULL);
@@ -120,9 +120,21 @@ ciot_err_t ciot_dfu_nrf_stop(ciot_dfu_nrf_t self)
     self->crc.expected = 0;
     self->crc.received = 0;
     self->object.packet = &self->cfg.init_packet;
+    self->object.remaining = 0;
+    self->cfg.init_packet.transferred = false;
+    self->cfg.app_image.transferred = false;
+    self->ping_refused = false;
     self->state = CIOT_DFU_NRF_STATE_IDLE;
     self->last_state = CIOT_DFU_NRF_STATE_IDLE;
     self->base.status.state = CIOT_DFU_STATE_IDLE;
+    ciot_decoder_slip_reset(self->decoder);
+    return CIOT_ERR_OK;
+}
+
+ciot_err_t ciot_dfu_nrf_stop(ciot_dfu_nrf_t self)
+{
+    CIOT_ERR_NULL_CHECK(self);
+    ciot_dfu_nrf_reset(self);
     ciot_msg_data_t data = {
         .which_type = self->cfg.iface_cfg->which_type,
         .common.which_type = CIOT_COMMON_STOP_TAG,

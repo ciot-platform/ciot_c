@@ -16,6 +16,7 @@
 void test_ciot_decoder_s();
 void test_ciot_decoder_slip();
 void test_ciot_crypt();
+void test_ciot_dfu_nrf();
 
 // Queue regression tests
 void test_ciot_queue_starting_discards_unexpected_event_and_continues(void);
@@ -89,7 +90,8 @@ int main(void)
     test_ciot_decoder_s();
     test_ciot_decoder_slip();
     test_ciot_crypt();
-    
+    test_ciot_dfu_nrf();
+
     // Queue regression tests
     RUN_TEST(test_ciot_queue_starting_discards_unexpected_event_and_continues);
     RUN_TEST(test_ciot_queue_custom_msg_handler_error_does_not_leave_dead_item);

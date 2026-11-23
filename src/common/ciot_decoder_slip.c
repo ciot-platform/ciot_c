@@ -59,6 +59,17 @@ ciot_decoder_t ciot_decoder_slip_new(uint8_t *buf, int size)
     return &self->base;
 }
 
+ciot_err_t ciot_decoder_slip_reset(ciot_decoder_t decoder)
+{
+    CIOT_ERR_NULL_CHECK(decoder);
+    ciot_decoder_slip_t self = (ciot_decoder_slip_t)decoder;
+    self->state = CIOT_DECODER_SLIP_STATE_DECODING;
+    self->idx = 0;
+    decoder->state = CIOT_DECODER_STATE_IDLE;
+    decoder->result.size = 0;
+    return CIOT_ERR_OK;
+}
+
 static ciot_err_t ciot_decoder_slip_decode(ciot_decoder_t base, uint8_t byte)
 {
     ciot_decoder_slip_t self = (ciot_decoder_slip_t)base;

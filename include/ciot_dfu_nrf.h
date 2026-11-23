@@ -99,6 +99,19 @@ typedef struct ciot_dfu_nrf *ciot_dfu_nrf_t;
 ciot_dfu_nrf_t ciot_dfu_nrf_new(ciot_dfu_nrf_cfg_t *cfg);
 ciot_err_t ciot_dfu_nrf_start(ciot_dfu_nrf_t self, ciot_dfu_cfg_t *cfg);
 ciot_err_t ciot_dfu_nrf_stop(ciot_dfu_nrf_t self);
+
+/**
+ * @brief Ends the current session without closing the transport iface.
+ *
+ * Clears the session state (states, counters, CRC, current object, the ping retry,
+ * the SLIP decoder) and releases the iface event handler, so the next
+ * ciot_dfu_nrf_start() begins a new session from scratch on the iface that is still
+ * open. ciot_dfu_nrf_stop() does the same and also closes the iface.
+ *
+ * Use it between sessions that reuse the same link, e.g. after a ping-only session
+ * (test mode), which ends in COMPLETED with the iface still open.
+ */
+ciot_err_t ciot_dfu_nrf_reset(ciot_dfu_nrf_t self);
 ciot_err_t ciot_dfu_nrf_set_test_mode(ciot_dfu_nrf_t self, bool enable);
 ciot_err_t ciot_dfu_nrf_init(ciot_dfu_nrf_t self);
 ciot_err_t ciot_dfu_nrf_process_req(ciot_dfu_nrf_t self, ciot_dfu_req_t *req);

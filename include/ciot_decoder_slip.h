@@ -21,6 +21,14 @@ extern "C" {
 
 ciot_decoder_t ciot_decoder_slip_new(uint8_t *buf, int size);
 
+/**
+ * @brief Drops a partially decoded frame and returns the decoder to its initial state.
+ *
+ * Use it before a new exchange on a link that stayed open, so bytes left from the
+ * previous exchange (e.g. a frame cut in the middle) don't corrupt the next frame.
+ */
+ciot_err_t ciot_decoder_slip_reset(ciot_decoder_t decoder);
+
 #ifdef __cplusplus
 }
 #endif
