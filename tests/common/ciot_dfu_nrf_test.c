@@ -262,8 +262,35 @@ void test_ciot_dfu_nrf_start_bootloader_releases_left_over_handler(void)
     TEST_ASSERT_EQUAL(CIOT_DFU_NRF_STATE_SEND_PING, ciot_dfu_nrf_state(dfu)); // from start, not moved by the open
 }
 
+static ciot_err_t app_event_handler(ciot_iface_t *sender, ciot_event_t *event, void *args)
+{
+    return CIOT_ERR_OK;
+}
+
+// INIT_DFU over the DFU link itself (one link shared with the application): the
+// link keeps the application's handler, framing and config until the session starts.
+void test_ciot_dfu_nrf_start_bootloader_leaves_shared_link_alone(void)
+{
+    ciot_dfu_nrf_t dfu = new_dfu();
+    g_link.event_handler = app_event_handler;
+
+    TEST_ASSERT_EQUAL(CIOT_ERR_OK, ciot_dfu_nrf_start_bootloader(dfu, &g_link, 1));
+    TEST_ASSERT_EQUAL(0, g_link_opens);
+    TEST_ASSERT_NULL(g_link.decoder);
+    TEST_ASSERT_EQUAL_PTR(app_event_handler, g_link.event_handler);
+    TEST_ASSERT_GREATER_THAN(0, g_tx_size);
+
+    TEST_ASSERT_EQUAL(CIOT_ERR_OK, start(dfu));
+    TEST_ASSERT_EQUAL(1, g_link_opens);
+    TEST_ASSERT_NOT_NULL(g_link.decoder);
+    send_ping(dfu);
+    answer_ping(0x01);
+    TEST_ASSERT_EQUAL(CIOT_DFU_NRF_STATE_COMPLETED, ciot_dfu_nrf_state(dfu));
+}
+
 void test_ciot_dfu_nrf(void)
 {
+    RUN_TEST(test_ciot_dfu_nrf_start_bootloader_leaves_shared_link_alone);
     RUN_TEST(test_ciot_dfu_nrf_start_drops_bytes_received_before_it);
     RUN_TEST(test_ciot_dfu_nrf_start_bootloader_sends_request_when_open_fails);
     RUN_TEST(test_ciot_dfu_nrf_start_bootloader_releases_left_over_handler);

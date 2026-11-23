@@ -127,7 +127,12 @@ ciot_err_t ciot_dfu_nrf_read_file(ciot_dfu_nrf_packet_t *object, const char *nam
  * @brief Opens the DFU iface and asks the device, through `iface`, to reset into
  * its bootloader (SYS request INIT_DFU to `sys_id`).
  *
- * The DFU iface is opened first so the line is idle when the bootloader starts.
+ * The DFU iface is opened first so the line is idle when the bootloader starts,
+ * unless `iface` is the DFU iface itself: a link shared with the application keeps
+ * its framing and config until ciot_dfu_nrf_start().
+ *
+ * The DFU iface must send STARTED on every start, also when it is already open:
+ * ciot_dfu_nrf_start() waits for it before the ping.
  * Call it with no session running (after ciot_dfu_nrf_reset() or
  * ciot_dfu_nrf_stop()), then ciot_dfu_nrf_start() once the bootloader is up.
  */

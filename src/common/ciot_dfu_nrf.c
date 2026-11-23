@@ -337,12 +337,18 @@ ciot_err_t ciot_dfu_nrf_start_bootloader(ciot_dfu_nrf_t self, ciot_iface_t *ifac
     // would move to SEND_PING before the bootloader is up.
     // A link that can't be opened yet (e.g. one that needs the bootloader running)
     // is opened by ciot_dfu_nrf_start, as before: INIT_DFU still goes out.
-    ciot_iface_set_event_handler(self->cfg.iface, NULL, NULL);
-    ciot_iface_set_decoder(self->cfg.iface, self->decoder);
-    ciot_err_t open_err = self->cfg.iface->process_data(self->cfg.iface, self->cfg.iface_cfg);
-    if (open_err != CIOT_ERR_OK)
+    // When INIT_DFU goes over the DFU link itself, that link is already open and
+    // still belongs to the application (its framing, config and handler): it is
+    // left alone until ciot_dfu_nrf_start.
+    if (iface != self->cfg.iface)
     {
-        CIOT_LOGW(TAG, "DFU iface not opened before the bootloader: %s", ciot_err_to_message(open_err));
+        ciot_iface_set_event_handler(self->cfg.iface, NULL, NULL);
+        ciot_iface_set_decoder(self->cfg.iface, self->decoder);
+        ciot_err_t open_err = self->cfg.iface->process_data(self->cfg.iface, self->cfg.iface_cfg);
+        if (open_err != CIOT_ERR_OK)
+        {
+            CIOT_LOGW(TAG, "DFU iface not opened before the bootloader: %s", ciot_err_to_message(open_err));
+        }
     }
 
     ciot_msg_t req = {
