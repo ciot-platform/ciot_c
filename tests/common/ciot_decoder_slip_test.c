@@ -115,6 +115,21 @@ void test_ciot_decoder_slip_reset_drops_partial_frame()
     TEST_ASSERT_EQUAL_MEMORY(expected, iface.decoder->result.buf, sizeof(expected));
 }
 
+// The generic ciot_decoder_reset reaches the SLIP reset too.
+void test_ciot_decoder_slip_generic_reset()
+{
+    uint8_t buf[32] = {0};
+    uint8_t cut[] = {0x60, 0x03};
+    iface.decoder = ciot_decoder_slip_new(buf, sizeof(buf));
+    for (size_t i = 0; i < sizeof(cut); i++)
+    {
+        iface.decoder->decode(iface.decoder, cut[i]);
+    }
+    TEST_ASSERT_EQUAL(CIOT_ERR_OK, ciot_decoder_reset(iface.decoder));
+    TEST_ASSERT_EQUAL(CIOT_DECODER_STATE_IDLE, iface.decoder->state);
+    TEST_ASSERT_EQUAL(0, iface.decoder->result.size);
+}
+
 // Only a SLIP decoder can be reset: another decoder's object is smaller.
 void test_ciot_decoder_slip_reset_rejects_other_decoder()
 {
@@ -139,4 +154,5 @@ void test_ciot_decoder_slip()
     RUN_TEST(test_ciot_decoder_slip_decode_ok);
     RUN_TEST(test_ciot_decoder_slip_reset_drops_partial_frame);
     RUN_TEST(test_ciot_decoder_slip_reset_rejects_other_decoder);
+    RUN_TEST(test_ciot_decoder_slip_generic_reset);
 }
