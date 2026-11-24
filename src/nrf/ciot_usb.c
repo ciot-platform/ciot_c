@@ -291,6 +291,13 @@ static void ciot_usbd_event_handler(app_usbd_event_type_t event)
         return;
     }
 
+    // Driver events with no ciot meaning (reset, suspend, resume, state changed...) are not sent:
+    // they came as UNKNOWN events, one per step of the enumeration with the host.
+    if (ciot_event.type == CIOT_EVENT_TYPE_UNKNOWN)
+    {
+        return;
+    }
+
     // ciot_event.msg = ciot_msg_get(CIOT__MSG_TYPE__MSG_TYPE_STATUS, &base->iface);
     ciot_usb_get_status(self, &ciot_event.msg.data.usb.status);
     ciot_iface_send_event(&base->iface, &ciot_event);
