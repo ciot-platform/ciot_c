@@ -81,8 +81,6 @@ typedef struct ciot_starter
     uint32_t iface_id;
     bool waiting_result;
     uint64_t timer;
-    bool acked;                    ///< The iface being started sent its ack (STARTED, STOPPED, DONE or ERROR)
-    ciot_event_type_t ack_type;    ///< Type of that ack
 } ciot_starter_t;
 
 typedef struct ciot_receiver

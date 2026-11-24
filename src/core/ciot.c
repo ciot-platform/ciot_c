@@ -91,7 +91,6 @@ ciot_err_t ciot_start(ciot_t self, ciot_cfg_t *cfg)
     self->starter.timer = 0;
     self->starter.iface_id = 0;
     self->starter.waiting_result = false;
-    self->starter.acked = false;
     self->receiver.timeout_timer = 0;
     self->status.state = CIOT_STATE_STARTING;
     CIOT_LOGI(TAG, "CIOT_STATE_STARTING");
@@ -287,17 +286,6 @@ static ciot_err_t ciot_starting_task(ciot_t self)
 
     if (starter->waiting_result)
     {
-        // The ack of the iface being started is kept apart from receiver.event, which any other
-        // event overwrites (e.g. a USB event right after the BLE STARTED on nRF): the start then
-        // waited CIOT_CONFIG_START_TIMEOUT_SECS for an ack that had already come.
-        if (starter->acked)
-        {
-            starter->acked = false;
-            receiver->sender = self->ifaces.list[starter->iface_id];
-            receiver->event.type = starter->ack_type;
-            receiver->event.which_data = 0;
-        }
-
         if (receiver->sender != NULL &&
             ciot_iface_event_is_ack(receiver->event.type) &&
             starter->iface_id == receiver->sender->info.id)
@@ -353,8 +341,6 @@ static ciot_err_t ciot_starting_task(ciot_t self)
 
             if(msg.data.which_type != 0)
             {
-                // An iface may send its ack from inside process_data, before waiting_result is set
-                starter->acked = false;
                 ciot_err_t err = iface->process_data(iface, &msg.data);
                 if (err == CIOT_ERR_OK)
                 {
@@ -608,15 +594,7 @@ static ciot_err_t ciot_iface_event_handler(ciot_iface_t *sender, ciot_event_t *e
         }
     }
 
-    if (self->status.state == CIOT_STATE_STARTING &&
-        sender->info.id == self->starter.iface_id &&
-        ciot_iface_event_is_ack(event->type))
-    {
-        self->starter.acked = true;
-        self->starter.ack_type = event->type;
-    }
-
-    if ((event->type == CIOT_EVENT_TYPE_DATA ||
+    if ((event->type == CIOT_EVENT_TYPE_DATA || 
          event->type == CIOT_EVENT_TYPE_INTERNAL ||
          (event->type == CIOT_EVENT_TYPE_CUSTOM && !event->msg.has_proxy)) && 
          self->iface.event_handler != NULL)
