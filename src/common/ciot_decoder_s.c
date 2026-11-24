@@ -30,6 +30,7 @@ typedef struct ciot_decoder_s *ciot_decoder_s_t;
 static ciot_err_t ciot_decoder_s_decode(ciot_decoder_t base, uint8_t byte);
 static ciot_err_t ciot_decoder_s_encode(ciot_decoder_t base, uint8_t *bytes, int size);
 static ciot_err_t ciot_decoder_s_send(ciot_decoder_t base, ciot_iface_t *iface, uint8_t *bytes, int size);
+static ciot_err_t ciot_decoder_s_reset(ciot_decoder_t base);
 
 struct ciot_decoder_s
 {
@@ -52,7 +53,21 @@ ciot_decoder_t ciot_decoder_s_new(uint8_t *buf, int size)
     self->base.decode = ciot_decoder_s_decode;
     self->base.encode = ciot_decoder_s_encode;
     self->base.send = ciot_decoder_s_send;
+    self->base.reset = ciot_decoder_s_reset;
     return &self->base;
+}
+
+// Drops a partial frame: without it, a frame cut in the middle takes the bytes of the next
+// frames as its payload, and the next valid frame is lost.
+static ciot_err_t ciot_decoder_s_reset(ciot_decoder_t base)
+{
+    CIOT_ERR_NULL_CHECK(base);
+    ciot_decoder_s_t self = (ciot_decoder_s_t)base;
+    self->state = CIOT_DECODER_S_STATE_WAIT_START_CH;
+    self->idx = 0;
+    base->state = CIOT_DECODER_STATE_IDLE;
+    base->result.size = 0;
+    return CIOT_ERR_OK;
 }
 
 static ciot_err_t ciot_decoder_s_decode(ciot_decoder_t base, uint8_t byte)
