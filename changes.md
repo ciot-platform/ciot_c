@@ -2,6 +2,12 @@
 
 ### Changes
 
+**Start: the ack of an interface is no longer lost when another event comes right after it:**
+
+* `ciot_start` brings the ifaces up one by one and waits for the ack (`STARTED`, `STOPPED`, `DONE` or `ERROR`) of each, up to `CIOT_CONFIG_START_TIMEOUT_SECS` (5 s). The ack was only looked for in `receiver.event`, a single slot that any later event overwrites. On nRF52840 the BLE iface acks its start from inside the start, and a USB event came right after it: the start waited the whole 5 s for an ack that had already come, and the core ignored every message until then (the start ended at about 6.5 s of uptime instead of 2 s). The application's handler also never got that `STARTED`.
+* The core now keeps the ack of the iface being started in the starter (`ciot_starter_t.acked`, `ack_type`) when the event arrives, and the start goes on with it (`include/ciot.h`, `src/core/ciot.c`). Checked on the nRF with a debugger: no start timeout, and the core started at 2 s.
+* Tests: an iface that acks its start, followed by an event of another iface, still completes the start and the application gets its `STARTED` once (`tests/common/ciot_starter_test.c`).
+
 **Decoder reset: a frame cut in the middle no longer takes the next frame:**
 
 * Added `ciot_decoder_reset(decoder)` and the `reset` member of `struct ciot_decoder`: drops the frame being decoded, so the next byte is read as the start of a new frame. The `s` decoder (`{` + size + payload + `}`) and the SLIP decoder implement it; `ciot_decoder_slip_reset` stays (`include/ciot_decoder.h`, `src/common/ciot_decoder_s.c`, `src/common/ciot_decoder_slip.c`).
