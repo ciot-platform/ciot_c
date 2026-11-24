@@ -2,11 +2,12 @@
 
 ### Changes
 
-**Start: the ack of an interface is no longer lost when another event comes right after it:**
+**Start: an interface that already started no longer replaces the ack of the one being started:**
 
-* `ciot_start` brings the ifaces up one by one and waits for the ack (`STARTED`, `STOPPED`, `DONE` or `ERROR`) of each, up to `CIOT_CONFIG_START_TIMEOUT_SECS` (5 s). The ack was only looked for in `receiver.event`, a single slot that any later event overwrites. On nRF52840 the BLE iface acks its start from inside the start, and a USB event came right after it: the start waited the whole 5 s for an ack that had already come, and the core ignored every message until then (the start ended at about 6.5 s of uptime instead of 2 s). The application's handler also never got that `STARTED`.
-* The core now keeps the ack of the iface being started in the starter (`ciot_starter_t.acked`, `ack_type`) when the event arrives, and the start goes on with it (`include/ciot.h`, `src/core/ciot.c`). Checked on the nRF with a debugger: no start timeout, and the core started at 2 s.
-* Tests: an iface that acks its start, followed by an event of another iface, still completes the start and the application gets its `STARTED` once (`tests/common/ciot_starter_test.c`).
+* `ciot_start` brings the ifaces up one by one and waits in `receiver.event` for the ack of each, up to `CIOT_CONFIG_START_TIMEOUT_SECS` (5 s). Any event of any iface was written there while starting. An iface that already started can still send events on its own: on nRF52840, the USB sends one per step of the enumeration with the host. One of them replaced the `STARTED` of the BLE iface, sent from inside its start, and the start waited the whole 5 s for it; the core ignored every message until about 6.5 s of uptime. While starting, events of an iface other than the one being started now don't touch `receiver.event` (`src/core/ciot.c`). The starter never delivered them anyway.
+* nRF USB (`src/nrf/ciot_usb.c`): driver events with no ciot meaning (reset, suspend, resume, started, state changed) are no longer sent to the core as `CIOT_EVENT_TYPE_UNKNOWN` events.
+* Checked with a debugger on an nRF52840 (BLE, USB and UART ifaces): no start timeout, and the core starts at 2 s of uptime (before: 6 s, waiting for the BLE ack). On an ESP32 gateway, the start and the application handlers are unchanged.
+* Tests: an iface that already started sends an `UNKNOWN` event and a `STARTED` while another one starts; the start goes on, and the application gets the `STARTED` of the iface being started once, with its iface and data (`tests/common/ciot_starter_test.c`).
 
 **Decoder reset: a frame cut in the middle no longer takes the next frame:**
 
