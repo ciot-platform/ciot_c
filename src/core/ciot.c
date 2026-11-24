@@ -641,10 +641,20 @@ static ciot_err_t ciot_iface_event_handler(ciot_iface_t *sender, ciot_event_t *e
         CIOT_LOGE(TAG, "ciot core is not started. %s(%lu) evt:%s ignored", ciot_iface_to_str(sender), (long unsigned int)sender->info.id, ciot_event_to_str(event));
         return ciot_reject_busy(self, sender, event);
     }
-    
+
+    // While starting, receiver.event belongs to the iface being started: the starter waits there
+    // for its ack. An iface that already started can still send events on its own (e.g. the nRF
+    // USB during the enumeration with the host); written here, they replaced the ack, and the
+    // start waited CIOT_CONFIG_START_TIMEOUT_SECS for it. The starter never delivered them anyway.
+    if (self->status.state == CIOT_STATE_STARTING && sender->info.id != self->starter.iface_id)
+    {
+        CIOT_LOGD(TAG, "Starting: %s(%lu) evt:%s ignored", ciot_iface_to_str(sender), (long unsigned int)sender->info.id, ciot_event_to_str(event));
+        return CIOT_ERR_OK;
+    }
+
     receiver->event = *event;
     receiver->sender = sender;
-    
+
     if (event->type == CIOT_EVENT_TYPE_MSG)
     {
         CIOT_ERR_RETURN(ciot_bytes_received(sender, event->raw.bytes, event->raw.size, &receiver->event));
