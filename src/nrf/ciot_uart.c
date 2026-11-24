@@ -18,6 +18,7 @@
 #include "app_util_platform.h"
 #include "ciot_uart.h"
 #include "ciot_err.h"
+#include "ciot_decoder.h"
 
 #ifndef CIOT_CONFIG_UART_TX_BUF_SIZE
 #define CIOT_CONFIG_UART_TX_BUF_SIZE 256
@@ -187,6 +188,20 @@ ciot_err_t ciot_uart_read_bytes(ciot_uart_t self, uint8_t *bytes, int size)
 size_t ciot_uart_available(ciot_uart_t self)
 {
     return 0;
+}
+
+// The bytes are decoded in the UART interrupt (ciot_uart_event_handler): the reset runs with it masked.
+ciot_err_t ciot_uart_drop_rx_frame(ciot_uart_t self)
+{
+    CIOT_ERR_NULL_CHECK(self);
+    if (self->base.iface.decoder == NULL)
+    {
+        return CIOT_ERR_OK;
+    }
+    CRITICAL_REGION_ENTER();
+    ciot_decoder_reset(self->base.iface.decoder);
+    CRITICAL_REGION_EXIT();
+    return CIOT_ERR_OK;
 }
 
 ciot_err_t ciot_uart_task(ciot_uart_t self)

@@ -51,6 +51,12 @@ ciot_err_t ciot_uart_task(ciot_uart_t self)
     return CIOT_ERR_NOT_IMPLEMENTED;
 }
 
+ciot_err_t ciot_uart_drop_rx_frame(ciot_uart_t self)
+{
+    CIOT_ERR_NULL_CHECK(self);
+    return CIOT_ERR_NOT_IMPLEMENTED;
+}
+
 ciot_err_t ciot_uart_send_bytes(ciot_uart_t self, uint8_t *bytes, int size)
 {
     CIOT_ERR_NULL_CHECK(self);

@@ -41,6 +41,17 @@ ciot_err_t ciot_uart_get_cfg(ciot_uart_t self, ciot_uart_cfg_t *cfg);
 ciot_err_t ciot_uart_get_status(ciot_uart_t self, ciot_uart_status_t *status);
 ciot_err_t ciot_uart_send_bytes(ciot_uart_t self, uint8_t *data, int size);
 ciot_err_t ciot_uart_read_bytes(ciot_uart_t self, uint8_t *data, int size);
+
+/**
+ * @brief Drops the frame the iface decoder is reading, in order with the received bytes.
+ *
+ * Use it after the device on the other side was reset, when it may have stopped in the middle
+ * of a frame: the bytes received before this call are decoded first, then the decoder is reset,
+ * and the next byte is read as the start of a new frame. The reset runs where the bytes are
+ * decoded (ESP32: the UART task; nRF: with the UART interrupt masked), so it never races the
+ * decoder. Nothing received is discarded.
+ */
+ciot_err_t ciot_uart_drop_rx_frame(ciot_uart_t self);
 #if defined(CIOT_PLATFORM_NRF)
 __attribute__((deprecated("ciot_uart_available() is not supported on NRF and always returns 0.")))
 #endif

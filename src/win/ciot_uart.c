@@ -14,6 +14,7 @@
 #if CIOT_CONFIG_FEATURE_UART == 1 && defined(CIOT_PLATFORM_WIN)
  
 #include "ciot_uart.h"
+#include "ciot_decoder.h"
 #include "winsock2.h"
 #include "windows.h"
 #include "mongoose.h"
@@ -164,6 +165,17 @@ ciot_err_t ciot_uart_task(ciot_uart_t self)
         ciot_uart_process_status(self, &status);
     }
 
+    return CIOT_ERR_OK;
+}
+
+// The bytes are decoded in ciot_uart_task, in the same loop as the callers (mongoose, ciot): a direct reset.
+ciot_err_t ciot_uart_drop_rx_frame(ciot_uart_t self)
+{
+    CIOT_ERR_NULL_CHECK(self);
+    if (self->base.iface.decoder != NULL)
+    {
+        ciot_decoder_reset(self->base.iface.decoder);
+    }
     return CIOT_ERR_OK;
 }
 

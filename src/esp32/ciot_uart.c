@@ -196,6 +196,25 @@ ciot_err_t ciot_uart_read_bytes(ciot_uart_t self, uint8_t *bytes, int size)
     return read == size ? CIOT_ERR_OK : CIOT_ERR_TIMEOUT;
 }
 
+// Event of this driver's own queue that tells the UART task to reset the decoder. It goes after the
+// UART_DATA events already queued, so the bytes received before it are decoded first.
+#define CIOT_UART_EVENT_DROP_RX_FRAME ((uart_event_type_t)UART_EVENT_MAX)
+
+ciot_err_t ciot_uart_drop_rx_frame(ciot_uart_t self)
+{
+    CIOT_ERR_NULL_CHECK(self);
+    if (self->base.iface.decoder == NULL)
+    {
+        return CIOT_ERR_OK;
+    }
+    if (self->queue == NULL)
+    {
+        return CIOT_ERR_INVALID_STATE;
+    }
+    uart_event_t event = { .type = CIOT_UART_EVENT_DROP_RX_FRAME };
+    return xQueueSendToBack(self->queue, &event, 0) == pdTRUE ? CIOT_ERR_OK : CIOT_ERR_BUSY;
+}
+
 size_t ciot_uart_available(ciot_uart_t self)
 {
     if(self == NULL)
@@ -386,6 +405,9 @@ static void ciot_uart_event_handler(ciot_uart_t self, uart_event_t *event)
         ESP_LOGE(TAG, "UART_BREAK[%ld]", base->cfg.num);
         base->status.error = CIOT_UART_ERROR_BREAK;
         ciot_uart_drop_input(self);
+        break;
+    case CIOT_UART_EVENT_DROP_RX_FRAME:
+        ciot_decoder_reset(base->iface.decoder);
         break;
     case UART_FRAME_ERR:
         ESP_LOGE(TAG, "UART_FRAME_ERR[%ld]", base->cfg.num);
