@@ -15,6 +15,7 @@
 
 void test_ciot_decoder_s();
 void test_ciot_decoder_slip();
+void test_ciot_starter();
 void test_ciot_crypt();
 void test_ciot_dfu_nrf();
 
@@ -89,6 +90,7 @@ int main(void)
     // Original tests
     test_ciot_decoder_s();
     test_ciot_decoder_slip();
+    test_ciot_starter();
     test_ciot_crypt();
     test_ciot_dfu_nrf();
 
