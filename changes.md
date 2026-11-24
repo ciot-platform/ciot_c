@@ -2,6 +2,13 @@
 
 ### Changes
 
+**Decoder reset: a frame cut in the middle no longer takes the next frame:**
+
+* Added `ciot_decoder_reset(decoder)` and the `reset` member of `struct ciot_decoder`: drops the frame being decoded, so the next byte is read as the start of a new frame. The `s` decoder (`{` + size + payload + `}`) and the SLIP decoder implement it; `ciot_decoder_slip_reset` stays (`include/ciot_decoder.h`, `src/common/ciot_decoder_s.c`, `src/common/ciot_decoder_slip.c`).
+* The `s` decoder has no resync: after the first bytes of a frame (start char and size), it reads the next bytes as that frame's payload. When the other side resets in the middle of a frame (seen on an ESP32 + nRF52840 gateway when the nRF resets into its bootloader on `INIT_DFU`), the next valid frame was read as the rest of the cut one and lost. The application can call `ciot_decoder_reset` when it knows the stream restarted (e.g. after resetting the other device).
+* ESP32: `UART_BREAK`, `UART_FRAME_ERR`, `UART_FIFO_OVF` and `UART_BUFFER_FULL` already flushed the input; they now also reset the iface decoder, whose partial frame lost its rest in the flush (`src/esp32/ciot_uart.c`).
+* Tests: a cut frame takes the next frame without a reset; after `ciot_decoder_reset` the next frame decodes; the generic reset reaches the SLIP decoder; a NULL decoder returns `CIOT_ERR_NULL_ARG`.
+
 **nRF DFU: new session on an open iface (#106):**
 
 * Added `ciot_dfu_nrf_reset(self)`: ends the current session without closing the transport iface. It clears the session state (states, counters, CRC, current object, the ping retry, the SLIP decoder) and releases the iface event handler, so the next `ciot_dfu_nrf_start` begins a new session on the iface that is still open. `ciot_dfu_nrf_stop` now runs the same reset and then closes the iface, as before (`include/ciot_dfu_nrf.h`, `src/common/ciot_dfu_nrf.c`).
