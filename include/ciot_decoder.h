@@ -43,6 +43,9 @@ struct ciot_decoder {
     ciot_decoder_encode_fn *encode;
     ciot_decoder_send_fn *send;
     ciot_decoder_result_t result;
+    // Optional: drops the frame being decoded (see ciot_decoder_reset). The decoder constructors
+    // set it; a decoder built elsewhere must zero the struct (e.g. calloc) or set it, so an unset
+    // member reads as NULL and not as garbage.
     ciot_decoder_reset_fn *reset;
 };
 
@@ -51,13 +54,19 @@ struct ciot_decoder {
  *
  * Use it when the byte stream breaks (e.g. a UART line error, or the other side reset in the
  * middle of a frame): otherwise the decoder reads the next frames as the rest of the cut one.
- * A NULL decoder, or one without reset, is left alone.
+ *
+ * @return CIOT_ERR_NULL_ARG for a NULL decoder, CIOT_ERR_NOT_IMPLEMENTED for a decoder without
+ * reset (both are left alone), or the result of the decoder's reset.
  */
 static inline ciot_err_t ciot_decoder_reset(ciot_decoder_t self)
 {
-    if (self == NULL || self->reset == NULL)
+    if (self == NULL)
     {
         return CIOT_ERR_NULL_ARG;
+    }
+    if (self->reset == NULL)
+    {
+        return CIOT_ERR_NOT_IMPLEMENTED;
     }
     return self->reset(self);
 }

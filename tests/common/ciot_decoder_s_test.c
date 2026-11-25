@@ -219,6 +219,14 @@ void test_ciot_decoder_reset_null()
     TEST_ASSERT_EQUAL(CIOT_ERR_NULL_ARG, ciot_decoder_reset(NULL));
 }
 
+// A decoder without reset says so and keeps its frame.
+void test_ciot_decoder_reset_not_implemented()
+{
+    struct ciot_decoder decoder = { .state = CIOT_DECODER_STATE_DECODING };
+    TEST_ASSERT_EQUAL(CIOT_ERR_NOT_IMPLEMENTED, ciot_decoder_reset(&decoder));
+    TEST_ASSERT_EQUAL(CIOT_DECODER_STATE_DECODING, decoder.state);
+}
+
 void test_ciot_decoder_s()
 {
     RUN_TEST(test_ciot_decoder_s_decode_buffer_null);
@@ -232,4 +240,5 @@ void test_ciot_decoder_s()
     RUN_TEST(test_ciot_decoder_s_cut_frame_eats_next_frame);
     RUN_TEST(test_ciot_decoder_s_reset_drops_partial_frame);
     RUN_TEST(test_ciot_decoder_reset_null);
+    RUN_TEST(test_ciot_decoder_reset_not_implemented);
 }
