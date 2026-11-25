@@ -2,6 +2,21 @@
 
 ### Changes
 
+**Start: an interface that already started no longer replaces the ack of the one being started:**
+
+* `ciot_start` brings the ifaces up one by one and waits in `receiver.event` for the ack of each, up to `CIOT_CONFIG_START_TIMEOUT_SECS` (5 s). Any event of any iface was written there while starting. An iface that already started can still send events on its own: on nRF52840, the USB sends one per step of the enumeration with the host. One of them replaced the `STARTED` of the BLE iface, sent from inside its start, and the start waited the whole 5 s for it; the core ignored every message until about 6.5 s of uptime. While starting, events of an iface other than the one being started now don't touch `receiver.event` (`src/core/ciot.c`). The starter never delivered them anyway.
+* nRF USB (`src/nrf/ciot_usb.c`): driver events with no ciot meaning (reset, suspend, resume, started, state changed) are no longer sent to the core as `CIOT_EVENT_TYPE_UNKNOWN` events.
+* Checked with a debugger on an nRF52840 (BLE, USB and UART ifaces): no start timeout, and the core starts at 2 s of uptime (before: 6 s, waiting for the BLE ack). On an ESP32 gateway, the start and the application handlers are unchanged.
+* Tests: an iface that already started sends an `UNKNOWN` event and a `STARTED` while another one starts; the start goes on, and the application gets the `STARTED` of the iface being started once, with its iface and data (`tests/common/ciot_starter_test.c`).
+
+**Decoder reset: a frame cut in the middle no longer takes the next frame:**
+
+* Added `ciot_decoder_reset(decoder)` and the `reset` member of `struct ciot_decoder`: drops the frame being decoded, so the next byte is read as the start of a new frame. The `s` decoder (`{` + size + payload + `}`) and the SLIP decoder implement it; `ciot_decoder_slip_reset` stays (`include/ciot_decoder.h`, `src/common/ciot_decoder_s.c`, `src/common/ciot_decoder_slip.c`).
+* The `s` decoder has no resync: after the first bytes of a frame (start char and size), it reads the next bytes as that frame's payload. When the other side resets in the middle of a frame (seen on an ESP32 + nRF52840 gateway when the nRF resets into its bootloader on `INIT_DFU`), the next valid frame was read as the rest of the cut one and lost. The application can call `ciot_decoder_reset` when it knows the stream restarted (e.g. after resetting the other device).
+* ESP32: `UART_BREAK`, `UART_FRAME_ERR`, `UART_FIFO_OVF` and `UART_BUFFER_FULL` already flushed the input; they now also reset the iface decoder, whose partial frame lost its rest in the flush (`src/esp32/ciot_uart.c`).
+* Added `ciot_uart_drop_rx_frame(uart)`: drops the frame the iface decoder is reading, in order with the received bytes, where they are decoded. ESP32: an event in the UART driver queue, handled by the UART task after the `UART_DATA` events already queued (nothing received is discarded, and no other task touches the decoder). nRF: a reset with the UART interrupt masked. Windows: a direct reset (bytes are decoded in `ciot_uart_task`). Linux, ESP8266 and default: `CIOT_ERR_NOT_IMPLEMENTED`, as their other UART functions (`include/ciot_uart.h`, `src/*/ciot_uart.c`). The application calls it after resetting the device on the other side.
+* Tests: a cut frame takes the next frame without a reset; after `ciot_decoder_reset` the next frame decodes; the generic reset reaches the SLIP decoder; a NULL decoder returns `CIOT_ERR_NULL_ARG`, and a decoder without `reset` returns `CIOT_ERR_NOT_IMPLEMENTED` and keeps its frame.
+
 **nRF DFU: new session on an open iface (#106):**
 
 * Added `ciot_dfu_nrf_reset(self)`: ends the current session without closing the transport iface. It clears the session state (states, counters, CRC, current object, the ping retry, the SLIP decoder) and releases the iface event handler, so the next `ciot_dfu_nrf_start` begins a new session on the iface that is still open. `ciot_dfu_nrf_stop` now runs the same reset and then closes the iface, as before (`include/ciot_dfu_nrf.h`, `src/common/ciot_dfu_nrf.c`).

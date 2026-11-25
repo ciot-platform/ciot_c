@@ -170,6 +170,63 @@ void test_ciot_decoder_s_send_too_big()
     TEST_ASSERT_EQUAL(0, send_calls);
 }
 
+// A frame cut in the middle: without a reset, the next frame is read as its payload and lost.
+void test_ciot_decoder_s_cut_frame_eats_next_frame()
+{
+    ciot_err_t err = CIOT_ERR_OK;
+    uint8_t buf[64] = {0};
+    uint8_t cut[] = { '{', 0x26, 0x00, 0x12, 0x04 };
+    uint8_t next[] = { '{', 0x03, 0x00, 0x0A, 0x0B, 0x0C, '}' };
+    iface.decoder = ciot_decoder_s_new(buf, sizeof(buf));
+
+    for (size_t i = 0; i < sizeof(cut); i++) iface.decoder->decode(iface.decoder, cut[i]);
+    for (size_t i = 0; i < sizeof(next); i++)
+    {
+        err = iface.decoder->decode(iface.decoder, next[i]);
+        TEST_ASSERT_NOT_EQUAL(CIOT_DECODER_STATE_DONE, iface.decoder->state);
+    }
+    TEST_ASSERT_EQUAL(CIOT_ERR_OK, err);
+}
+
+// After the reset, the bytes of the cut frame are dropped and the next frame decodes.
+void test_ciot_decoder_s_reset_drops_partial_frame()
+{
+    ciot_err_t err = CIOT_ERR_OK;
+    uint8_t buf[64] = {0};
+    uint8_t cut[] = { '{', 0x26, 0x00, 0x12, 0x04 };
+    uint8_t next[] = { '{', 0x03, 0x00, 0x0A, 0x0B, 0x0C, '}' };
+    uint8_t expected[] = { 0x0A, 0x0B, 0x0C };
+    iface.decoder = ciot_decoder_s_new(buf, sizeof(buf));
+
+    for (size_t i = 0; i < sizeof(cut); i++) iface.decoder->decode(iface.decoder, cut[i]);
+    TEST_ASSERT_EQUAL(CIOT_ERR_OK, ciot_decoder_reset(iface.decoder));
+    TEST_ASSERT_EQUAL(CIOT_DECODER_STATE_IDLE, iface.decoder->state);
+
+    for (size_t i = 0; i < sizeof(next); i++)
+    {
+        err = iface.decoder->decode(iface.decoder, next[i]);
+        if (err != CIOT_ERR_OK) break;
+    }
+    TEST_ASSERT_EQUAL(CIOT_ERR_OK, err);
+    TEST_ASSERT_EQUAL(CIOT_DECODER_STATE_DONE, iface.decoder->state);
+    TEST_ASSERT_EQUAL(sizeof(expected), iface.decoder->result.size);
+    TEST_ASSERT_EQUAL_MEMORY(expected, iface.decoder->result.buf, sizeof(expected));
+}
+
+// The generic reset refuses a NULL decoder instead of crashing (e.g. a UART without decoder).
+void test_ciot_decoder_reset_null()
+{
+    TEST_ASSERT_EQUAL(CIOT_ERR_NULL_ARG, ciot_decoder_reset(NULL));
+}
+
+// A decoder without reset says so and keeps its frame.
+void test_ciot_decoder_reset_not_implemented()
+{
+    struct ciot_decoder decoder = { .state = CIOT_DECODER_STATE_DECODING };
+    TEST_ASSERT_EQUAL(CIOT_ERR_NOT_IMPLEMENTED, ciot_decoder_reset(&decoder));
+    TEST_ASSERT_EQUAL(CIOT_DECODER_STATE_DECODING, decoder.state);
+}
+
 void test_ciot_decoder_s()
 {
     RUN_TEST(test_ciot_decoder_s_decode_buffer_null);
@@ -180,4 +237,8 @@ void test_ciot_decoder_s()
     RUN_TEST(test_ciot_decoder_s_send_max_size_frame_decodes);
     RUN_TEST(test_ciot_decoder_s_send_propagates_error);
     RUN_TEST(test_ciot_decoder_s_send_too_big);
+    RUN_TEST(test_ciot_decoder_s_cut_frame_eats_next_frame);
+    RUN_TEST(test_ciot_decoder_s_reset_drops_partial_frame);
+    RUN_TEST(test_ciot_decoder_reset_null);
+    RUN_TEST(test_ciot_decoder_reset_not_implemented);
 }

@@ -56,6 +56,7 @@ ciot_decoder_t ciot_decoder_slip_new(uint8_t *buf, int size)
     self->base.decode = ciot_decoder_slip_decode;
     self->base.encode = ciot_decoder_slip_encode;
     self->base.send = ciot_decoder_slip_send;
+    self->base.reset = ciot_decoder_slip_reset;
     return &self->base;
 }
 

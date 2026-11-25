@@ -16,6 +16,7 @@
 #include <stdlib.h>
 #include "ciot_uart.h"
 #include "ciot_err.h"
+#include "ciot_decoder.h"
 
 #include "driver/uart.h"
 #include "soc/soc_caps.h"
@@ -195,6 +196,25 @@ ciot_err_t ciot_uart_read_bytes(ciot_uart_t self, uint8_t *bytes, int size)
     return read == size ? CIOT_ERR_OK : CIOT_ERR_TIMEOUT;
 }
 
+// Event of this driver's own queue that tells the UART task to reset the decoder. It goes after the
+// UART_DATA events already queued, so the bytes received before it are decoded first.
+#define CIOT_UART_EVENT_DROP_RX_FRAME ((uart_event_type_t)UART_EVENT_MAX)
+
+ciot_err_t ciot_uart_drop_rx_frame(ciot_uart_t self)
+{
+    CIOT_ERR_NULL_CHECK(self);
+    if (self->base.iface.decoder == NULL)
+    {
+        return CIOT_ERR_OK;
+    }
+    if (self->queue == NULL)
+    {
+        return CIOT_ERR_INVALID_STATE;
+    }
+    uart_event_t event = { .type = CIOT_UART_EVENT_DROP_RX_FRAME };
+    return xQueueSendToBack(self->queue, &event, 0) == pdTRUE ? CIOT_ERR_OK : CIOT_ERR_BUSY;
+}
+
 size_t ciot_uart_available(ciot_uart_t self)
 {
     if(self == NULL)
@@ -335,6 +355,19 @@ static ciot_err_t ciot_uart_get_stop_bits(ciot_uart_stop_bits_t stop_bits, uart_
     }
 }
 
+// After a line error the bytes received so far are dropped, and so is the frame the decoder was
+// reading: its rest is gone. Kept, it would take the next frame as its payload and lose it (e.g.
+// the other side reset in the middle of a frame, which shows up here as a break).
+static void ciot_uart_drop_input(ciot_uart_t self)
+{
+    uart_flush_input(self->base.cfg.num);
+    xQueueReset(self->queue);
+    if (self->base.iface.decoder != NULL)
+    {
+        ciot_decoder_reset(self->base.iface.decoder);
+    }
+}
+
 static void ciot_uart_event_handler(ciot_uart_t self, uart_event_t *event)
 {
     ciot_uart_base_t *base = &self->base;
@@ -354,8 +387,7 @@ static void ciot_uart_event_handler(ciot_uart_t self, uart_event_t *event)
     case UART_FIFO_OVF:
         ESP_LOGE(TAG, "UART_FIFO_OVF[%ld]", base->cfg.num);
         base->status.error = CIOT_UART_ERROR_FIFO_OVERFLOW;
-        uart_flush_input(base->cfg.num);
-        xQueueReset(self->queue);
+        ciot_uart_drop_input(self);
         break;
     case UART_BUFFER_FULL:
         esp_err_t esp_err = uart_get_buffered_data_len(base->cfg.num, &rx_buffer_used);
@@ -367,20 +399,20 @@ static void ciot_uart_event_handler(ciot_uart_t self, uart_event_t *event)
                  (unsigned)CIOT_CONFIG_UART_RX_BUF_SIZE,
                   esp_err == ESP_OK ? "" : " (uart_get_buffered_data_len failed)");
         base->status.error = CIOT_UART_ERROR_BUFFER_FULL;
-        uart_flush_input(base->cfg.num);
-        xQueueReset(self->queue);
+        ciot_uart_drop_input(self);
         break;
     case UART_BREAK:
         ESP_LOGE(TAG, "UART_BREAK[%ld]", base->cfg.num);
         base->status.error = CIOT_UART_ERROR_BREAK;
-        uart_flush_input(base->cfg.num);
-        xQueueReset(self->queue);
+        ciot_uart_drop_input(self);
+        break;
+    case CIOT_UART_EVENT_DROP_RX_FRAME:
+        ciot_decoder_reset(base->iface.decoder);
         break;
     case UART_FRAME_ERR:
         ESP_LOGE(TAG, "UART_FRAME_ERR[%ld]", base->cfg.num);
         base->status.error = CIOT_UART_ERROR_FRAME;
-        uart_flush_input(base->cfg.num);
-        xQueueReset(self->queue);
+        ciot_uart_drop_input(self);
         break;
     default:
         ESP_LOGW(TAG, "unhandled event: %d", event->type);
